@@ -2,32 +2,23 @@
 
 namespace Mordomus\Maintenance\Http\Controllers;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Mordomus\Http\Controllers\Controller;
-use Mordomus\Http\Pagination\OffsetPagination;
-use Mordomus\Maintenance\Http\Presenters\RoomPresenter;
+use Mordomus\Maintenance\Contracts\Services\RoomServiceInterface;
+use Mordomus\Maintenance\Http\Requests\DestroyRoomRequest;
+use Mordomus\Maintenance\Http\Requests\IndexRoomsRequest;
 use Mordomus\Maintenance\Http\Requests\ReorderRoomsRequest;
+use Mordomus\Maintenance\Http\Requests\ShowRoomRequest;
 use Mordomus\Maintenance\Http\Requests\StoreRoomRequest;
 use Mordomus\Maintenance\Http\Requests\UpdateRoomRequest;
-use Mordomus\Maintenance\Models\Room;
-use Mordomus\Maintenance\Services\RoomOrder;
 use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\PageMeta;
 use Mordomus\OpenApi\Schemas\Room as RoomSchema;
 use OpenApi\Attributes as OA;
 
-/**
- * Todas as queries passam pelo escopo global do tenant; um id de outra
- * residência simplesmente não existe aqui e vira 404.
- */
 class RoomController extends Controller
 {
-    public function __construct(
-        private readonly RoomPresenter $presenter,
-        private readonly RoomOrder $order,
-    ) {}
+    public function __construct(private readonly RoomServiceInterface $rooms) {}
 
     #[OA\Get(
         path: '/api/v1/maintenance/rooms',
@@ -50,20 +41,9 @@ class RoomController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function index(Request $request): JsonResponse
+    public function index(IndexRoomsRequest $request): JsonResponse
     {
-        $pagination = OffsetPagination::from($request);
-
-        $rooms = $this->baseQuery($request)
-            ->orderBy('sort_order')
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->paginate($pagination->perPage, ['*'], 'page', $pagination->page);
-
-        return response()->json([
-            'data' => $this->presenter->collection($rooms->getCollection()),
-            'meta' => $pagination->meta($rooms->total(), $rooms->lastPage()),
-        ]);
+        return response()->json($this->rooms->index($request));
     }
 
     #[OA\Get(
@@ -83,11 +63,9 @@ class RoomController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function show(Request $request, string $room): JsonResponse
+    public function show(ShowRoomRequest $request, string $room): JsonResponse
     {
-        return response()->json([
-            'data' => $this->presenter->make($this->findOrFail($room, $request)),
-        ]);
+        return response()->json($this->rooms->show($request, $room));
     }
 
     #[OA\Post(
@@ -113,17 +91,7 @@ class RoomController extends Controller
     )]
     public function store(StoreRoomRequest $request): JsonResponse
     {
-        $sortOrder = $request->has('sort_order')
-            ? $request->integer('sort_order')
-            : $this->order->nextSortOrder();
-
-        $room = Room::create([
-            'name' => $request->string('name')->toString(),
-            'icon' => $request->input('icon'),
-            'sort_order' => $sortOrder,
-        ]);
-
-        return response()->json(['data' => $this->presenter->make($room)], 201);
+        return response()->json($this->rooms->store($request), 201);
     }
 
     #[OA\Patch(
@@ -152,16 +120,7 @@ class RoomController extends Controller
     )]
     public function update(UpdateRoomRequest $request, string $room): JsonResponse
     {
-        $room = $this->findOrFail($room, $request);
-        $room->fill($request->only(['name', 'icon', 'sort_order']));
-        $room->save();
-
-        if ($request->has('archived')) {
-            $request->boolean('archived') ? $room->archive() : $room->restore();
-            $room->refresh();
-        }
-
-        return response()->json(['data' => $this->presenter->make($room)]);
+        return response()->json($this->rooms->update($request, $room));
     }
 
     #[OA\Delete(
@@ -182,12 +141,9 @@ class RoomController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function destroy(Request $request, string $room): JsonResponse
+    public function destroy(DestroyRoomRequest $request, string $room): JsonResponse
     {
-        $room = $this->findOrFail($room, $request);
-        $room->archive();
-
-        return response()->json(['data' => $this->presenter->make($room), 'archived' => true]);
+        return response()->json($this->rooms->destroy($request, $room));
     }
 
     #[OA\Put(
@@ -211,42 +167,6 @@ class RoomController extends Controller
     )]
     public function order(ReorderRoomsRequest $request): JsonResponse
     {
-        $given = collect($request->input('ids'))->sort()->values()->all();
-        $expected = $this->order->activeIds();
-
-        if ($given !== $expected) {
-            return $this->error(
-                $request,
-                422,
-                'validation_failed',
-                'A lista de ids precisa ser exatamente os cômodos não arquivados da residência.',
-                ['expected' => $expected, 'received' => $given],
-            );
-        }
-
-        $this->order->reorder($request->input('ids'));
-
-        return response()->json([
-            'data' => $this->presenter->collection($this->order->ordered()),
-        ]);
-    }
-
-    private function baseQuery(Request $request): Builder
-    {
-        $query = Room::query();
-
-        if ($request->boolean('include_archived')) {
-            return $query;
-        }
-
-        return $query->active();
-    }
-
-    private function findOrFail(string $id, Request $request): Room
-    {
-        return Room::query()
-            ->where('id', $id)
-            ->where('tenant_id', (string) $this->activeTenantId($request))
-            ->firstOrFail();
+        return response()->json($this->rooms->order($request));
     }
 }

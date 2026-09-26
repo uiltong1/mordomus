@@ -1,6 +1,6 @@
 <?php
 
-namespace Mordomus\Maintenance\Http\Presenters;
+namespace Mordomus\Maintenance\Http\Resources;
 
 use Illuminate\Support\Carbon;
 use Mordomus\Maintenance\Models\Asset;
@@ -8,7 +8,7 @@ use Mordomus\Maintenance\Models\Asset;
 /**
  * Shape do ativo, com datas no fuso da residência.
  */
-final class AssetPresenter
+final class AssetResource
 {
     /**
      * @return array<string, mixed>

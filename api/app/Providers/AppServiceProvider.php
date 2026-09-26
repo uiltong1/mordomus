@@ -16,12 +16,22 @@ use Mordomus\Identity\Auth\JwtGuard;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\User;
 use Mordomus\Identity\Services\JwtVerifier;
+use Mordomus\Maintenance\Contracts\Repositories\AssetRepositoryInterface;
+use Mordomus\Maintenance\Contracts\Repositories\RoomRepositoryInterface;
+use Mordomus\Maintenance\Contracts\Services\AssetServiceInterface;
+use Mordomus\Maintenance\Contracts\Services\RoomServiceInterface;
+use Mordomus\Maintenance\Contracts\Services\TenantClockServiceInterface;
+use Mordomus\Maintenance\Repositories\AssetRepository;
+use Mordomus\Maintenance\Repositories\RoomRepository;
+use Mordomus\Maintenance\Services\AssetService;
+use Mordomus\Maintenance\Services\RoomService;
+use Mordomus\Maintenance\Services\TenantClockService;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->registerMaintenanceBindings();
     }
 
     public function boot(): void
@@ -46,6 +56,15 @@ class AppServiceProvider extends ServiceProvider
         Route::bind('membership', fn (string $value): Membership => Membership::query()
             ->withoutGlobalScope(TenantGlobalScope::class)
             ->findOrFail($value));
+    }
+
+    private function registerMaintenanceBindings(): void
+    {
+        $this->app->bind(RoomRepositoryInterface::class, RoomRepository::class);
+        $this->app->bind(AssetRepositoryInterface::class, AssetRepository::class);
+        $this->app->bind(RoomServiceInterface::class, RoomService::class);
+        $this->app->bind(AssetServiceInterface::class, AssetService::class);
+        $this->app->bind(TenantClockServiceInterface::class, TenantClockService::class);
     }
 
     /** Guard stateless: driver `jwt` (config/auth.php). */

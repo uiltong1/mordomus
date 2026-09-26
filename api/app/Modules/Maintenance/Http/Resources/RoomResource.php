@@ -1,13 +1,13 @@
 <?php
 
-namespace Mordomus\Maintenance\Http\Presenters;
+namespace Mordomus\Maintenance\Http\Resources;
 
 use Mordomus\Maintenance\Models\Room;
 
 /**
  * Shape do cômodo.
  */
-final class RoomPresenter
+final class RoomResource
 {
     /**
      * @return array<string, mixed>

@@ -3,15 +3,13 @@
 namespace Mordomus\Maintenance\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Mordomus\Http\Controllers\Controller;
-use Mordomus\Http\Pagination\OffsetPagination;
-use Mordomus\Maintenance\Http\Presenters\AssetPresenter;
+use Mordomus\Maintenance\Contracts\Services\AssetServiceInterface;
+use Mordomus\Maintenance\Http\Requests\DestroyAssetRequest;
+use Mordomus\Maintenance\Http\Requests\IndexAssetsRequest;
+use Mordomus\Maintenance\Http\Requests\ShowAssetRequest;
 use Mordomus\Maintenance\Http\Requests\StoreAssetRequest;
 use Mordomus\Maintenance\Http\Requests\UpdateAssetRequest;
-use Mordomus\Maintenance\Models\Asset;
-use Mordomus\Maintenance\Models\Room;
-use Mordomus\Maintenance\Services\TenantClock;
 use Mordomus\OpenApi\Schemas\Asset as AssetSchema;
 use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\PageMeta;
@@ -27,10 +25,7 @@ use OpenApi\Attributes as OA;
  */
 class AssetController extends Controller
 {
-    public function __construct(
-        private readonly AssetPresenter $presenter,
-        private readonly TenantClock $clock,
-    ) {}
+    public function __construct(private readonly AssetServiceInterface $assets) {}
 
     #[OA\Get(
         path: '/api/v1/maintenance/assets',
@@ -55,35 +50,9 @@ class AssetController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function index(Request $request): JsonResponse
+    public function index(IndexAssetsRequest $request): JsonResponse
     {
-        $pagination = OffsetPagination::from($request);
-
-        $query = Asset::query();
-
-        if ($request->filled('room_id')) {
-            $query->where('room_id', (string) $request->query('room_id'));
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category', (string) $request->query('category'));
-        }
-
-        if (! $request->boolean('include_archived')) {
-            $query->whereNull('archived_at');
-        }
-
-        $assets = $query
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->paginate($pagination->perPage, ['*'], 'page', $pagination->page);
-
-        $timezone = $this->clock->timezone($request);
-
-        return response()->json([
-            'data' => $this->presenter->collection($assets->getCollection(), $timezone),
-            'meta' => $pagination->meta($assets->total(), $assets->lastPage()),
-        ]);
+        return response()->json($this->assets->index($request));
     }
 
     #[OA\Get(
@@ -103,13 +72,9 @@ class AssetController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function show(Request $request, string $asset): JsonResponse
+    public function show(ShowAssetRequest $request, string $asset): JsonResponse
     {
-        $timezone = $this->clock->timezone($request);
-
-        return response()->json([
-            'data' => $this->presenter->make($this->findOrFail($asset, $request), $timezone),
-        ]);
+        return response()->json($this->assets->show($request, $asset));
     }
 
     #[OA\Post(
@@ -141,26 +106,7 @@ class AssetController extends Controller
     )]
     public function store(StoreAssetRequest $request): JsonResponse
     {
-        $room = $this->activeRoom((string) $request->input('room_id'));
-
-        if ($room === null) {
-            return $this->roomNotFound($request);
-        }
-
-        $timezone = $this->clock->timezone($request);
-
-        $asset = Asset::create([
-            'room_id' => $room->id,
-            'name' => $request->string('name')->toString(),
-            'category' => $request->input('category'),
-            'brand' => $request->input('brand'),
-            'model' => $request->input('model'),
-            'acquired_at' => $this->clock->instant($request, 'acquired_at', $timezone),
-            'warranty_until' => $this->clock->instant($request, 'warranty_until', $timezone),
-            'metadata' => $request->input('metadata'),
-        ]);
-
-        return response()->json(['data' => $this->presenter->make($asset, $timezone)], 201);
+        return response()->json($this->assets->store($request), 201);
     }
 
     #[OA\Patch(
@@ -194,38 +140,7 @@ class AssetController extends Controller
     )]
     public function update(UpdateAssetRequest $request, string $asset): JsonResponse
     {
-        $asset = $this->findOrFail($asset, $request);
-        $timezone = $this->clock->timezone($request);
-
-        $attributes = $request->only(['name', 'category', 'brand', 'model', 'metadata']);
-
-        if ($request->has('room_id')) {
-            $room = $this->activeRoom((string) $request->input('room_id'));
-
-            if ($room === null) {
-                return $this->roomNotFound($request);
-            }
-
-            $attributes['room_id'] = $room->id;
-        }
-
-        if ($request->has('acquired_at')) {
-            $attributes['acquired_at'] = $this->clock->instant($request, 'acquired_at', $timezone);
-        }
-
-        if ($request->has('warranty_until')) {
-            $attributes['warranty_until'] = $this->clock->instant($request, 'warranty_until', $timezone);
-        }
-
-        $asset->fill($attributes);
-        $asset->save();
-
-        if ($request->has('archived')) {
-            $request->boolean('archived') ? $asset->archive() : $asset->restore();
-            $asset->refresh();
-        }
-
-        return response()->json(['data' => $this->presenter->make($asset, $timezone)]);
+        return response()->json($this->assets->update($request, $asset));
     }
 
     #[OA\Delete(
@@ -246,42 +161,8 @@ class AssetController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function destroy(Request $request, string $asset): JsonResponse
+    public function destroy(DestroyAssetRequest $request, string $asset): JsonResponse
     {
-        $asset = $this->findOrFail($asset, $request);
-        $asset->archive();
-
-        return response()->json([
-            'data' => $this->presenter->make($asset, $this->clock->timezone($request)),
-            'archived' => true,
-        ]);
-    }
-
-    /**
-     * O TenantGlobalScope já esconde cômodos de outra residência; o filtro
-     * de arquivados impede ativo em cômodo morto.
-     */
-    private function activeRoom(string $roomId): ?Room
-    {
-        return Room::query()->active()->find($roomId);
-    }
-
-    private function roomNotFound(Request $request): JsonResponse
-    {
-        return $this->error(
-            $request,
-            404,
-            'room_not_found',
-            'Cômodo não encontrado ou arquivado na residência ativa.',
-            ['room_id' => $request->input('room_id')],
-        );
-    }
-
-    private function findOrFail(string $id, Request $request): Asset
-    {
-        return Asset::query()
-            ->where('id', $id)
-            ->where('tenant_id', (string) $this->activeTenantId($request))
-            ->firstOrFail();
+        return response()->json($this->assets->destroy($request, $asset));
     }
 }
