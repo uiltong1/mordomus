@@ -13,9 +13,42 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Mordomus\Common\Eloquent\TenantGlobalScope;
 use Mordomus\Identity\Auth\JwtGuard;
+use Mordomus\Identity\Contracts\Repositories\InvitationRepositoryInterface;
+use Mordomus\Identity\Contracts\Repositories\MembershipRepositoryInterface;
+use Mordomus\Identity\Contracts\Repositories\PermissionRepositoryInterface;
+use Mordomus\Identity\Contracts\Repositories\RefreshTokenRepositoryInterface;
+use Mordomus\Identity\Contracts\Repositories\RoleRepositoryInterface;
+use Mordomus\Identity\Contracts\Repositories\UserRepositoryInterface;
+use Mordomus\Identity\Contracts\Services\AuthServiceInterface;
+use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
+use Mordomus\Identity\Contracts\Services\InvitationServiceInterface;
+use Mordomus\Identity\Contracts\Services\JwtIssuerServiceInterface;
+use Mordomus\Identity\Contracts\Services\JwtVerifierServiceInterface;
+use Mordomus\Identity\Contracts\Services\MemberServiceInterface;
+use Mordomus\Identity\Contracts\Services\ProfileServiceInterface;
+use Mordomus\Identity\Contracts\Services\RefreshTokenServiceInterface;
+use Mordomus\Identity\Contracts\Services\TenantProvisionerServiceInterface;
+use Mordomus\Identity\Contracts\Services\TenantServiceInterface;
+use Mordomus\Identity\Contracts\Services\TokenPackagerServiceInterface;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\JwtVerifier;
+use Mordomus\Identity\Repositories\InvitationRepository;
+use Mordomus\Identity\Repositories\MembershipRepository;
+use Mordomus\Identity\Repositories\PermissionRepository;
+use Mordomus\Identity\Repositories\RefreshTokenRepository;
+use Mordomus\Identity\Repositories\RoleRepository;
+use Mordomus\Identity\Repositories\UserRepository;
+use Mordomus\Identity\Services\AuthService;
+use Mordomus\Identity\Services\CapabilityResolverService;
+use Mordomus\Identity\Services\InvitationService;
+use Mordomus\Identity\Services\JwtIssuerService;
+use Mordomus\Identity\Services\JwtVerifierService;
+use Mordomus\Identity\Services\MemberService;
+use Mordomus\Identity\Services\ProfileService;
+use Mordomus\Identity\Services\RefreshTokenService;
+use Mordomus\Identity\Services\TenantProvisionerService;
+use Mordomus\Identity\Services\TenantService;
+use Mordomus\Identity\Services\TokenPackagerService;
 use Mordomus\Maintenance\Contracts\Repositories\AssetRepositoryInterface;
 use Mordomus\Maintenance\Contracts\Repositories\RoomRepositoryInterface;
 use Mordomus\Maintenance\Contracts\Services\AssetServiceInterface;
@@ -32,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->registerMaintenanceBindings();
+        $this->registerIdentityBindings();
     }
 
     public function boot(): void
@@ -48,8 +82,8 @@ class AppServiceProvider extends ServiceProvider
      *
      * `SubstituteBindings` roda no grupo da rota, antes do middleware `tenant` —
      * ainda não há contexto de residência e o escopo devolveria `1 = 0`. A
-     * fronteira fica em `MemberController`, que compara
-     * `membership.tenant_id === tenant.id`.
+     * fronteira fica no FormRequest (tenant ativo) e no `MemberService`
+     * (`membership.tenant_id === tenant.id`).
      */
     private function registerTenantBindings(): void
     {
@@ -67,11 +101,34 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TenantClockServiceInterface::class, TenantClockService::class);
     }
 
+    private function registerIdentityBindings(): void
+    {
+        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
+        $this->app->bind(MembershipRepositoryInterface::class, MembershipRepository::class);
+        $this->app->bind(InvitationRepositoryInterface::class, InvitationRepository::class);
+        $this->app->bind(RoleRepositoryInterface::class, RoleRepository::class);
+        $this->app->bind(PermissionRepositoryInterface::class, PermissionRepository::class);
+        $this->app->bind(RefreshTokenRepositoryInterface::class, RefreshTokenRepository::class);
+
+        $this->app->bind(AuthServiceInterface::class, AuthService::class);
+        $this->app->bind(TenantServiceInterface::class, TenantService::class);
+        $this->app->bind(MemberServiceInterface::class, MemberService::class);
+        $this->app->bind(InvitationServiceInterface::class, InvitationService::class);
+        $this->app->bind(ProfileServiceInterface::class, ProfileService::class);
+
+        $this->app->bind(CapabilityResolverServiceInterface::class, CapabilityResolverService::class);
+        $this->app->bind(JwtIssuerServiceInterface::class, JwtIssuerService::class);
+        $this->app->bind(JwtVerifierServiceInterface::class, JwtVerifierService::class);
+        $this->app->bind(RefreshTokenServiceInterface::class, RefreshTokenService::class);
+        $this->app->bind(TokenPackagerServiceInterface::class, TokenPackagerService::class);
+        $this->app->bind(TenantProvisionerServiceInterface::class, TenantProvisionerService::class);
+    }
+
     /** Guard stateless: driver `jwt` (config/auth.php). */
     private function registerJwtGuard(): void
     {
         Auth::extend('jwt', function ($app, $name, array $config) {
-            $guard = new JwtGuard(JwtGuard::resolver($app->make(JwtVerifier::class)), $app['request']);
+            $guard = new JwtGuard(JwtGuard::resolver($app->make(JwtVerifierServiceInterface::class)), $app['request']);
 
             $app->refresh('request', $guard, 'setRequest');
 

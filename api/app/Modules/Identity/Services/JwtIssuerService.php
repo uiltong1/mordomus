@@ -4,13 +4,14 @@ namespace Mordomus\Identity\Services;
 
 use Firebase\JWT\JWT;
 use Illuminate\Support\Str;
+use Mordomus\Identity\Contracts\Services\JwtIssuerServiceInterface;
 use Mordomus\Identity\Models\User;
 
 /**
  * Emissão do access token de usuário (claims: sub, tid, tenants, iss).
  * O refresh token é emitido/rotacionado por RefreshTokenService.
  */
-class JwtIssuer
+class JwtIssuerService implements JwtIssuerServiceInterface
 {
     /**
      * Montagem das claims (puro — coberto por teste unitário sem banco).

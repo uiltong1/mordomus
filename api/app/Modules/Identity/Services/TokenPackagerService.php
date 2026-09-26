@@ -2,6 +2,9 @@
 
 namespace Mordomus\Identity\Services;
 
+use Mordomus\Identity\Contracts\Services\JwtIssuerServiceInterface;
+use Mordomus\Identity\Contracts\Services\RefreshTokenServiceInterface;
+use Mordomus\Identity\Contracts\Services\TokenPackagerServiceInterface;
 use Mordomus\Identity\Models\User;
 
 /**
@@ -9,11 +12,11 @@ use Mordomus\Identity\Models\User;
  * pela API — o mesmo formato em login, registro, troca de residência e
  * aceite de convite.
  */
-final readonly class TokenPackager
+final readonly class TokenPackagerService implements TokenPackagerServiceInterface
 {
     public function __construct(
-        private JwtIssuer $issuer,
-        private RefreshTokenService $refreshTokens,
+        private JwtIssuerServiceInterface $issuer,
+        private RefreshTokenServiceInterface $refreshTokens,
     ) {}
 
     /**

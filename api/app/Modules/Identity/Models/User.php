@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Mordomus\Common\Eloquent\TenantGlobalScope;
-use Mordomus\Identity\Services\CapabilityResolver;
+use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 
 #[Fillable(['name', 'email', 'password_hash', 'locale'])]
 #[Hidden(['password_hash'])]
@@ -74,6 +74,6 @@ class User extends Authenticatable
             return false;
         }
 
-        return app(CapabilityResolver::class)->allows($membership, $capability);
+        return app(CapabilityResolverServiceInterface::class)->allows($membership, $capability);
     }
 }

@@ -1,17 +1,17 @@
 <?php
 
-namespace Mordomus\Identity\Http\Presenters;
+namespace Mordomus\Identity\Http\Resources;
 
+use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\CapabilityResolver;
 
 /**
  * Shape público do usuário (perfil e sessão) — nunca expõe `password_hash`.
  */
-final readonly class UserPresenter
+final readonly class UserResource
 {
-    public function __construct(private CapabilityResolver $capabilities) {}
+    public function __construct(private CapabilityResolverServiceInterface $capabilities) {}
 
     /**
      * @return array{id: string, name: string, email: string, locale: string}

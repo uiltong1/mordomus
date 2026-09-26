@@ -2,13 +2,11 @@
 
 namespace Mordomus\Identity\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class UpdatePreferencesRequest extends FormRequest
+class UpdatePreferencesRequest extends TenantScopedRequest
 {
-    public function authorize(): bool
+    protected function requiredCapability(): ?string
     {
-        return true;
+        return 'tenant.manage';
     }
 
     /** @return array<string, mixed> */

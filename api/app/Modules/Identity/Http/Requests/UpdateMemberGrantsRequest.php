@@ -2,14 +2,13 @@
 
 namespace Mordomus\Identity\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateMemberGrantsRequest extends FormRequest
+class UpdateMemberGrantsRequest extends TenantScopedRequest
 {
-    public function authorize(): bool
+    protected function requiredCapability(): ?string
     {
-        return true;
+        return 'members.manage';
     }
 
     /** @return array<string, mixed> */

@@ -6,7 +6,7 @@ use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Hash;
 use Mordomus\Identity\Models\RefreshToken;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\JwtIssuer;
+use Mordomus\Identity\Services\JwtIssuerService;
 
 /**
  * Registro → login → refresh (rotação) → switch-tenant.
@@ -138,7 +138,7 @@ class AuthFlowTest extends FeatureTestCase
         $auth = $this->registerUser('expira@mordomus.test', 'Expira', 'Casa Expira');
         $user = User::query()->findOrFail($auth['user']['id']);
 
-        $claims = app(JwtIssuer::class)->claims(
+        $claims = app(JwtIssuerService::class)->claims(
             $user->id,
             $auth['active_tenant'],
             [$auth['active_tenant']],

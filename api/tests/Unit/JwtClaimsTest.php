@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use Mordomus\Identity\Services\JwtIssuer;
+use Mordomus\Identity\Services\JwtIssuerService;
 use Tests\TestCase;
 
 /**
@@ -12,7 +12,7 @@ class JwtClaimsTest extends TestCase
 {
     public function test_claims_follow_api_contract(): void
     {
-        $issuer = new JwtIssuer;
+        $issuer = new JwtIssuerService;
         $timestamp = 1767225600;
 
         $claims = $issuer->claims(
@@ -37,7 +37,7 @@ class JwtClaimsTest extends TestCase
 
     public function test_active_tenant_may_be_null(): void
     {
-        $claims = (new JwtIssuer)->claims('user-1', null, [], 1000);
+        $claims = (new JwtIssuerService)->claims('user-1', null, [], 1000);
 
         $this->assertNull($claims['tid']);
         $this->assertSame([], $claims['tenants']);
@@ -45,7 +45,7 @@ class JwtClaimsTest extends TestCase
 
     public function test_tenants_are_reindexed(): void
     {
-        $claims = (new JwtIssuer)->claims('user-1', 't-2', [5 => 't-2', 9 => 't-3'], 1000);
+        $claims = (new JwtIssuerService)->claims('user-1', 't-2', [5 => 't-2', 9 => 't-3'], 1000);
 
         $this->assertSame(['t-2', 't-3'], $claims['tenants']);
         $this->assertSame([0, 1], array_keys($claims['tenants']));

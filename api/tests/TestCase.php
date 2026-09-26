@@ -4,8 +4,8 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\JwtIssuer;
-use Mordomus\Identity\Services\JwtVerifier;
+use Mordomus\Identity\Services\JwtIssuerService;
+use Mordomus\Identity\Services\JwtVerifierService;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -65,7 +65,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function authHeadersFor(User $user, ?string $tenantId = null): array
     {
-        $tokens = app(JwtIssuer::class)->issue($user, $tenantId);
+        $tokens = app(JwtIssuerService::class)->issue($user, $tenantId);
 
         return [
             'Authorization' => 'Bearer '.$tokens['access_token'],
@@ -81,6 +81,6 @@ abstract class TestCase extends BaseTestCase
     /** @return array<string, mixed> claims decodificados */
     protected function claimsOf(string $token): array
     {
-        return app(JwtVerifier::class)->verify($token);
+        return app(JwtVerifierService::class)->verify($token);
     }
 }

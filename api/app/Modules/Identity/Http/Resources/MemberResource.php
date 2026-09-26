@@ -1,16 +1,16 @@
 <?php
 
-namespace Mordomus\Identity\Http\Presenters;
+namespace Mordomus\Identity\Http\Resources;
 
+use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 use Mordomus\Identity\Models\Membership;
-use Mordomus\Identity\Services\CapabilityResolver;
 
 /**
  * Shape do membro de residência, idêntico na listagem e no detalhe.
  */
-final readonly class MemberPresenter
+final readonly class MemberResource
 {
-    public function __construct(private CapabilityResolver $capabilities) {}
+    public function __construct(private CapabilityResolverServiceInterface $capabilities) {}
 
     /**
      * @return array<string, mixed>

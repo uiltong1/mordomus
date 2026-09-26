@@ -3,20 +3,15 @@
 namespace Mordomus\Identity\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Mordomus\Common\Eloquent\TenantGlobalScope;
 use Mordomus\Http\Controllers\Controller;
-use Mordomus\Http\Pagination\OffsetPagination;
-use Mordomus\Identity\Http\Presenters\TenantPresenter;
+use Mordomus\Identity\Contracts\Services\TenantServiceInterface;
+use Mordomus\Identity\Http\Requests\IndexTenantsRequest;
+use Mordomus\Identity\Http\Requests\ShowPreferencesRequest;
+use Mordomus\Identity\Http\Requests\ShowTenantRequest;
 use Mordomus\Identity\Http\Requests\StoreTenantRequest;
 use Mordomus\Identity\Http\Requests\UpdatePreferencesRequest;
 use Mordomus\Identity\Http\Requests\UpdateTenantRequest;
-use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Tenant;
-use Mordomus\Identity\Models\TenantPreference;
-use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\TenantProvisioner;
-use Mordomus\Identity\Services\TokenPackager;
 use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\PageMeta;
 use Mordomus\OpenApi\Schemas\Preferences;
@@ -26,11 +21,7 @@ use OpenApi\Attributes as OA;
 
 class TenantController extends Controller
 {
-    public function __construct(
-        private readonly TenantPresenter $presenter,
-        private readonly TokenPackager $tokens,
-        private readonly TenantProvisioner $provisioner,
-    ) {}
+    public function __construct(private readonly TenantServiceInterface $service) {}
 
     #[OA\Get(
         path: '/api/v1/identity/tenants',
@@ -52,27 +43,9 @@ class TenantController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function index(Request $request): JsonResponse
+    public function index(IndexTenantsRequest $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-        $pagination = OffsetPagination::from($request);
-
-        // a lista de residências do usuário é cross-tenant por definição
-        $memberships = Membership::query()
-            ->withoutGlobalScope(TenantGlobalScope::class)
-            ->with(['tenant', 'role'])
-            ->where('user_id', $user->id)
-            ->where('status', Membership::STATUS_ACTIVE)
-            ->orderBy('created_at')
-            ->paginate($pagination->perPage, ['*'], 'page', $pagination->page);
-
-        return response()->json([
-            'data' => $memberships->getCollection()
-                ->map(fn (Membership $membership): array => $this->presenter->make($membership->tenant, $membership))
-                ->values(),
-            'meta' => $pagination->meta($memberships->total(), $memberships->lastPage()),
-        ]);
+        return response()->json($this->service->index($request));
     }
 
     #[OA\Get(
@@ -92,16 +65,9 @@ class TenantController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function show(Request $request, Tenant $tenant): JsonResponse
+    public function show(ShowTenantRequest $request, Tenant $tenant): JsonResponse
     {
-        $this->assertTenant($tenant, $request);
-        $membership = $this->membershipOf($request->user(), $tenant);
-
-        if (! $membership) {
-            return $this->error($request, 403, 'membership_required', 'Sem acesso à residência.');
-        }
-
-        return response()->json(['data' => $this->presenter->make($tenant, $membership)]);
+        return response()->json($this->service->show($request, $tenant));
     }
 
     #[OA\Post(
@@ -129,21 +95,7 @@ class TenantController extends Controller
     )]
     public function store(StoreTenantRequest $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
-        $provisioned = $this->provisioner->create($user, [
-            'name' => $request->input('name'),
-            'timezone' => $request->input('timezone'),
-            'preferred_hour' => $request->input('preferred_hour'),
-        ]);
-
-        $tenant = $provisioned['tenant'];
-
-        return response()->json([
-            'data' => $this->presenter->make($tenant, $provisioned['membership']),
-            'active_tenant' => $tenant->id,
-        ] + $this->tokens->session($user, $tenant->id), 201);
+        return response()->json($this->service->store($request), 201);
     }
 
     #[OA\Patch(
@@ -173,25 +125,7 @@ class TenantController extends Controller
     )]
     public function update(UpdateTenantRequest $request, Tenant $tenant): JsonResponse
     {
-        $this->assertTenant($tenant, $request);
-
-        abort_unless($request->user()->can('tenant.manage'), 403, 'forbidden');
-
-        if ($request->boolean('archived')) {
-            $tenant->archive();
-
-            return response()->json([
-                'data' => $this->presenter->make($tenant),
-                'archived' => true,
-            ]);
-        }
-
-        $tenant->fill($request->only(['name', 'timezone', 'preferred_hour']));
-        $tenant->save();
-
-        return response()->json([
-            'data' => $this->presenter->make($tenant, $this->membershipOf($request->user(), $tenant)),
-        ]);
+        return response()->json($this->service->update($request, $tenant));
     }
 
     #[OA\Get(
@@ -211,16 +145,9 @@ class TenantController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function preferences(Request $request, Tenant $tenant): JsonResponse
+    public function preferences(ShowPreferencesRequest $request, Tenant $tenant): JsonResponse
     {
-        $this->assertTenant($tenant, $request);
-        $membership = $this->membershipOf($request->user(), $tenant);
-
-        if (! $membership) {
-            return $this->error($request, 403, 'membership_required', 'Sem acesso à residência.');
-        }
-
-        return response()->json(['data' => $this->presenter->preferences($tenant)]);
+        return response()->json($this->service->preferences($request, $tenant));
     }
 
     #[OA\Patch(
@@ -255,32 +182,6 @@ class TenantController extends Controller
     )]
     public function updatePreferences(UpdatePreferencesRequest $request, Tenant $tenant): JsonResponse
     {
-        $this->assertTenant($tenant, $request);
-
-        abort_unless($request->user()->can('tenant.manage'), 403, 'forbidden');
-
-        if ($request->has('preferred_hour')) {
-            $tenant->preferred_hour = $request->input('preferred_hour');
-            $tenant->save();
-        }
-
-        $preferences = $tenant->preferences ?: $tenant->preferences()->make([
-            'quiet_hours' => TenantPreference::DEFAULT_QUIET_HOURS,
-            'channels' => TenantPreference::DEFAULT_CHANNELS,
-        ]);
-
-        $preferences->fill($request->only(['quiet_hours', 'channels']));
-        $preferences->save();
-
-        return response()->json(['data' => $this->presenter->preferences($tenant)]);
-    }
-
-    private function membershipOf(User $user, Tenant $tenant): ?Membership
-    {
-        return $user->memberships()
-            ->with('role')
-            ->where('tenant_id', $tenant->id)
-            ->where('status', Membership::STATUS_ACTIVE)
-            ->first();
+        return response()->json($this->service->updatePreferences($request, $tenant));
     }
 }

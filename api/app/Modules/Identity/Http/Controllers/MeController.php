@@ -3,17 +3,17 @@
 namespace Mordomus\Identity\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Mordomus\Http\Controllers\Controller;
-use Mordomus\Identity\Http\Presenters\UserPresenter;
-use Mordomus\Identity\Models\User;
+use Mordomus\Identity\Contracts\Services\ProfileServiceInterface;
+use Mordomus\Identity\Http\Requests\ProfileRequest;
 use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\TenantSummary;
+use Mordomus\OpenApi\Schemas\User;
 use OpenApi\Attributes as OA;
 
 class MeController extends Controller
 {
-    public function __construct(private readonly UserPresenter $userPresenter) {}
+    public function __construct(private readonly ProfileServiceInterface $service) {}
 
     #[OA\Get(
         path: '/api/v1/identity/me',
@@ -23,7 +23,7 @@ class MeController extends Controller
         responses: [
             new OA\Response(response: 200, description: 'Perfil do usuário autenticado', content: new OA\JsonContent(properties: [
                 new OA\Property(property: 'data', type: 'object', required: ['user', 'active_tenant', 'tenants', 'capabilities'], properties: [
-                    new OA\Property(property: 'user', ref: \Mordomus\OpenApi\Schemas\User::class),
+                    new OA\Property(property: 'user', ref: User::class),
                     new OA\Property(property: 'active_tenant', type: 'string', nullable: true),
                     new OA\Property(property: 'tenants', type: 'array', items: new OA\Items(ref: TenantSummary::class)),
                     new OA\Property(property: 'capabilities', type: 'array', items: new OA\Items(type: 'string')),
@@ -35,20 +35,8 @@ class MeController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function show(Request $request): JsonResponse
+    public function show(ProfileRequest $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-        $activeTenantId = $this->activeTenantId($request);
-        $activeMembership = $activeTenantId ? $user->activeMembershipIn($activeTenantId) : null;
-
-        return response()->json([
-            'data' => [
-                'user' => $this->userPresenter->make($user),
-                'active_tenant' => $activeTenantId,
-                'tenants' => $this->userPresenter->tenants($user),
-                'capabilities' => $activeMembership ? $this->userPresenter->capabilities($activeMembership) : [],
-            ],
-        ]);
+        return response()->json($this->service->show($request));
     }
 }

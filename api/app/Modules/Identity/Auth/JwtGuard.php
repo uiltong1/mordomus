@@ -4,8 +4,8 @@ namespace Mordomus\Identity\Auth;
 
 use Illuminate\Auth\RequestGuard;
 use Illuminate\Http\Request;
+use Mordomus\Identity\Contracts\Services\JwtVerifierServiceInterface;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\JwtVerifier;
 
 /**
  * Guard stateless que resolve o usuário a partir do JWT RS256 no header
@@ -49,7 +49,7 @@ class JwtGuard extends RequestGuard
         return $this->request;
     }
 
-    public static function resolver(JwtVerifier $verifier): callable
+    public static function resolver(JwtVerifierServiceInterface $verifier): callable
     {
         return function (Request $request) use ($verifier) {
             $token = $request->bearerToken();

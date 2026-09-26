@@ -5,7 +5,7 @@ namespace Mordomus\Identity\Services;
 /**
  * Token de convite: valor na URL, apenas o hash persiste.
  */
-class InvitationToken
+class InvitationTokenService
 {
     public const TTL_DAYS = 7;
 

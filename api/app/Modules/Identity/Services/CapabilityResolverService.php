@@ -4,13 +4,14 @@ namespace Mordomus\Identity\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 use Mordomus\Identity\Models\Membership;
 
 /**
  * Resolução de capabilities:
  *   membership_grants (override pontual) → role_permissions[role_id] → cache 60 s.
  */
-class CapabilityResolver
+class CapabilityResolverService implements CapabilityResolverServiceInterface
 {
     private const TTL_SECONDS = 60;
 

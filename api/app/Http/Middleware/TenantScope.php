@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Mordomus\Common\Support\TenantContext;
 use Mordomus\Http\Responses\ErrorEnvelope;
+use Mordomus\Identity\Contracts\Services\JwtVerifierServiceInterface;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\JwtVerifier;
 use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class TenantScope
 {
-    public function __construct(private readonly JwtVerifier $verifier) {}
+    public function __construct(private readonly JwtVerifierServiceInterface $verifier) {}
 
     public function handle(Request $request, Closure $next): Response
     {

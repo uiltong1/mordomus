@@ -3,19 +3,11 @@
 namespace Mordomus\Identity\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Mordomus\Common\Eloquent\TenantGlobalScope;
 use Mordomus\Http\Controllers\Controller;
-use Mordomus\Identity\Http\Presenters\UserPresenter;
+use Mordomus\Identity\Contracts\Services\InvitationServiceInterface;
+use Mordomus\Identity\Http\Requests\AcceptInvitationRequest;
 use Mordomus\Identity\Http\Requests\StoreInvitationRequest;
-use Mordomus\Identity\Models\Invitation;
-use Mordomus\Identity\Models\Membership;
-use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
-use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\InvitationToken;
-use Mordomus\Identity\Services\TokenPackager;
 use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\Invitation as InvitationSchema;
 use Mordomus\OpenApi\Schemas\TenantSummary;
@@ -23,10 +15,7 @@ use OpenApi\Attributes as OA;
 
 class InvitationController extends Controller
 {
-    public function __construct(
-        private readonly TokenPackager $tokens,
-        private readonly UserPresenter $userPresenter,
-    ) {}
+    public function __construct(private readonly InvitationServiceInterface $service) {}
 
     #[OA\Post(
         path: '/api/v1/identity/tenants/{tenant}/invitations',
@@ -56,47 +45,7 @@ class InvitationController extends Controller
     )]
     public function store(StoreInvitationRequest $request, Tenant $tenant): JsonResponse
     {
-        $this->assertTenant($tenant, $request);
-
-        abort_unless($request->user()->can('members.manage'), 403, 'forbidden');
-
-        $role = $request->filled('role_id')
-            ? Role::query()->findOrFail($request->input('role_id'))
-            : Role::systemByKey(Role::MEMBER);
-
-        $token = InvitationToken::generate();
-
-        $invitation = DB::transaction(function () use ($request, $tenant, $role, $token) {
-            // um convite pendente por e-mail no mesmo tenant (substitui o anterior)
-            Invitation::query()
-                ->where('tenant_id', $tenant->id)
-                ->where('email', strtolower($request->input('email')))
-                ->whereNull('accepted_at')
-                ->delete();
-
-            return Invitation::create([
-                'tenant_id' => $tenant->id,
-                'email' => strtolower($request->input('email')),
-                'role_id' => $role->id,
-                'invited_by' => $request->user()->id,
-                'token_hash' => $token['hash'],
-                'expires_at' => InvitationToken::expiresAt(),
-            ]);
-        });
-
-        return response()->json([
-            'data' => [
-                'id' => $invitation->id,
-                'email' => $invitation->email,
-                'role' => ['id' => $role->id, 'key' => $role->key, 'name' => $role->name],
-                'expires_at' => $invitation->expires_at->toIso8601String(),
-                'accepted_at' => null,
-            ],
-            // sem canal de e-mail configurado, o token na resposta é o que
-            // permite ao convidado concluir o aceite
-            'token' => $token['plain'],
-            'accept_path' => '/invitations/'.$token['plain'].'/accept',
-        ], 201);
+        return response()->json($this->service->store($request, $tenant), 201);
     }
 
     #[OA\Post(
@@ -137,64 +86,8 @@ class InvitationController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function accept(Request $request, string $token): JsonResponse
+    public function accept(AcceptInvitationRequest $request, string $token): JsonResponse
     {
-        $user = $request->user();
-        $invitation = Invitation::query()
-            ->withoutGlobalScope(TenantGlobalScope::class)
-            ->where('token_hash', InvitationToken::hash($token))
-            ->with(['tenant', 'role'])
-            ->first();
-
-        if (! $invitation) {
-            return $this->error($request, 404, 'not_found', 'Convite inválido.');
-        }
-
-        if ($invitation->isAccepted()) {
-            return $this->error($request, 409, 'invitation_already_used', 'Convite já utilizado.');
-        }
-
-        if ($invitation->isExpired()) {
-            return $this->error($request, 410, 'invitation_expired', 'Convite expirado.');
-        }
-
-        if (! $user instanceof User || strcasecmp($user->email, $invitation->email) !== 0) {
-            return $this->error($request, 403, 'invitation_email_mismatch', 'O convite pertence a outro e-mail.');
-        }
-
-        DB::transaction(function () use ($user, $invitation) {
-            Membership::query()
-                ->withoutGlobalScope(TenantGlobalScope::class)
-                ->firstOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'tenant_id' => $invitation->tenant_id,
-                    ],
-                    [
-                        'role_id' => $invitation->role_id,
-                        'status' => Membership::STATUS_ACTIVE,
-                    ],
-                );
-
-            $invitation->forceFill(['accepted_at' => now()])->save();
-        });
-
-        return response()->json(array_merge(
-            $this->tokens->tokenPair($user, $invitation->tenant_id),
-            [
-                'tenant' => [
-                    'id' => $invitation->tenant->id,
-                    'name' => $invitation->tenant->name,
-                    'slug' => $invitation->tenant->slug,
-                    'role' => $invitation->role->key,
-                ],
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                ],
-                'tenants' => $this->userPresenter->tenants($user),
-            ],
-        ));
+        return response()->json($this->service->accept($request, $token));
     }
 }

@@ -1,19 +1,19 @@
 <?php
 
-namespace Mordomus\Identity\Http\Presenters;
+namespace Mordomus\Identity\Http\Resources;
 
 use Mordomus\Common\Eloquent\TenantGlobalScope;
+use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\TenantPreference;
-use Mordomus\Identity\Services\CapabilityResolver;
 
 /**
  * Shape da residência e das suas preferências.
  */
-final readonly class TenantPresenter
+final readonly class TenantResource
 {
-    public function __construct(private CapabilityResolver $capabilities) {}
+    public function __construct(private CapabilityResolverServiceInterface $capabilities) {}
 
     /**
      * @return array<string, mixed>

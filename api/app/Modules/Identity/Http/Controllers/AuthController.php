@@ -3,33 +3,20 @@
 namespace Mordomus\Identity\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Mordomus\Http\Controllers\Controller;
-use Mordomus\Identity\Exceptions\InvalidRefreshToken;
-use Mordomus\Identity\Http\Presenters\UserPresenter;
+use Mordomus\Identity\Contracts\Services\AuthServiceInterface;
 use Mordomus\Identity\Http\Requests\LoginRequest;
 use Mordomus\Identity\Http\Requests\LogoutRequest;
 use Mordomus\Identity\Http\Requests\RefreshRequest;
 use Mordomus\Identity\Http\Requests\RegisterRequest;
 use Mordomus\Identity\Http\Requests\SwitchTenantRequest;
-use Mordomus\Identity\Models\Membership;
-use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\RefreshTokenService;
-use Mordomus\Identity\Services\TenantProvisioner;
-use Mordomus\Identity\Services\TokenPackager;
 use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\Session;
 use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
-    public function __construct(
-        private readonly TokenPackager $tokens,
-        private readonly RefreshTokenService $refreshTokens,
-        private readonly TenantProvisioner $provisioner,
-        private readonly UserPresenter $userPresenter,
-    ) {}
+    public function __construct(private readonly AuthServiceInterface $service) {}
 
     #[OA\Post(
         path: '/api/v1/identity/auth/register',
@@ -52,19 +39,7 @@ class AuthController extends Controller
     )]
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = User::create([
-            'name' => $request->input('name'),
-            'email' => strtolower($request->input('email')),
-            'password_hash' => $request->input('password'),
-            'locale' => 'pt_BR',
-        ]);
-
-        $provisioned = $this->provisioner->create($user, [
-            'name' => $request->input('home_name'),
-            'timezone' => $request->input('timezone'),
-        ]);
-
-        return $this->respondWithTokens($user, $provisioned['tenant']->id, 201);
+        return response()->json($this->service->register($request), 201);
     }
 
     #[OA\Post(
@@ -87,36 +62,7 @@ class AuthController extends Controller
     )]
     public function login(LoginRequest $request): JsonResponse
     {
-        $email = strtolower($request->input('email'));
-
-        $user = User::query()->where('email', $email)->first();
-
-        if (! $user || ! Hash::check($request->input('password'), $user->password_hash)) {
-            Log::warning('auth.login_failed', ['identity' => $email]);
-
-            return $this->error($request, 401, 'invalid_credentials', 'E-mail ou senha inválidos.');
-        }
-
-        $tenantId = $request->input('tenant_id');
-        $activeMembership = $user->memberships()
-            ->where('status', Membership::STATUS_ACTIVE)
-            ->orderBy('created_at')
-            ->first();
-
-        if ($tenantId) {
-            if (! $user->activeMembershipIn($tenantId)) {
-                Log::warning('auth.membership_required', [
-                    'user_id' => $user->id,
-                    'tenant_id' => $tenantId,
-                ]);
-
-                return $this->error($request, 403, 'membership_required', 'Sem acesso à residência informada.');
-            }
-        } else {
-            $tenantId = $activeMembership?->tenant_id;
-        }
-
-        return $this->respondWithTokens($user, $tenantId);
+        return response()->json($this->service->login($request));
     }
 
     #[OA\Post(
@@ -136,27 +82,7 @@ class AuthController extends Controller
     )]
     public function refresh(RefreshRequest $request): JsonResponse
     {
-        try {
-            $rotated = $this->refreshTokens->rotate($request->input('refresh_token'));
-        } catch (InvalidRefreshToken $exception) {
-            Log::warning('auth.refresh_rejected', ['code' => $exception->errorCode()]);
-
-            return $this->error($request, 401, $exception->errorCode(), $exception->getMessage());
-        }
-
-        $user = $rotated['user'];
-        $tenantId = $user->memberships()
-            ->where('status', Membership::STATUS_ACTIVE)
-            ->orderBy('created_at')
-            ->value('tenant_id');
-
-        return response()->json(array_merge(
-            $this->tokens->renewedSession($user, $tenantId, $rotated),
-            [
-                'user' => $this->userPresenter->make($user),
-                'tenants' => $this->userPresenter->tenants($user),
-            ],
-        ));
+        return response()->json($this->service->refresh($request));
     }
 
     #[OA\Post(
@@ -179,11 +105,7 @@ class AuthController extends Controller
     )]
     public function logout(LogoutRequest $request): JsonResponse
     {
-        if ($token = $request->input('refresh_token')) {
-            $this->refreshTokens->revoke($token);
-        }
-
-        return response()->json(['status' => 'ok']);
+        return response()->json($this->service->logout($request));
     }
 
     #[OA\Post(
@@ -205,26 +127,6 @@ class AuthController extends Controller
     )]
     public function switchTenant(SwitchTenantRequest $request): JsonResponse
     {
-        $user = $request->user();
-        $tenantId = $request->input('tenant_id');
-
-        if (! $user instanceof User || ! $user->activeMembershipIn($tenantId)) {
-            Log::warning('auth.membership_required', [
-                'user_id' => $user instanceof User ? $user->id : null,
-                'tenant_id' => $tenantId,
-            ]);
-
-            return $this->error($request, 403, 'membership_required', 'Sem acesso à residência informada.');
-        }
-
-        return $this->respondWithTokens($user, $tenantId);
-    }
-
-    private function respondWithTokens(User $user, ?string $tenantId, int $status = 200): JsonResponse
-    {
-        return response()->json(array_merge($this->tokens->session($user, $tenantId), [
-            'user' => $this->userPresenter->make($user),
-            'tenants' => $this->userPresenter->tenants($user),
-        ]), $status);
+        return response()->json($this->service->switchTenant($request));
     }
 }

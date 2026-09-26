@@ -10,7 +10,7 @@ use Mordomus\Identity\Models\Permission;
 use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\CapabilityResolver;
+use Mordomus\Identity\Services\CapabilityResolverService;
 
 /**
  * Resolução de capabilities no Gate e member sem rules.edit → 403.
@@ -73,7 +73,7 @@ class RbacTest extends FeatureTestCase
     public function test_membership_grants_override_role_permissions(): void
     {
         $permission = Permission::query()->where('key', 'rules.edit')->firstOrFail();
-        $resolver = app(CapabilityResolver::class);
+        $resolver = app(CapabilityResolverService::class);
 
         $this->assertFalse($this->member->hasCapability('rules.edit'));
 
@@ -145,7 +145,7 @@ class RbacTest extends FeatureTestCase
     public function test_capability_resolution_requires_active_membership(): void
     {
         $this->ownerMembership->update(['status' => Membership::STATUS_ARCHIVED]);
-        app(CapabilityResolver::class)->forget($this->ownerMembership);
+        app(CapabilityResolverService::class)->forget($this->ownerMembership);
 
         $this->assertFalse($this->owner->hasCapability('rules.edit'));
     }

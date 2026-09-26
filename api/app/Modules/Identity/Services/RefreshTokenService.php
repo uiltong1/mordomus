@@ -1,29 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mordomus\Identity\Services;
 
+use Mordomus\Identity\Contracts\Repositories\RefreshTokenRepositoryInterface;
+use Mordomus\Identity\Contracts\Services\RefreshTokenServiceInterface;
 use Mordomus\Identity\Exceptions\InvalidRefreshToken;
-use Mordomus\Identity\Models\RefreshToken;
 use Mordomus\Identity\Models\User;
 
 /**
  * Refresh token com rotação e detecção de reuso.
  */
-class RefreshTokenService
+class RefreshTokenService implements RefreshTokenServiceInterface
 {
-    /**
-     * @return array{plain: string, id: string, expires_in: int}
-     */
+    public function __construct(
+        private readonly RefreshTokenRepositoryInterface $tokens,
+    ) {}
+
+    /** @return array{plain: string, id: string, expires_in: int} */
     public function issue(User $user): array
     {
         $plain = bin2hex(random_bytes(32));
         $expiresAt = now()->addMinutes((int) config('jwt.refresh_ttl', 43200));
 
-        $token = RefreshToken::create([
-            'user_id' => $user->id,
-            'token_hash' => hash('sha256', $plain),
-            'expires_at' => $expiresAt,
-        ]);
+        $token = $this->tokens->create($user, hash('sha256', $plain), $expiresAt);
 
         return [
             'plain' => $plain,
@@ -40,17 +41,14 @@ class RefreshTokenService
      */
     public function rotate(string $plain): array
     {
-        $token = RefreshToken::query()->where('token_hash', hash('sha256', $plain))->first();
+        $token = $this->tokens->findByHash(hash('sha256', $plain));
 
         if (! $token) {
             throw InvalidRefreshToken::unknown();
         }
 
         if ($token->revoked_at !== null) {
-            RefreshToken::query()
-                ->where('user_id', $token->user_id)
-                ->whereNull('revoked_at')
-                ->update(['revoked_at' => now()]);
+            $this->tokens->revokeActiveForUser($token->user_id);
 
             throw InvalidRefreshToken::reused();
         }
@@ -67,10 +65,7 @@ class RefreshTokenService
 
         $new = $this->issue($user);
 
-        $token->update([
-            'revoked_at' => now(),
-            'replaced_by' => $new['id'],
-        ]);
+        $this->tokens->markRotated($token, $new['id']);
 
         return ['user' => $user, 'new' => $new];
     }
@@ -78,9 +73,6 @@ class RefreshTokenService
     /** Revoga o token (logout). */
     public function revoke(string $plain): void
     {
-        RefreshToken::query()
-            ->where('token_hash', hash('sha256', $plain))
-            ->whereNull('revoked_at')
-            ->update(['revoked_at' => now()]);
+        $this->tokens->revokeByHash(hash('sha256', $plain));
     }
 }

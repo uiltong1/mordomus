@@ -6,7 +6,7 @@ namespace Mordomus\Identity\Services;
  * Resolve a chave RSA do JWT: o compose injeta o **caminho** do arquivo
  * (/run/secrets/rsa_*.pem), mas firebase/php-jwt espera o PEM em si.
  */
-final class JwtKey
+final class JwtKeyService
 {
     public static function resolve(?string $value): ?string
     {

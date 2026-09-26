@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use Mordomus\Identity\Services\InvitationToken;
+use Mordomus\Identity\Services\InvitationTokenService;
 use Tests\TestCase;
 
 /**
@@ -12,7 +12,7 @@ class InvitationTokenTest extends TestCase
 {
     public function test_generate_returns_plain_and_matching_hash(): void
     {
-        $token = InvitationToken::generate();
+        $token = InvitationTokenService::generate();
 
         $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]{43}$/', $token['plain']);
         $this->assertSame(hash('sha256', $token['plain']), $token['hash']);
@@ -21,8 +21,8 @@ class InvitationTokenTest extends TestCase
 
     public function test_plain_tokens_are_unique(): void
     {
-        $first = InvitationToken::generate();
-        $second = InvitationToken::generate();
+        $first = InvitationTokenService::generate();
+        $second = InvitationTokenService::generate();
 
         $this->assertNotSame($first['plain'], $second['plain']);
         $this->assertNotSame($first['hash'], $second['hash']);
@@ -30,16 +30,16 @@ class InvitationTokenTest extends TestCase
 
     public function test_hash_is_stable_and_hex(): void
     {
-        $hash = InvitationToken::hash('abc');
+        $hash = InvitationTokenService::hash('abc');
 
-        $this->assertSame($hash, InvitationToken::hash('abc'));
+        $this->assertSame($hash, InvitationTokenService::hash('abc'));
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $hash);
-        $this->assertNotSame($hash, InvitationToken::hash('abd'));
+        $this->assertNotSame($hash, InvitationTokenService::hash('abd'));
     }
 
     public function test_invitation_expires_in_seven_days(): void
     {
-        $expiresAt = InvitationToken::expiresAt();
+        $expiresAt = InvitationTokenService::expiresAt();
 
         $this->assertTrue($expiresAt->isFuture());
         $this->assertSame(now()->addDays(7)->format('Y-m-d H:i'), $expiresAt->format('Y-m-d H:i'));

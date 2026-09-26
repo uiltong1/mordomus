@@ -3,25 +3,20 @@
 namespace Mordomus\Identity\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Mordomus\Http\Controllers\Controller;
-use Mordomus\Identity\Http\Presenters\MemberPresenter;
+use Mordomus\Identity\Contracts\Services\MemberServiceInterface;
+use Mordomus\Identity\Http\Requests\IndexMembersRequest;
 use Mordomus\Identity\Http\Requests\UpdateMemberGrantsRequest;
 use Mordomus\Identity\Http\Requests\UpdateMemberRequest;
 use Mordomus\Identity\Models\Membership;
-use Mordomus\Identity\Models\Permission;
 use Mordomus\Identity\Models\Tenant;
-use Mordomus\Identity\Services\CapabilityResolver;
 use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\Member;
 use OpenApi\Attributes as OA;
 
 class MemberController extends Controller
 {
-    public function __construct(
-        private readonly MemberPresenter $presenter,
-        private readonly CapabilityResolver $capabilities,
-    ) {}
+    public function __construct(private readonly MemberServiceInterface $service) {}
 
     #[OA\Get(
         path: '/api/v1/identity/tenants/{tenant}/members',
@@ -40,20 +35,9 @@ class MemberController extends Controller
             new OA\Response(response: 500, description: 'Erro interno', content: new OA\JsonContent(ref: Error::class)),
         ],
     )]
-    public function index(Request $request, Tenant $tenant): JsonResponse
+    public function index(IndexMembersRequest $request, Tenant $tenant): JsonResponse
     {
-        $this->assertTenant($tenant, $request);
-
-        $memberships = Membership::query()
-            ->with(['user', 'role'])
-            ->where('tenant_id', $tenant->id)
-            ->where('status', Membership::STATUS_ACTIVE)
-            ->orderBy('created_at')
-            ->get();
-
-        return response()->json([
-            'data' => $this->presenter->collection($memberships),
-        ]);
+        return response()->json($this->service->index($request, $tenant));
     }
 
     #[OA\Patch(
@@ -79,22 +63,7 @@ class MemberController extends Controller
     )]
     public function update(UpdateMemberRequest $request, Tenant $tenant, Membership $membership): JsonResponse
     {
-        $denied = $this->authorizeChange($request, $tenant, $membership);
-
-        if ($denied !== null) {
-            return $denied;
-        }
-
-        if ($membership->user_id === $request->user()->id) {
-            return $this->error($request, 422, 'cannot_change_own_role', 'Não é possível alterar a própria role.');
-        }
-
-        $membership->role_id = $request->input('role_id');
-        $membership->save();
-        $membership->load(['user', 'role']);
-        $this->capabilities->forget($membership);
-
-        return response()->json(['data' => $this->presenter->make($membership)]);
+        return response()->json($this->service->update($request, $tenant, $membership));
     }
 
     #[OA\Put(
@@ -121,40 +90,6 @@ class MemberController extends Controller
     )]
     public function updateGrants(UpdateMemberGrantsRequest $request, Tenant $tenant, Membership $membership): JsonResponse
     {
-        $denied = $this->authorizeChange($request, $tenant, $membership);
-
-        if ($denied !== null) {
-            return $denied;
-        }
-
-        if ($membership->user_id === $request->user()->id) {
-            return $this->error($request, 422, 'cannot_change_own_grants', 'Não é possível alterar os próprios grants.');
-        }
-
-        $permission = Permission::query()
-            ->where('key', $request->input('capability'))
-            ->firstOrFail();
-
-        $membership->permissionGrants()->syncWithoutDetaching([
-            $permission->id => ['granted' => $request->boolean('granted')],
-        ]);
-
-        $this->capabilities->forget($membership);
-        $membership->load(['user', 'role']);
-
-        return response()->json(['data' => $this->presenter->make($membership)]);
-    }
-
-    private function authorizeChange(Request $request, Tenant $tenant, Membership $membership): ?JsonResponse
-    {
-        $this->assertTenant($tenant, $request);
-
-        abort_unless($request->user()->can('members.manage'), 403, 'forbidden');
-
-        if ($membership->tenant_id !== $tenant->id) {
-            return $this->error($request, 404, 'not_found', 'Membro não pertence à residência.');
-        }
-
-        return null;
+        return response()->json($this->service->updateGrants($request, $tenant, $membership));
     }
 }

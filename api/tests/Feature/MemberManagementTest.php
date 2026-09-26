@@ -7,8 +7,8 @@ use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
-use Mordomus\Identity\Services\CapabilityResolver;
-use Mordomus\Identity\Services\InvitationToken;
+use Mordomus\Identity\Services\CapabilityResolverService;
+use Mordomus\Identity\Services\InvitationTokenService;
 
 /**
  * Convites e gestão de membros (role e grants).
@@ -72,7 +72,7 @@ class MemberManagementTest extends FeatureTestCase
         $auth = $this->registerUser('velho@mordomus.test');
         $tenantId = $auth['active_tenant'];
 
-        $token = InvitationToken::generate();
+        $token = InvitationTokenService::generate();
         Invitation::create([
             'tenant_id' => $tenantId,
             'email' => 'atrasada@mordomus.test',
@@ -192,7 +192,7 @@ class MemberManagementTest extends FeatureTestCase
             ['capability' => 'rules.edit', 'granted' => false],
         )->assertOk();
 
-        $this->assertNotContains('rules.edit', app(CapabilityResolver::class)->keys($membership));
+        $this->assertNotContains('rules.edit', app(CapabilityResolverService::class)->keys($membership));
     }
 
     public function test_invitation_requires_members_manage_capability(): void

@@ -3,6 +3,7 @@
 namespace Mordomus\Identity\Services;
 
 use Illuminate\Support\Facades\DB;
+use Mordomus\Identity\Contracts\Services\TenantProvisionerServiceInterface;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
@@ -13,7 +14,7 @@ use Mordomus\Identity\Models\User;
  * Criação de residência: preferências padrão e a membership `owner` nascem
  * juntas — residência sem dono não existiria nem por um instante.
  */
-final class TenantProvisioner
+final class TenantProvisionerService implements TenantProvisionerServiceInterface
 {
     public const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
 

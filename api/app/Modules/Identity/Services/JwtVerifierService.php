@@ -7,12 +7,13 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
+use Mordomus\Identity\Contracts\Services\JwtVerifierServiceInterface;
 
 /**
  * Verificação do JWT de usuário (RS256).
  * Lança exceções; o guard converte qualquer falha em "não autenticado".
  */
-class JwtVerifier
+class JwtVerifierService implements JwtVerifierServiceInterface
 {
     /**
      * @return array<string, mixed> claims decodificados

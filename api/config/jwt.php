@@ -1,6 +1,6 @@
 <?php
 
-use Mordomus\Identity\Services\JwtKey;
+use Mordomus\Identity\Services\JwtKeyService;
 
 return [
 
@@ -19,9 +19,9 @@ return [
     'kid' => env('JWT_KID'),
 
     // compose monta /run/secrets/rsa_*.pem e injeta o caminho; aceitamos também PEM direto
-    'private_key' => JwtKey::resolve(env('JWT_RSA_PRIVATE_KEY')),
+    'private_key' => JwtKeyService::resolve(env('JWT_RSA_PRIVATE_KEY')),
 
-    'public_key' => JwtKey::resolve(env('JWT_RSA_PUBLIC_KEY')),
+    'public_key' => JwtKeyService::resolve(env('JWT_RSA_PUBLIC_KEY')),
 
     /** validade do access token, em minutos */
     'ttl' => (int) env('JWT_TTL', 60),
