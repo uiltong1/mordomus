@@ -1,0 +1,2581 @@
+openapi: 3.0.0
+info:
+  title: 'Mordomus API'
+  description: 'API do Mordomus — gestão doméstica. Todo o conteúdo vive sob `/api/v1`.'
+  version: 1.0.0
+servers:
+  -
+    url: /
+    description: 'Origem do gateway (nginx) que faz proxy para o monólito'
+paths:
+  /health:
+    get:
+      tags:
+        - system
+      summary: 'Saúde do serviço (raiz do host)'
+      operationId: webHealth
+      responses:
+        '200':
+          description: 'Serviço saudável'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          description: 'Banco de dados indisponível'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /api/v1/health:
+    get:
+      tags:
+        - system
+      summary: 'Saúde do serviço (prefixo da API)'
+      operationId: apiHealth
+      responses:
+        '200':
+          description: 'Serviço saudável'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Banco de dados indisponível'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /api/v1/identity/health:
+    get:
+      tags:
+        - system
+      summary: 'Saúde do serviço (módulo Identity)'
+      operationId: identityHealth
+      responses:
+        '200':
+          description: 'Serviço saudável'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Banco de dados indisponível'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /api/v1/openapi.yaml:
+    get:
+      tags:
+        - system
+      summary: 'Especificação OpenAPI 3.0 em YAML'
+      operationId: openApiSpec
+      responses:
+        '200':
+          description: 'Documento OpenAPI'
+          content:
+            application/yaml: {  }
+        '404':
+          description: 'Artefato ainda não gerado'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/docs:
+    get:
+      tags:
+        - system
+      summary: 'Interface de leitura da documentação (Swagger UI)'
+      operationId: openApiDocs
+      responses:
+        '200':
+          description: 'Página HTML com a especificação carregada'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /:
+    get:
+      tags:
+        - system
+      summary: 'Identificação do serviço na raiz do host'
+      operationId: rootInfo
+      responses:
+        '200':
+          description: 'Serviço no ar'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInfo'
+  /api/v1/identity/auth/register:
+    post:
+      tags:
+        - identity
+      summary: 'Registra usuário e cria a primeira residência'
+      operationId: 892e60affda0029dce9505a62f675825
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+              properties:
+                name:
+                  type: string
+                  example: 'Ana Souza'
+                  maxLength: 120
+                email:
+                  type: string
+                  format: email
+                  example: ana@mordomus.test
+                  maxLength: 255
+                password:
+                  type: string
+                  format: password
+                  example: senha-forte-123
+                  maxLength: 72
+                  minLength: 8
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: senha-forte-123
+                home_name:
+                  type: string
+                  example: 'Casa Principal'
+                  maxLength: 120
+                timezone:
+                  type: string
+                  example: America/Sao_Paulo
+                  maxLength: 64
+              type: object
+      responses:
+        '201':
+          description: 'Usuário e residência criados'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway ou do endpoint'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/identity/auth/login:
+    post:
+      tags:
+        - identity
+      summary: 'Autentica e emite access + refresh token'
+      operationId: a5a37b9f77eae7982366b127128f457b
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: ana@mordomus.test
+                password:
+                  type: string
+                  format: password
+                  example: senha-forte-123
+                tenant_id:
+                  description: 'Residência desejada; sem ela usa a mais antiga ativa'
+                  type: string
+              type: object
+      responses:
+        '200':
+          description: 'Sessão emitida'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          description: 'E-mail ou senha inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem membership na residência informada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway ou do endpoint'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/identity/auth/refresh:
+    post:
+      tags:
+        - identity
+      summary: 'Rotaciona o refresh token e emite nova sessão'
+      operationId: 80dfb18bf790cc5d5412e3f5a537b02f
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  maxLength: 128
+                  minLength: 32
+              type: object
+      responses:
+        '200':
+          description: 'Sessão renovada; o refresh enviado deixa de valer'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          description: 'Refresh token inválido, expirado ou reutilizado'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway ou do endpoint'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/identity/auth/logout:
+    post:
+      tags:
+        - identity
+      summary: 'Revoga o refresh token enviado'
+      operationId: 8d9fbd03dc413ee9ec8e6f9a5ac0b9d3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                refresh_token:
+                  type: string
+                  maxLength: 128
+                  minLength: 32
+              type: object
+      responses:
+        '200':
+          description: 'Refresh token revogado (idempotente)'
+          content:
+            application/json:
+              schema:
+                properties:
+                  status: { type: string, example: ok }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/identity/auth/switch-tenant:
+    post:
+      tags:
+        - identity
+      summary: 'Emite sessão com outra residência ativa'
+      operationId: 627fff22515825ba684c25ada32a657f
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - tenant_id
+              properties:
+                tenant_id:
+                  type: string
+                  example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+              type: object
+      responses:
+        '200':
+          description: 'Novo access token com o claim tid atualizado'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem membership na residência informada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/identity/tenants/{tenant}/invitations':
+    post:
+      tags:
+        - identity
+      summary: 'Convida uma pessoa por e-mail'
+      operationId: ca4201fe3bc6fb08251377e73566c845
+      parameters:
+        -
+          parameter: tenant
+          name: store
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: convidada@mordomus.test
+                role_id:
+                  description: 'Papel concedido; sem ele o padrão é morador'
+                  type: string
+              type: object
+      responses:
+        '201':
+          description: 'Convite criado; um convite pendente anterior do mesmo e-mail é substituído'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Invitation' }
+                  token: { description: 'Token opaco entregue na resposta enquanto não há envio por e-mail', type: string }
+                  accept_path: { type: string, example: '/invitations/{token}/accept' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa ou capability members.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Residência não encontrada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/identity/invitations/{token}/accept':
+    post:
+      tags:
+        - identity
+      summary: 'Aceita o convite e entra na residência'
+      operationId: 5f245cb409ebb3eb6e2881662db00c35
+      parameters:
+        -
+          parameter: token
+          name: accept
+          in: path
+          description: 'Token opaco recebido no convite'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Membership criado e sessão apontando para a residência'
+          content:
+            application/json:
+              schema:
+                properties:
+                  token_type: { type: string, example: bearer }
+                  access_token: { type: string }
+                  expires_in: { type: integer, example: 3600 }
+                  active_tenant: { type: string, nullable: true }
+                  refresh_token: { type: string }
+                  tenant: { properties: { id: { type: string }, name: { type: string }, slug: { type: string }, role: { type: string, example: member } }, type: object }
+                  user: { required: [id, name, email], properties: { id: { type: string }, name: { type: string }, email: { type: string, format: email } }, type: object }
+                  tenants: { type: array, items: { $ref: '#/components/schemas/TenantSummary' } }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Convite pertence a outro e-mail'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Convite não encontrado'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Convite já aceito'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: 'Convite expirado'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/identity/me:
+    get:
+      tags:
+        - identity
+      summary: 'Perfil, residências e capabilities efetivas do token'
+      operationId: 4a1eb58373f42429daaf89a8aa373de8
+      responses:
+        '200':
+          description: 'Perfil do usuário autenticado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { required: [user, active_tenant, tenants, capabilities], properties: { user: { $ref: '#/components/schemas/User' }, active_tenant: { type: string, nullable: true }, tenants: { type: array, items: { $ref: '#/components/schemas/TenantSummary' } }, capabilities: { type: array, items: { type: string } } }, type: object }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/identity/tenants/{tenant}/members':
+    get:
+      tags:
+        - identity
+      summary: 'Lista os membros ativos da residência'
+      operationId: dd673b7d87c69f13444599cabd02fb96
+      parameters:
+        -
+          parameter: tenant
+          name: index
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Membros com capabilities efetivas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Member' } }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Residência não encontrada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/identity/tenants/{tenant}/members/{membership}':
+    patch:
+      tags:
+        - identity
+      summary: 'Troca o papel de um membro'
+      operationId: 9d67b02cee4e4b615a0606e074428504
+      parameters:
+        -
+          parameter: tenant
+          name: update
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+        -
+          parameter: membership
+          name: update
+          in: path
+          description: 'Id ULID do membership'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - role_id
+              properties:
+                role_id:
+                  type: string
+                  example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D3
+              type: object
+      responses:
+        '200':
+          description: 'Membro atualizado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Member' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa ou capability members.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Membro ou residência não encontrados'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos ou tentativa de alterar a própria role'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/identity/tenants/{tenant}/members/{membership}/grants':
+    put:
+      tags:
+        - identity
+      summary: 'Concede ou remove pontualmente uma capability do membro'
+      operationId: 8ba3c240ff668d8c22b5d0e53c0bdf49
+      parameters:
+        -
+          parameter: tenant
+          name: updateGrants
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+        -
+          parameter: membership
+          name: updateGrants
+          in: path
+          description: 'Id ULID do membership'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - capability
+                - granted
+              properties:
+                capability:
+                  type: string
+                  example: rules.edit
+                  maxLength: 64
+                granted:
+                  type: boolean
+                  example: true
+              type: object
+      responses:
+        '200':
+          description: 'Grant aplicado; capabilities recalculadas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Member' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa ou capability members.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Membro ou residência não encontrados'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos ou tentativa de alterar os próprios grants'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/identity/tenants:
+    get:
+      tags:
+        - identity
+      summary: 'Lista as residências do usuário autenticado'
+      operationId: e93d3d754cd4332d8f3e0f68891703e0
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+      responses:
+        '200':
+          description: 'Residências paginadas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Tenant' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    post:
+      tags:
+        - identity
+      summary: 'Cria residência e devolve sessão já apontando para ela'
+      operationId: fcfffa2533435a4d2b9955358a4cc096
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: 'Casa Segunda'
+                  maxLength: 120
+                timezone:
+                  type: string
+                  example: America/Sao_Paulo
+                  maxLength: 64
+                preferred_hour:
+                  type: string
+                  example: '09:00'
+              type: object
+      responses:
+        '201':
+          description: 'Residência criada com o usuário como owner'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Session' }
+                  - { properties: { data: { $ref: '#/components/schemas/Tenant' } }, type: object }
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/identity/tenants/{tenant}':
+    get:
+      tags:
+        - identity
+      summary: 'Detalhe da residência com as capabilities do membro'
+      operationId: f8d31a956e9c78b4db8aa6e86252b06e
+      parameters:
+        -
+          parameter: tenant
+          name: show
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: Residência
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Tenant' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa no token ou sem membership'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Residência não encontrada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    patch:
+      tags:
+        - identity
+      summary: 'Renomeia, ajusta fuso/horário ou arquiva a residência'
+      operationId: 7fb3aa50cf839ee43e08b979508e375e
+      parameters:
+        -
+          parameter: tenant
+          name: update
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                  maxLength: 120
+                timezone:
+                  type: string
+                  maxLength: 64
+                preferred_hour:
+                  type: string
+                  example: '09:00'
+                archived:
+                  description: 'true arquiva; false restaura'
+                  type: boolean
+              type: object
+      responses:
+        '200':
+          description: 'Residência atualizada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Tenant' }
+                  archived: { type: boolean, example: true }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa ou capability tenant.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Residência não encontrada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/identity/tenants/{tenant}/preferences':
+    get:
+      tags:
+        - identity
+      summary: 'Lê as preferências da residência'
+      operationId: 54e798a33d8852b80f33cc7aac32cde0
+      parameters:
+        -
+          parameter: tenant
+          name: preferences
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: Preferências
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Preferences' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa ou sem membership'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Residência não encontrada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    patch:
+      tags:
+        - identity
+      summary: 'Atualiza horário preferido, quiet hours e canais'
+      operationId: 23bb28e7660f75a3806483ee44e76e92
+      parameters:
+        -
+          parameter: tenant
+          name: updatePreferences
+          in: path
+          description: 'Id ULID da residência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                preferred_hour:
+                  type: string
+                  example: '21:30'
+                quiet_hours:
+                  properties: { start: { type: string, example: '22:00' }, end: { type: string, example: '07:00' } }
+                  type: object
+                channels:
+                  properties: { email: { type: boolean }, push: { type: boolean }, in_app: { type: boolean } }
+                  type: object
+              type: object
+      responses:
+        '200':
+          description: 'Preferências atualizadas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Preferences' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Residência diferente da ativa ou capability tenant.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Residência não encontrada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/maintenance/assets:
+    get:
+      tags:
+        - maintenance
+      summary: 'Lista o inventário da residência ativa'
+      operationId: 51b6ec32dbca875ef7737ac59de16517
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+        -
+          parameter: room_id
+          name: index
+          in: query
+          description: 'Filtra por cômodo'
+          schema:
+            type: string
+            maxLength: 26
+        -
+          parameter: category
+          name: index
+          in: query
+          description: 'Filtra por categoria'
+          schema:
+            type: string
+            maxLength: 40
+        -
+          parameter: include_archived
+          name: index
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'Ativos paginados com datas no fuso da residência'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Asset' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    post:
+      tags:
+        - maintenance
+      summary: 'Cria um ativo em um cômodo ativo'
+      operationId: a5cfa0d3122c9fdea71eeef6d08ee4ef
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - room_id
+                - name
+              properties:
+                room_id:
+                  description: 'Cômodo ativo da residência ativa'
+                  type: string
+                  maxLength: 26
+                name:
+                  type: string
+                  example: Ar-condicionado
+                  maxLength: 120
+                category:
+                  type: string
+                  example: eletro
+                  nullable: true
+                  maxLength: 40
+                brand:
+                  type: string
+                  example: Springer
+                  nullable: true
+                  maxLength: 60
+                model:
+                  type: string
+                  example: X-12000
+                  nullable: true
+                  maxLength: 60
+                acquired_at:
+                  type: string
+                  format: date
+                  example: '2024-01-15'
+                  nullable: true
+                warranty_until:
+                  type: string
+                  format: date
+                  example: '2027-03-15'
+                  nullable: true
+                metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+              type: object
+      responses:
+        '201':
+          description: 'Ativo criado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Asset' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability assets.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Cômodo não encontrado ou arquivado'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/maintenance/assets/{asset}':
+    get:
+      tags:
+        - maintenance
+      summary: 'Detalhe de um ativo'
+      operationId: 4e8666dcfd9aaa29f2bb6b8b66729e1b
+      parameters:
+        -
+          parameter: asset
+          name: show
+          in: path
+          description: 'Id ULID do ativo'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: Ativo
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Asset' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ativo não encontrado na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    delete:
+      tags:
+        - maintenance
+      summary: 'Arquiva um ativo'
+      operationId: 1a91c47be2d2cc326b822c3bdb8cd4ac
+      parameters:
+        -
+          parameter: asset
+          name: destroy
+          in: path
+          description: 'Id ULID do ativo'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Ativo arquivado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Asset' }
+                  archived: { type: boolean, example: true }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability assets.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ativo não encontrado na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    patch:
+      tags:
+        - maintenance
+      summary: 'Atualiza, transfere de cômodo ou arquiva um ativo'
+      operationId: cca967425563f58d035d36b5e30523de
+      parameters:
+        -
+          parameter: asset
+          name: update
+          in: path
+          description: 'Id ULID do ativo'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                room_id:
+                  description: 'Destino da transferência; precisa estar ativo'
+                  type: string
+                  maxLength: 26
+                name:
+                  type: string
+                  maxLength: 120
+                category:
+                  type: string
+                  nullable: true
+                  maxLength: 40
+                brand:
+                  type: string
+                  nullable: true
+                  maxLength: 60
+                model:
+                  type: string
+                  nullable: true
+                  maxLength: 60
+                acquired_at:
+                  type: string
+                  format: date
+                  nullable: true
+                warranty_until:
+                  type: string
+                  format: date
+                  nullable: true
+                metadata:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
+                archived:
+                  description: 'true arquiva; false restaura'
+                  type: boolean
+              type: object
+      responses:
+        '200':
+          description: 'Ativo atualizado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Asset' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability assets.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ativo ou cômodo de destino não encontrado'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/maintenance/rooms:
+    get:
+      tags:
+        - maintenance
+      summary: 'Lista os cômodos da residência ativa'
+      operationId: 6a1e61f7cf19151082a455b594b95b75
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+        -
+          parameter: include_archived
+          name: index
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'Cômodos paginados em ordem de exibição'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Room' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    post:
+      tags:
+        - maintenance
+      summary: 'Cria um cômodo'
+      operationId: f31a7bc1d29d9c36465efef8d6e3e9ff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: 'Sala de estar'
+                  maxLength: 80
+                icon:
+                  type: string
+                  example: sofa
+                  nullable: true
+                  maxLength: 40
+                sort_order:
+                  description: 'Omitido, entra no fim da lista'
+                  type: integer
+                  minimum: 0
+              type: object
+      responses:
+        '201':
+          description: 'Cômodo criado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Room' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rooms.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/maintenance/rooms/{room}':
+    get:
+      tags:
+        - maintenance
+      summary: 'Detalhe de um cômodo'
+      operationId: 0c1d168f7dc64c3af40e4fe146872170
+      parameters:
+        -
+          parameter: room
+          name: show
+          in: path
+          description: 'Id ULID do cômodo'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: Cômodo
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Room' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Cômodo não encontrado na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    delete:
+      tags:
+        - maintenance
+      summary: 'Arquiva o cômodo'
+      operationId: 39bdf0093f1456f820495c72efd5ac20
+      parameters:
+        -
+          parameter: room
+          name: destroy
+          in: path
+          description: 'Id ULID do cômodo'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Cômodo arquivado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Room' }
+                  archived: { type: boolean, example: true }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rooms.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Cômodo não encontrado na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    patch:
+      tags:
+        - maintenance
+      summary: 'Atualiza nome, ícone, posição ou arquivamento'
+      operationId: 869a5eb10bb5fae7bc4359bf3c2fcd65
+      parameters:
+        -
+          parameter: room
+          name: update
+          in: path
+          description: 'Id ULID do cômodo'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                  maxLength: 80
+                icon:
+                  type: string
+                  nullable: true
+                  maxLength: 40
+                sort_order:
+                  type: integer
+                  minimum: 0
+                archived:
+                  description: 'true arquiva; false restaura'
+                  type: boolean
+              type: object
+      responses:
+        '200':
+          description: 'Cômodo atualizado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Room' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rooms.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Cômodo não encontrado na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/maintenance/rooms/order:
+    put:
+      tags:
+        - maintenance
+      summary: 'Reordena os cômodos com a lista completa de ids'
+      operationId: 19382eccf8e4f4942bc80616e1b6156c
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - ids
+              properties:
+                ids:
+                  type: array
+                  items: { type: string, maxLength: 26 }
+                  minItems: 1
+              type: object
+      responses:
+        '200':
+          description: 'Ordem aplicada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Room' } }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rooms.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Lista fora do esperado ou dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+components:
+  schemas:
+    Asset:
+      description: 'Item do inventário, sempre dentro de um cômodo da residência'
+      required:
+        - id
+        - tenant_id
+        - room_id
+        - name
+        - archived
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        tenant_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D1
+        room_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D2
+        name:
+          type: string
+          example: Ar-condicionado
+        category:
+          type: string
+          example: eletro
+          nullable: true
+        brand:
+          type: string
+          example: Springer
+          nullable: true
+        model:
+          type: string
+          example: X-12000
+          nullable: true
+        acquired_at:
+          type: string
+          format: date-time
+          example: '2024-01-15T00:00:00-03:00'
+          nullable: true
+        warranty_until:
+          type: string
+          format: date-time
+          example: '2027-03-15T00:00:00-03:00'
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        archived:
+          type: boolean
+          example: false
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
+    Error:
+      description: 'Envelope de erro da API'
+      required:
+        - error
+      properties:
+        error:
+          required:
+            - code
+            - message
+            - details
+            - request_id
+          properties:
+            code:
+              type: string
+              example: validation_failed
+            message:
+              type: string
+              example: 'Dados inválidos.'
+            details:
+              description: 'Detalhes livres: objeto por campo (validação) ou lista de esperados/recebidos'
+              oneOf:
+                -
+                  type: object
+                  example: { email: ['O e-mail já está em uso.'] }
+                  additionalProperties: true
+                -
+                  type: array
+                  items: { type: string }
+                  example: [01ABC]
+            request_id:
+              type: string
+              example: smoke-0001
+              nullable: true
+          type: object
+      type: object
+    Health:
+      description: 'Saúde do monólito'
+      required:
+        - service
+        - status
+        - checks
+        - request_id
+        - duration_ms
+        - timestamp
+      properties:
+        service:
+          type: string
+          example: Mordomus
+        status:
+          type: string
+          example: ok
+          enum:
+            - ok
+            - degraded
+        checks:
+          properties:
+            database:
+              properties:
+                status:
+                  type: string
+                  example: up
+                  enum: [up, down]
+                connection:
+                  type: string
+                  example: pgsql
+              type: object
+            cache:
+              type: string
+              example: redis
+            queue:
+              type: string
+              example: redis
+          type: object
+        tenant:
+          description: 'Residência resolvida pelo backend'
+          type: string
+          nullable: true
+        request_id:
+          type: string
+          example: smoke-0001
+        duration_ms:
+          type: number
+          format: float
+          example: 3.2
+        timestamp:
+          type: string
+          format: date-time
+      type: object
+    Invitation:
+      description: 'Convite emitido para um e-mail'
+      required:
+        - id
+        - email
+        - role
+        - expires_at
+        - accepted_at
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        email:
+          type: string
+          format: email
+          example: convidada@mordomus.test
+        role:
+          properties:
+            id:
+              type: string
+            key:
+              type: string
+              example: member
+            name:
+              type: string
+              example: Morador
+          type: object
+        expires_at:
+          type: string
+          format: date-time
+        accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
+    Member:
+      description: 'Membro ativo de uma residência'
+      required:
+        - id
+        - user
+        - role
+        - status
+        - capabilities
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        user:
+          $ref: '#/components/schemas/User'
+        role:
+          required:
+            - id
+            - key
+            - name
+          properties:
+            id:
+              type: string
+            key:
+              type: string
+              example: member
+            name:
+              type: string
+              example: Morador
+          type: object
+        status:
+          type: string
+          example: active
+        capabilities:
+          type: array
+          items:
+            type: string
+          example:
+            - bills.pay
+      type: object
+    PageMeta:
+      description: 'Paginação offset'
+      required:
+        - page
+        - per_page
+        - total
+        - last_page
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 25
+        total:
+          type: integer
+          example: 42
+        last_page:
+          type: integer
+          example: 2
+      type: object
+    Preferences:
+      description: 'Preferências da residência'
+      required:
+        - tenant_id
+        - preferred_hour
+        - quiet_hours
+        - channels
+      properties:
+        tenant_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        preferred_hour:
+          type: string
+          example: '09:00'
+        quiet_hours:
+          properties:
+            start:
+              type: string
+              example: '22:00'
+            end:
+              type: string
+              example: '07:00'
+          type: object
+        channels:
+          properties:
+            email:
+              type: boolean
+              example: true
+            push:
+              type: boolean
+              example: false
+            in_app:
+              type: boolean
+              example: true
+          type: object
+      type: object
+    Room:
+      description: 'Cômodo do imóvel'
+      required:
+        - id
+        - tenant_id
+        - name
+        - sort_order
+        - archived
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        tenant_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D1
+        name:
+          type: string
+          example: Sala
+        icon:
+          type: string
+          example: sofa
+          nullable: true
+        sort_order:
+          type: integer
+          example: 0
+        archived:
+          type: boolean
+          example: false
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
+    ServiceInfo:
+      description: 'Identificação do serviço na raiz do host'
+      required:
+        - service
+        - status
+      properties:
+        service:
+          type: string
+          example: Mordomus
+        status:
+          type: string
+          example: ok
+          enum:
+            - ok
+      type: object
+    Session:
+      description: 'Sessão emitida pelas rotas de autenticação'
+      required:
+        - token_type
+        - access_token
+        - expires_in
+        - active_tenant
+        - refresh_token
+        - refresh_expires_in
+        - user
+        - tenants
+      properties:
+        token_type:
+          type: string
+          example: bearer
+        access_token:
+          description: 'JWT RS256 com as claims sub, tid e tenants'
+          type: string
+        expires_in:
+          type: integer
+          example: 3600
+        active_tenant:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+          nullable: true
+        refresh_token:
+          description: 'Token opaco de uso único'
+          type: string
+        refresh_expires_in:
+          type: integer
+          example: 2592000
+        user:
+          $ref: '#/components/schemas/User'
+        tenants:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantSummary'
+      type: object
+    Tenant:
+      description: 'Residência com as capabilities do membro autenticado'
+      required:
+        - id
+        - name
+        - slug
+        - timezone
+        - preferred_hour
+        - archived
+        - capabilities
+        - created_at
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        name:
+          type: string
+          example: 'Casa Principal'
+        slug:
+          type: string
+          example: casa-principal
+        timezone:
+          type: string
+          example: America/Sao_Paulo
+        preferred_hour:
+          type: string
+          example: '09:00'
+        archived:
+          type: boolean
+          example: false
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        role:
+          properties:
+            id:
+              type: string
+            key:
+              type: string
+              example: owner
+            name:
+              type: string
+              example: Proprietário
+          type: object
+          nullable: true
+        capabilities:
+          type: array
+          items:
+            type: string
+          example:
+            - tenant.manage
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
+    TenantSummary:
+      description: 'Residência resumida, como aparece nas listas de sessão do usuário'
+      required:
+        - id
+        - name
+        - slug
+        - role
+        - role_key
+        - capabilities
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        name:
+          type: string
+          example: 'Casa Principal'
+        slug:
+          type: string
+          example: casa-principal
+        role:
+          type: string
+          example: Proprietário
+        role_key:
+          type: string
+          example: owner
+        capabilities:
+          type: array
+          items:
+            type: string
+          example:
+            - rooms.manage
+      type: object
+    User:
+      description: 'Perfil do usuário autenticado'
+      required:
+        - id
+        - name
+        - email
+        - locale
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        name:
+          type: string
+          example: 'Ana Souza'
+        email:
+          type: string
+          format: email
+          example: ana@mordomus.test
+        locale:
+          type: string
+          example: pt_BR
+      type: object
+  securitySchemes:
+    jwtBearerAuth:
+      type: http
+      description: 'Access token devolvido por `/identity/auth/login` e demais rotas de sessão.'
+      bearerFormat: JWT
+      scheme: bearer
+tags:
+  -
+    name: system
+    description: 'Saúde do serviço, raiz do host e documentação'
+  -
+    name: identity
+    description: 'Autenticação, residências, convites e membros'
+  -
+    name: maintenance
+    description: 'Cômodos e inventário do imóvel'

@@ -1,11 +1,12 @@
 # ---------------------------------------------------------------------------
-# Mordomus — atalhos do ambiente de desenvolvimento (T1.1 + T1.3 / ADR-011)
+# Mordomus — atalhos do ambiente de desenvolvimento
 #   make secrets   gera .env + chaves JWT RS256 + JWKS
 #   make up        sobe tudo (build + containers)
 #   make health    saúde do ambiente (gateway, api, postgres, redis)
 #   make test      php artisan test no monólito
-#   make smoke     smoke E2E do identity via gateway (T1.0.10 / T1.3.8)
+#   make smoke     smoke E2E do identity via gateway
 #   make migrate   php artisan migrate
+#   make openapi   regenera api/storage/openapi.yaml a partir das anotações
 # ---------------------------------------------------------------------------
 SHELL := /bin/bash
 COMPOSE ?= docker compose
@@ -14,7 +15,7 @@ SERVICE ?= api
 
 .DEFAULT_GOAL := help
 
-.PHONY: help secrets base build install up dev down restart logs ps health test smoke migrate shell
+.PHONY: help secrets base build install up dev down restart logs ps health test smoke migrate shell openapi
 
 help: ## mostra esta ajuda
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -67,3 +68,6 @@ migrate: ## php artisan migrate
 
 shell: ## shell no monólito: make shell [SERVICE=api]
 	$(COMPOSE) run --rm --no-deps -e WAIT_FOR_DB=0 $(SERVICE) sh
+
+openapi: ## gera api/storage/openapi.yaml a partir das anotações
+	$(COMPOSE) run --rm --no-deps -e WAIT_FOR_DB=0 -e AUTO_COMPOSER=0 $(SERVICE) vendor/bin/openapi app -o storage/openapi.yaml

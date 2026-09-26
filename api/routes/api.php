@@ -2,10 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use Mordomus\Http\Controllers\HealthController;
+use Mordomus\Http\Controllers\OpenApiDocsController;
 
 /*
 |--------------------------------------------------------------------------
-| Rotas da API — monólito modular (ADR-011)
+| Rotas da API — monólito modular
 |--------------------------------------------------------------------------
 | Prefixo global `api/v1` vem do bootstrap/app.php. Cada módulo declara o
 | seu prefixo e as rotas vivem em routes/modules/<modulo>.php — acrescente o
@@ -16,6 +17,8 @@ use Mordomus\Http\Controllers\HealthController;
 */
 
 Route::get('/health', HealthController::class);
+Route::get('/openapi.yaml', [OpenApiDocsController::class, 'spec']);
+Route::get('/docs', [OpenApiDocsController::class, 'ui']);
 
 Route::prefix('identity')->group(__DIR__.'/modules/identity.php');
 Route::prefix('maintenance')->group(__DIR__.'/modules/maintenance.php');
