@@ -10,8 +10,8 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Maintenance\Models\Room;
 
 /**
- * T2.1 — CRUD de cômodos: isolamento por residência (AC 1), ordenação
- * persistida e refletida na API (AC 2), arquivamento lógico e RBAC.
+ * CRUD de cômodos: isolamento por residência, ordenação persistida e
+ * refletida na API, arquivamento lógico e RBAC.
  */
 class RoomCrudTest extends FeatureTestCase
 {
@@ -157,7 +157,7 @@ class RoomCrudTest extends FeatureTestCase
         $this->assertSame([1, 2], $persisted->all());
     }
 
-    /** ADR-006 — `DELETE` arquiva; a linha permanece no banco. */
+    /** `DELETE` arquiva; a linha permanece no banco. */
     public function test_delete_archives_logically_and_hides_from_list(): void
     {
         $id = $this->withHeaders($this->headers)
@@ -205,7 +205,7 @@ class RoomCrudTest extends FeatureTestCase
             ->assertJsonCount(1, 'data');
     }
 
-    /** ADR-007 — member não tem `rooms.manage`; leitura segue liberada. */
+    /** member não tem `rooms.manage`; leitura segue liberada. */
     public function test_member_without_rooms_manage_can_read_but_not_write(): void
     {
         $member = User::factory()->create();

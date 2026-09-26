@@ -5,11 +5,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * T2.2.1 — inventário de ativos do módulo Maintenance.
+ * Inventário de ativos do módulo Maintenance.
  *
  * `acquired_at`/`warranty_until` são `timestamptz` para que a API possa
- * devolvê-los no fuso do tenant (T2.2, AC 2). Soft delete via `archived_at`
- * (ADR-006) e FK real para `rooms` (ADR-011).
+ * devolvê-los no fuso do tenant. Soft delete via `archived_at` e FK real
+ * para `rooms`.
  */
 return new class extends Migration
 {

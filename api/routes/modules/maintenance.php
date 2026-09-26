@@ -9,7 +9,7 @@ use Mordomus\Maintenance\Http\Controllers\RoomController;
 | Módulo Maintenance — /api/v1/maintenance/*
 |--------------------------------------------------------------------------
 | Leitura é livre para qualquer morador ativo da residência; escrita
-| exige a capability correspondente (ADR-007 — só o owner as tem).
+| exige a capability correspondente (só o owner as tem).
 */
 
 Route::middleware('auth:jwt')->group(function () {

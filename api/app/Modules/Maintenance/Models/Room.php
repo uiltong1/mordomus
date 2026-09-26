@@ -9,10 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 
 /**
- * T2.1 — ambiente do imóvel.
+ * Ambiente do imóvel.
  *
- * `BelongsToTenant` dá o auto-fill de `tenant_id` e a leitura filtrada
- * (regra R1 / T1.3.4); o escopo não deixa passar linha de outra residência.
+ * `BelongsToTenant` dá o auto-fill de `tenant_id` e a leitura filtrada;
+ * o escopo não deixa passar linha de outra residência.
  */
 #[Fillable(['tenant_id', 'name', 'icon', 'sort_order', 'archived_at'])]
 class Room extends Model
@@ -31,7 +31,7 @@ class Room extends Model
         ];
     }
 
-    /** Só os não arquivados (soft delete — ADR-006). */
+    /** Só os não arquivados (soft delete). */
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');

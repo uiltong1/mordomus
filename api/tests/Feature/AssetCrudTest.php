@@ -10,7 +10,7 @@ use Mordomus\Maintenance\Models\Asset;
 use Mordomus\Maintenance\Models\Room;
 
 /**
- * T2.2 — inventário de ativos: CRUD com `room_id`, filtros/paginação,
+ * Inventário de ativos: CRUD com `room_id`, filtros/paginação,
  * transferência entre cômodos, isolamento por residência (AC 1) e datas no
  * fuso do tenant (AC 2).
  */
@@ -240,7 +240,7 @@ class AssetCrudTest extends FeatureTestCase
             ->assertJsonPath('data.0.warranty_until', '2027-03-15T00:00:00+00:00');
     }
 
-    /** ADR-007 — member não tem `assets.manage`; leitura segue liberada. */
+    /** member não tem `assets.manage`; leitura segue liberada. */
     public function test_member_without_assets_manage_cannot_write(): void
     {
         $roomId = $this->createRoom('Sala');

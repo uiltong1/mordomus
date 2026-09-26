@@ -5,10 +5,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * T2.1.1 — ambientes do imóvel (cômodos) do módulo Maintenance.
+ * Ambientes do imóvel (cômodos) do módulo Maintenance.
  *
- * Soft delete via `archived_at` (ADR-006) e ordenação persistida em
- * `sort_order` (T2.1.2). `tenant_id` tem FK real (ADR-011).
+ * Soft delete via `archived_at`, ordenação persistida em `sort_order` e
+ * FK real de `tenant_id` para `tenants`.
  */
 return new class extends Migration
 {

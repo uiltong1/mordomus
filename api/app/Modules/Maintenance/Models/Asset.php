@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 
 /**
- * T2.2 — item do inventário (Ar-condicionado, Sofá, Filtro…), sempre dentro
- * de um `room` da mesma residência (regra R1 + AC da T2.2).
+ * Item do inventário (Ar-condicionado, Sofá, Filtro…), sempre dentro
+ * de um `room` da mesma residência.
  */
 #[Fillable([
     'tenant_id',
@@ -43,7 +43,7 @@ class Asset extends Model
         ];
     }
 
-    /** Só os não arquivados (soft delete — ADR-006). */
+    /** Só os não arquivados (soft delete). */
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
