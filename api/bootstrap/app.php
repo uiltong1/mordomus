@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Mordomus\Http\Exceptions\ApiException;
 use Mordomus\Http\Middleware\Can;
 use Mordomus\Http\Middleware\ClearTenantContext;
 use Mordomus\Http\Middleware\RequestContext;
@@ -80,6 +81,18 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
 
             return $envelope($request, 401, 'unauthenticated', 'Autenticação necessária.');
+        });
+
+        $exceptions->render(function (ApiException $exception, Request $request) use ($envelope, $logFailure) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $status = $exception->status();
+
+            $logFailure($request, $status, $exception->errorCode(), $exception);
+
+            return $envelope($request, $status, $exception->errorCode(), $exception->getMessage(), $exception->details());
         });
 
         $exceptions->render(function (HttpExceptionInterface $exception, Request $request) use ($envelope, $logFailure) {
