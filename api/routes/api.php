@@ -18,3 +18,4 @@ use Mordomus\Http\Controllers\HealthController;
 Route::get('/health', HealthController::class);
 
 Route::prefix('identity')->group(__DIR__.'/modules/identity.php');
+Route::prefix('maintenance')->group(__DIR__.'/modules/maintenance.php');
