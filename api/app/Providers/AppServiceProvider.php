@@ -15,6 +15,7 @@ use Mordomus\Common\Eloquent\TenantGlobalScope;
 use Mordomus\Identity\Auth\JwtGuard;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\User;
+use Mordomus\Identity\Services\JwtVerifier;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -51,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
     private function registerJwtGuard(): void
     {
         Auth::extend('jwt', function ($app, $name, array $config) {
-            $guard = new JwtGuard(JwtGuard::resolver(), $app['request']);
+            $guard = new JwtGuard(JwtGuard::resolver($app->make(JwtVerifier::class)), $app['request']);
 
             $app->refresh('request', $guard, 'setRequest');
 
@@ -60,7 +61,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * ADR-007 — `$user->can('rules.edit')` resolve pela capability efetiva
+     * `$user->can('rules.edit')` resolve pela capability efetiva
      * (membership_grants → role_permissions) no tenant ativo da requisição.
      */
     private function registerCapabilityGate(): void
@@ -90,7 +91,7 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /** TECHSPEC §10.4 — rate limiting por IP e por credencial nas rotas de auth. */
+    /** Rate limiting por IP e por credencial nas rotas de auth. */
     private function registerRateLimits(): void
     {
         RateLimiter::for('auth', function (Request $request) {

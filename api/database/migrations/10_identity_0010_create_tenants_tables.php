@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * T1.2.1 — residências (tenants) + preferências do tenant (T1.2.7).
+ * Residências (tenants) + preferências do tenant.
  */
 return new class extends Migration
 {

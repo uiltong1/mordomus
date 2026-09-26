@@ -20,7 +20,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasUlids, Notifiable;
 
-    /** PK ULID char(26) (ADR-006) */
+    /** PK ULID char(26) */
     public $incrementing = false;
 
     protected $keyType = 'string';
@@ -50,31 +50,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Tenants com membership ativo, com a role de cada um.
-     *
-     * @return list<array<string, mixed>>
-     */
-    public function tenantSummaries(): array
-    {
-        $resolver = app(CapabilityResolver::class);
-
-        return $this->memberships()
-            ->with('tenant', 'role')
-            ->where('status', Membership::STATUS_ACTIVE)
-            ->orderBy('created_at')
-            ->get()
-            ->map(fn (Membership $membership) => [
-                'id' => $membership->tenant_id,
-                'name' => $membership->tenant->name,
-                'slug' => $membership->tenant->slug,
-                'role' => $membership->role->name,
-                'role_key' => $membership->role->key,
-                'capabilities' => $resolver->keys($membership),
-            ])
-            ->all();
-    }
-
-    /**
      * Membership ativo em um tenant específico (fonte de verdade do Can()).
      */
     public function activeMembershipIn(string $tenantId): ?Membership
@@ -87,8 +62,8 @@ class User extends Authenticatable
     }
 
     /**
-     * Resolução de capability (ADR-007) no tenant ativo da requisição.
-     * ADR-007: membership_grants (override) → role_permissions[role_id].
+     * Resolução de capability no tenant ativo da requisição:
+     * membership_grants (override) → role_permissions[role_id].
      */
     public function hasCapability(string $capability): bool
     {

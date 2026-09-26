@@ -3,7 +3,7 @@
 namespace Mordomus\Identity\Exceptions;
 
 /**
- * Falha na troca do refresh token → 401 (formato TECHSPEC §4.4).
+ * Falha na troca do refresh token → 401.
  */
 class InvalidRefreshToken extends \RuntimeException
 {

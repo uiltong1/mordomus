@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * T1.2.8 — RBAC (ADR-007): roles, capabilities e overrides por membership.
+ * RBAC: roles, capabilities e overrides por membership.
  * Papel `member`/`owner` é role de sistema (tenant_id nulo).
  */
 return new class extends Migration

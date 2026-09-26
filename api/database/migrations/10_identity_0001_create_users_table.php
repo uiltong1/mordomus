@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * T1.2.1 — usuários (TECHSPEC §5.1, ADR-006: PK ULID char(26)).
+ * Usuários (PK ULID char(26)).
  */
 return new class extends Migration
 {

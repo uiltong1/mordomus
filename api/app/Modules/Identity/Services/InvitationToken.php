@@ -3,7 +3,7 @@
 namespace Mordomus\Identity\Services;
 
 /**
- * Token de convite: valor na URL, apenas o hash persiste (T1.2.6).
+ * Token de convite: valor na URL, apenas o hash persiste.
  */
 class InvitationToken
 {

@@ -9,7 +9,7 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Identity\Services\JwtIssuer;
 
 /**
- * T1.2.2/T1.2.3/T1.2.5 — registro → login → refresh (rotação) → switch-tenant.
+ * Registro → login → refresh (rotação) → switch-tenant.
  */
 class AuthFlowTest extends FeatureTestCase
 {

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Mordomus\Identity\Models\Membership;
 
 /**
- * Resolução de capabilities (ADR-007):
+ * Resolução de capabilities:
  *   membership_grants (override pontual) → role_permissions[role_id] → cache 60 s.
  */
 class CapabilityResolver

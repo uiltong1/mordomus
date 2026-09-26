@@ -11,7 +11,7 @@ use Mordomus\Identity\Services\CapabilityResolver;
 use Mordomus\Identity\Services\InvitationToken;
 
 /**
- * T1.2.6 (convites) + T1.2.9 (gestão de membros: role e grants).
+ * Convites e gestão de membros (role e grants).
  */
 class MemberManagementTest extends FeatureTestCase
 {

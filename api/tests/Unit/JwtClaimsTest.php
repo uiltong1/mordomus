@@ -6,11 +6,11 @@ use Mordomus\Identity\Services\JwtIssuer;
 use Tests\TestCase;
 
 /**
- * T1.2.3 — contrato das claims do JWT de usuário (TECHSPEC §4.1).
+ * Contrato das claims do JWT de usuário.
  */
 class JwtClaimsTest extends TestCase
 {
-    public function test_claims_follow_techspec_contract(): void
+    public function test_claims_follow_api_contract(): void
     {
         $issuer = new JwtIssuer;
         $timestamp = 1767225600;

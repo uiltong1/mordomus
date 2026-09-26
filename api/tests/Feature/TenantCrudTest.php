@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Mordomus\Identity\Models\Tenant;
 
 /**
- * T1.2.4 — CRUD de residências (tenants): lista paginada, criação, edição e arquivamento.
+ * CRUD de residências (tenants): lista paginada, criação, edição e arquivamento.
  */
 class TenantCrudTest extends FeatureTestCase
 {

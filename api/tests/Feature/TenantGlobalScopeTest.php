@@ -12,7 +12,7 @@ use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 
 /**
- * T1.3.4 — `BelongsToTenant` / `TenantGlobalScope` nos models do módulo.
+ * `BelongsToTenant` / `TenantGlobalScope` nos models do módulo.
  *
  * Fail-closed: sem contexto de residência nenhuma linha passa; com contexto,
  * só as daquela residência.

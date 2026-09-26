@@ -4,15 +4,15 @@ namespace Mordomus\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Mordomus\Identity\Models\Membership;
+use Mordomus\Http\Responses\ErrorEnvelope;
+use Mordomus\Http\Tenancy\ActiveTenant;
 use Mordomus\Identity\Models\Tenant;
-use Mordomus\Identity\Services\CapabilityResolver;
 
-/**
- * Contratos comuns de resposta (formato de erro TECHSPEC §4.4).
- */
 abstract class Controller
 {
+    /**
+     * @param  array<string, mixed>  $details
+     */
     protected function error(
         Request $request,
         int $status,
@@ -20,20 +20,13 @@ abstract class Controller
         string $message,
         array $details = [],
     ): JsonResponse {
-        return response()->json([
-            'error' => [
-                'code' => $code,
-                'message' => $message,
-                'details' => $details,
-                'request_id' => $request->header('X-Request-Id'),
-            ],
-        ], $status);
+        return ErrorEnvelope::make($request, $status, $code, $message, $details);
     }
 
     /** Tenant ativo definido pelo middleware `tenant`. */
     protected function activeTenantId(Request $request): ?string
     {
-        return $request->attributes->get('jwt_claims')['tid'] ?? null;
+        return ActiveTenant::id($request);
     }
 
     /** Garante que o recurso pertence ao tenant ativo do token (blindagem multitenant). */
@@ -44,11 +37,5 @@ abstract class Controller
         if ($active === null || $tenant->id !== $active) {
             abort(403, 'tenant_mismatch');
         }
-    }
-
-    /** @return list<string> */
-    protected function capabilitiesOf(Membership $membership): array
-    {
-        return app(CapabilityResolver::class)->keys($membership);
     }
 }

@@ -49,9 +49,9 @@ class JwtGuard extends RequestGuard
         return $this->request;
     }
 
-    public static function resolver(): callable
+    public static function resolver(JwtVerifier $verifier): callable
     {
-        return function (Request $request) {
+        return function (Request $request) use ($verifier) {
             $token = $request->bearerToken();
 
             if (! $token) {
@@ -59,7 +59,7 @@ class JwtGuard extends RequestGuard
             }
 
             try {
-                $claims = app(JwtVerifier::class)->verify($token);
+                $claims = $verifier->verify($token);
             } catch (\Throwable) {
                 return null;
             }

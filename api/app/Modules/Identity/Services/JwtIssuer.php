@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 use Mordomus\Identity\Models\User;
 
 /**
- * Emissão do access token de usuário (claims TECHSPEC §4.1: sub, tid, tenants, iss).
+ * Emissão do access token de usuário (claims: sub, tid, tenants, iss).
  * O refresh token é emitido/rotacionado por RefreshTokenService.
  */
 class JwtIssuer

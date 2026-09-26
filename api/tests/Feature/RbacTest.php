@@ -13,7 +13,7 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Identity\Services\CapabilityResolver;
 
 /**
- * T1.2.8/T1.2.10 — resolução Can() (ADR-007) e member sem rules.edit → 403.
+ * Resolução de capabilities no Gate e member sem rules.edit → 403.
  */
 class RbacTest extends FeatureTestCase
 {

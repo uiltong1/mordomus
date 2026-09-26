@@ -7,7 +7,7 @@ use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\User;
 
 /**
- * T1.2.7 — preferências do tenant: preferred_hour (09:00) + quiet hours.
+ * Preferências do tenant: preferred_hour (09:00) + quiet hours.
  */
 class TenantPreferencesTest extends FeatureTestCase
 {

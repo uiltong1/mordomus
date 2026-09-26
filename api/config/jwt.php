@@ -6,9 +6,9 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | JWT de usuário (RS256 — TECHSPEC §10.1)
+    | JWT de usuário (RS256)
     |--------------------------------------------------------------------------
-    | Chaves locais montadas pelo docker-compose em /run/secrets (T1.1.8).
+    | Chaves locais montadas pelo docker-compose em /run/secrets.
     | O `kid` publicado no JWKS do gateway deve ser o mesmo usado aqui.
     */
 

@@ -40,7 +40,7 @@ class Tenant extends Model
         });
     }
 
-    /** Residências ainda não arquivadas (soft delete via archived_at — ADR-006). */
+    /** Residências ainda não arquivadas (soft delete via archived_at). */
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');

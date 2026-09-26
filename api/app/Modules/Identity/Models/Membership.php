@@ -49,7 +49,7 @@ class Membership extends Model
         return $this->belongsTo(Role::class);
     }
 
-    /** Overrides pontuais (ADR-007). @return BelongsToMany<Permission, $this> */
+    /** Overrides pontuais. @return BelongsToMany<Permission, $this> */
     public function permissionGrants(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'membership_grants', 'membership_id', 'permission_id')

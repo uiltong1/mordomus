@@ -9,7 +9,7 @@ use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
 
 /**
- * Verificação do JWT de usuário (RS256 — TECHSPEC §10.1).
+ * Verificação do JWT de usuário (RS256).
  * Lança exceções; o guard converte qualquer falha em "não autenticado".
  */
 class JwtVerifier

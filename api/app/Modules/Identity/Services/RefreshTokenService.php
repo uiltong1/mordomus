@@ -7,7 +7,7 @@ use Mordomus\Identity\Models\RefreshToken;
 use Mordomus\Identity\Models\User;
 
 /**
- * Refresh token com rotação (T1.2.3) e detecção de reuso.
+ * Refresh token com rotação e detecção de reuso.
  */
 class RefreshTokenService
 {

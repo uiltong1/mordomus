@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * T1.2.6 — convites (token armazenado hasheado) e rotação de refresh (T1.2.3).
+ * Convites (token armazenado hasheado) e rotação de refresh.
  */
 return new class extends Migration
 {

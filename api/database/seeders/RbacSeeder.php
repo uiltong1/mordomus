@@ -7,12 +7,12 @@ use Mordomus\Identity\Models\Permission;
 use Mordomus\Identity\Models\Role;
 
 /**
- * T1.2.8 — catálogo de capabilities + roles de sistema (ADR-007).
+ * Catálogo de capabilities + roles de sistema.
  * Idempotente: seguro para reaplicar a cada `migrate --seed`.
  */
 class RbacSeeder extends Seeder
 {
-    /** Catálogo completo (TECHSPEC §4.8/§5.1). */
+    /** Catálogo completo. */
     public const CAPABILITIES = [
         'tenant.manage' => 'Gerenciar a residência (nome, fuso, preferências, arquivamento)',
         'members.manage' => 'Convidar moradores e alterar roles/grants',
@@ -28,7 +28,7 @@ class RbacSeeder extends Seeder
         'notifications.manage' => 'Gerenciar preferências de notificação',
     ];
 
-    /** Política padrão: member recebe só estas (TECHSPEC §4.8). */
+    /** Política padrão: member recebe só estas. */
     public const MEMBER_CAPABILITIES = [
         'occurrences.complete',
         'occurrences.skip',

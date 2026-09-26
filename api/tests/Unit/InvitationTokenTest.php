@@ -6,7 +6,7 @@ use Mordomus\Identity\Services\InvitationToken;
 use Tests\TestCase;
 
 /**
- * T1.2.6 — token de convite: valor único na URL, apenas hash persiste.
+ * Token de convite: valor único na URL, apenas hash persiste.
  */
 class InvitationTokenTest extends TestCase
 {

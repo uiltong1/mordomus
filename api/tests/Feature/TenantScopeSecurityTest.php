@@ -10,7 +10,7 @@ use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 
 /**
- * T1.3.6/T1.3.7 — regressão de segurança do escopo por residência.
+ * Regressão de segurança do escopo por residência.
  *
  * - header `X-Tenant-ID` forjado é descartado pelo gateway e nunca lido pelo backend;
  * - sem token / token adulterado → 401;
