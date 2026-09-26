@@ -97,6 +97,10 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // O Eloquent grava datetime como `Y-m-d H:i:s` sem offset; sem isto o
+            // PostgreSQL interpreta no fuso do servidor (America/Sao_Paulo) e toda
+            // coluna timestamptz fica 3 h no futuro. `SET TimeZone` na conexão.
+            'timezone' => 'UTC',
         ],
 
         'sqlsrv' => [
