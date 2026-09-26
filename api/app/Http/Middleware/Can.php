@@ -4,10 +4,14 @@ namespace Mordomus\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Mordomus\Common\Support\TenantContext;
+use Mordomus\Http\Responses\ErrorEnvelope;
+use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Checagem de capability (ADR-007) declarativa em rota.
+ * Checagem de capability declarativa em rota.
  *
  * Uso: ->middleware('capability:rules.edit')
  *
@@ -41,13 +45,15 @@ class Can
      */
     private function deny(Request $request, int $status, string $code, string $message, array $details = []): Response
     {
-        return response()->json([
-            'error' => [
-                'code' => $code,
-                'message' => $message,
-                'details' => $details,
-                'request_id' => $request->header('X-Request-Id'),
-            ],
-        ], $status);
+        Log::warning($status === 401 ? 'auth.unauthenticated' : 'capability.denied', [
+            'status' => $status,
+            'code' => $code,
+            'required' => $details['required'] ?? null,
+            'user_id' => TenantContext::userId(),
+            'tenant_id' => TenantContext::tenantId(),
+            'path' => LogContext::path($request),
+        ]);
+
+        return ErrorEnvelope::make($request, $status, $code, $message, $details);
     }
 }

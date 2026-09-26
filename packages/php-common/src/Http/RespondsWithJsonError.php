@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Formato padrão de erro (TECHSPEC §4.4).
+ * Formato padrão de erro da API.
  *
  * { "error": { "code", "message", "details", "request_id" } }
  */

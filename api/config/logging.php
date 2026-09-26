@@ -4,6 +4,7 @@ use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
+use Mordomus\Support\Logging\JsonLogFormatter;
 
 return [
 
@@ -63,6 +64,15 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+        ],
+
+        'json' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/laravel.json.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+            'formatter' => JsonLogFormatter::class,
         ],
 
         'daily' => [

@@ -4,17 +4,22 @@ namespace Mordomus\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Mordomus\Common\Support\TenantContext;
+use Mordomus\Http\Responses\ErrorEnvelope;
 use Mordomus\Identity\Models\User;
 use Mordomus\Identity\Services\JwtVerifier;
+use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Exige tenant ativo no JWT (claim `tid`) + membership ativo.
- * Falhas → 401 sem token/tenant · 403 sem membership (TECHSPEC §4.4).
+ * Falhas → 401 sem token/tenant · 403 sem membership.
  */
 class TenantScope
 {
+    public function __construct(private readonly JwtVerifier $verifier) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $claims = $request->attributes->get('jwt_claims');
@@ -22,8 +27,7 @@ class TenantScope
         // fallback: se o guard devolveu usuário cacheado sem revalidar o token
         if (! is_array($claims) && $request->bearerToken()) {
             try {
-                $claims = app(JwtVerifier::class)
-                    ->verify($request->bearerToken());
+                $claims = $this->verifier->verify($request->bearerToken());
                 $request->attributes->set('jwt_claims', $claims);
             } catch (\Throwable) {
                 $claims = null;
@@ -46,9 +50,9 @@ class TenantScope
             return $this->deny($request, 401, 'unauthenticated', 'Token inválido ou ausente.');
         }
 
-        // alimenta o TenantGlobalScope do Eloquent (T1.3.4) — popula antes de
-        // consultar membership e limpa em finally para não vazar entre
-        // requisições do mesmo worker FPM
+        // alimenta o TenantGlobalScope do Eloquent — popula antes de consultar
+        // membership e limpa em finally para não vazar entre requisições do
+        // mesmo worker FPM
         TenantContext::set($tenantId, $user->id, $claims);
 
         try {
@@ -67,13 +71,14 @@ class TenantScope
 
     private function deny(Request $request, int $status, string $code, string $message): Response
     {
-        return response()->json([
-            'error' => [
-                'code' => $code,
-                'message' => $message,
-                'details' => [],
-                'request_id' => $request->header('X-Request-Id'),
-            ],
-        ], $status);
+        Log::warning('tenant_scope.denied', [
+            'status' => $status,
+            'code' => $code,
+            'user_id' => TenantContext::userId(),
+            'tenant_id' => TenantContext::tenantId(),
+            'path' => LogContext::path($request),
+        ]);
+
+        return ErrorEnvelope::make($request, $status, $code, $message);
     }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mordomus — gera segredos do ambiente local (T1.1.8)
+# Mordomus — gera segredos do ambiente local
 #   .secrets/rsa_private.pem   chave RS256 privada (assina o JWT de usuário)
 #   .secrets/rsa_public.pem    chave pública
 #   gateway/jwks/jwks.json     JWKS servido pelo gateway em /.well-known/jwks.json

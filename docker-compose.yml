@@ -1,7 +1,7 @@
 name: mordomus
 
 # ---------------------------------------------------------------------------
-# Mordomus — ambiente unificado (T1.1 + T1.3 / ADR-011)
+# Mordomus — ambiente unificado
 # Monólito modular (api) + gateway fino + postgres (1 database) + redis
 # + mailpit + frontend  =  8 containers
 # ---------------------------------------------------------------------------
@@ -29,6 +29,7 @@ x-laravel-env: &laravel-env
   MAIL_FROM_ADDRESS: no-reply@mordomus.app
   MAIL_FROM_NAME: Mordomus
   HASH_DRIVER: argon2id
+  LOG_CHANNEL: json
   APP_TIMEZONE: America/Sao_Paulo
   APP_LOCALE: pt_BR
   JWT_USER_SECRET: "${JWT_USER_SECRET:?JWT_USER_SECRET ausente — rode 'make secrets'}"
@@ -144,8 +145,8 @@ services:
     <<: *app
     healthcheck: *app-healthcheck
     # porta não publicada: o PHP só é alcançável pela rede `backend`,
-    # via gateway (T1.3 — "nenhum processo PHP fora da rede backend é
-    # alcançável de fora"; TECHSPEC §3 "só o gateway expõe porta externa")
+    # para que nenhum processo PHP seja alcançável de fora — só o gateway
+    # expõe porta externa
 
   api-worker:
     <<: *app

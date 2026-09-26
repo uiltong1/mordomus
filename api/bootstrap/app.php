@@ -5,10 +5,14 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Mordomus\Http\Middleware\Can;
 use Mordomus\Http\Middleware\ClearTenantContext;
+use Mordomus\Http\Middleware\RequestContext;
 use Mordomus\Http\Middleware\TenantScope;
+use Mordomus\Http\Responses\ErrorEnvelope;
+use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -24,8 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => null);
 
         // TenantContext é estático e o worker FPM é reutilizado — limpa antes
-        // e depois de cada requisição (regra R1)
+        // e depois de cada requisição
         $middleware->prepend(ClearTenantContext::class);
+        $middleware->prepend(RequestContext::class);
 
         $middleware->alias([
             'tenant' => TenantScope::class,
@@ -37,15 +42,24 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        // formato de erro TECHSPEC §4.4: {error:{code,message,details,request_id}}
-        $envelope = fn (Request $request, int $status, string $code, string $message, array $details = []) => response()->json([
-            'error' => [
+        $envelope = fn (Request $request, int $status, string $code, string $message, array $details = []) => ErrorEnvelope::make($request, $status, $code, $message, $details);
+
+        $logFailure = function (Request $request, int $status, string $code, Throwable $exception): void {
+            $context = [
+                'status' => $status,
                 'code' => $code,
-                'message' => $message,
-                'details' => $details,
-                'request_id' => $request->header('X-Request-Id'),
-            ],
-        ], $status);
+                'method' => $request->method(),
+                'path' => LogContext::path($request),
+                'exception' => $exception,
+            ];
+
+            match (true) {
+                $status >= 500 => Log::error('http.server_error', $context),
+                $status === 429 => Log::warning('http.rate_limited', $context),
+                $status === 403 => Log::warning('http.forbidden', $context),
+                default => null,
+            };
+        };
 
         $exceptions->render(function (ValidationException $exception, Request $request) use ($envelope) {
             if (! $request->is('api/*') && ! $request->expectsJson()) {
@@ -60,10 +74,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            Log::warning('auth.unauthenticated', [
+                'method' => $request->method(),
+                'path' => LogContext::path($request),
+            ]);
+
             return $envelope($request, 401, 'unauthenticated', 'Autenticação necessária.');
         });
 
-        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) use ($envelope) {
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) use ($envelope, $logFailure) {
             if (! $request->is('api/*')) {
                 return null;
             }
@@ -96,6 +115,8 @@ return Application::configure(basePath: dirname(__DIR__))
                     default => $status >= 500 ? 'Erro interno.' : 'Requisição inválida.',
                 };
             }
+
+            $logFailure($request, $status, $code, $exception);
 
             return $envelope($request, $status, $code, $message);
         });

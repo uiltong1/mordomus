@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke E2E do identity via gateway (T1.0.10 / T1.3.8).
+# Smoke E2E do identity via gateway.
 # Pré-requisito: `make up` e o gateway de pé em http://localhost:8080.
 # Uso: make smoke   (ou: bin/smoke.sh)
 set -uo pipefail

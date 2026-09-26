@@ -9,7 +9,7 @@ use Mordomus\Common\Support\TenantContext;
 
 /**
  * Adiciona o escopo global de tenant e o preenchimento automático de
- * `tenant_id` (regras R1 e R7 do SDD §3.2).
+ * `tenant_id`.
  *
  * Uso: class Room extends Model { use BelongsToTenant; }
  *

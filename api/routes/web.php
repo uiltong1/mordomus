@@ -2,10 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Mordomus\Http\Controllers\HealthController;
+use Mordomus\Http\Controllers\RootController;
 
-Route::get('/', fn () => response()->json([
-    'service' => config('app.name'),
-    'status' => 'ok',
-]));
+Route::get('/', RootController::class);
 
 Route::get('/health', HealthController::class);

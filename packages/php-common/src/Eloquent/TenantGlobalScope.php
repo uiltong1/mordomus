@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Scope;
 use Mordomus\Common\Support\TenantContext;
 
 /**
- * Escopo global de tenant (regra R1 / ADR-004).
+ * Escopo global de tenant.
  *
  * Toda leitura é restringida ao tenant do contexto. Sem contexto — CLI,
  * seeders, jobs — o escopo não deixa passar NENHUMA linha (fail closed);

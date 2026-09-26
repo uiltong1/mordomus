@@ -3,7 +3,7 @@
 namespace Mordomus\Common\Support;
 
 /**
- * Contexto de tenant da requisição corrente (regra R1).
+ * Contexto de tenant da requisição corrente.
  *
  * Alimentado pelo middleware TenantScope a partir do JWT de serviço — nunca
  * do corpo da requisição — e lido pelo escopo global do Eloquent.
