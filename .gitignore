@@ -3,6 +3,7 @@
 !.env.example
 .secrets/
 /docs/
+/*.pdf
 
 vendor/
 node_modules/
