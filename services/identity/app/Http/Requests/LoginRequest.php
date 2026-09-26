@@ -1,0 +1,23 @@
+<?php
+
+namespace Mordomus\Identity\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class LoginRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        return [
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'string', 'max:72'],
+            'tenant_id' => ['nullable', 'string', 'size:26'],
+        ];
+    }
+}
