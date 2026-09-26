@@ -1,8 +1,9 @@
 name: mordomus
 
 # ---------------------------------------------------------------------------
-# Mordomus — ambiente unificado (T1.1)
-# 5 serviços Laravel + gateway + postgres (5 databases) + redis + mailpit + web
+# Mordomus — ambiente unificado (T1.1 + T1.3 / ADR-011)
+# Monólito modular (api) + gateway fino + postgres (1 database) + redis
+# + mailpit + frontend  =  8 containers
 # ---------------------------------------------------------------------------
 
 x-laravel-env: &laravel-env
@@ -13,11 +14,13 @@ x-laravel-env: &laravel-env
   DB_CONNECTION: pgsql
   DB_HOST: postgres
   DB_PORT: "5432"
+  DB_DATABASE: mordomus
   DB_USERNAME: "${POSTGRES_USER:?POSTGRES_USER ausente — rode 'make secrets'}"
   DB_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD ausente — rode 'make secrets'}"
   REDIS_HOST: redis
   REDIS_PORT: "6379"
   CACHE_STORE: redis
+  CACHE_PREFIX: mordomus-cache-
   QUEUE_CONNECTION: redis
   SESSION_DRIVER: file
   MAIL_MAILER: smtp
@@ -29,7 +32,6 @@ x-laravel-env: &laravel-env
   APP_TIMEZONE: America/Sao_Paulo
   APP_LOCALE: pt_BR
   JWT_USER_SECRET: "${JWT_USER_SECRET:?JWT_USER_SECRET ausente — rode 'make secrets'}"
-  JWT_SERVICE_SECRET: "${JWT_SERVICE_SECRET:?JWT_SERVICE_SECRET ausente — rode 'make secrets'}"
   JWT_KID: "${JWT_KID:?JWT_KID ausente — rode 'make secrets'}"
   # entrypoint copia /run/secrets → /run/mordomus com leitura para www-data
   JWT_RSA_PRIVATE_KEY: /run/mordomus/rsa_private.pem
@@ -39,15 +41,32 @@ x-laravel-env: &laravel-env
   AUTO_COMPOSER: "1"
   RUN_ROLE: http
 
-x-app-defaults: &app-defaults
+x-app: &app
   networks: [backend]
   restart: unless-stopped
-  healthcheck:
-    test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
-    interval: 15s
-    timeout: 5s
-    retries: 6
-    start_period: 90s
+  build:
+    context: .
+    dockerfile: docker/php/api.Dockerfile
+    args: { BASE_IMAGE: mordomus-php:8.3 }
+  image: mordomus-api:dev
+  environment:
+    <<: *laravel-env
+    APP_NAME: Mordomus
+  volumes:
+    - ./api:/var/www/html
+    - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
+    - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
+    - ./packages:/var/www/packages
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis:    { condition: service_healthy }
+
+x-app-healthcheck: &app-healthcheck
+  test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+  interval: 15s
+  timeout: 5s
+  retries: 6
+  start_period: 90s
 
 services:
   # ------------------------------- data ------------------------------------
@@ -56,15 +75,14 @@ services:
     environment:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      POSTGRES_DB: postgres
+      POSTGRES_DB: mordomus
       TZ: America/Sao_Paulo
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/01-init-databases.sh:ro
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d mordomus"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -111,11 +129,7 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      identity:    { condition: service_healthy }
-      maintenance: { condition: service_healthy }
-      scheduling:  { condition: service_healthy }
-      financial:   { condition: service_healthy }
-      notification: { condition: service_healthy }
+      api: { condition: service_healthy }
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
       interval: 15s
@@ -125,147 +139,40 @@ services:
     networks: [edge, backend]
     restart: unless-stopped
 
-  # ---------------------------- serviços -----------------------------------
-  identity:
-    <<: *app-defaults
-    build:
-      context: .
-      dockerfile: docker/php/service.Dockerfile
-      args: { BASE_IMAGE: mordomus-php:8.3, SERVICE: identity }
-    image: mordomus-identity:dev
-    environment:
-      <<: *laravel-env
-      APP_NAME: Mordomus Identity
-      SERVICE_NAME: identity
-      DB_DATABASE: mordomus_identity
-    volumes:
-      - ./services/identity:/var/www/html
-      - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
-      - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
-    ports:
-      - "8001:8080"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
+  # ---------------------------- monólito -----------------------------------
+  api:
+    <<: *app
+    healthcheck: *app-healthcheck
+    # porta não publicada: o PHP só é alcançável pela rede `backend`,
+    # via gateway (T1.3 — "nenhum processo PHP fora da rede backend é
+    # alcançável de fora"; TECHSPEC §3 "só o gateway expõe porta externa")
 
-  maintenance:
-    <<: *app-defaults
-    build:
-      context: .
-      dockerfile: docker/php/service.Dockerfile
-      args: { BASE_IMAGE: mordomus-php:8.3, SERVICE: maintenance }
-    image: mordomus-maintenance:dev
+  api-worker:
+    <<: *app
     environment:
       <<: *laravel-env
-      APP_NAME: Mordomus Maintenance
-      SERVICE_NAME: maintenance
-      DB_DATABASE: mordomus_maintenance
-    volumes:
-      - ./services/maintenance:/var/www/html
-      - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
-      - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
-    ports:
-      - "8002:8080"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-
-  scheduling:
-    <<: *app-defaults
-    build:
-      context: .
-      dockerfile: docker/php/service.Dockerfile
-      args: { BASE_IMAGE: mordomus-php:8.3, SERVICE: scheduling }
-    image: mordomus-scheduling:dev
-    environment:
-      <<: *laravel-env
-      APP_NAME: Mordomus Scheduling
-      SERVICE_NAME: scheduling
-      DB_DATABASE: mordomus_scheduling
-    volumes:
-      - ./services/scheduling:/var/www/html
-      - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
-      - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
-    ports:
-      - "8004:8080"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-
-  financial:
-    <<: *app-defaults
-    build:
-      context: .
-      dockerfile: docker/php/service.Dockerfile
-      args: { BASE_IMAGE: mordomus-php:8.3, SERVICE: financial }
-    image: mordomus-financial:dev
-    environment:
-      <<: *laravel-env
-      APP_NAME: Mordomus Financial
-      SERVICE_NAME: financial
-      DB_DATABASE: mordomus_financial
-    volumes:
-      - ./services/financial:/var/www/html
-      - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
-      - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
-    ports:
-      - "8003:8080"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-
-  notification:
-    <<: *app-defaults
-    build:
-      context: .
-      dockerfile: docker/php/service.Dockerfile
-      args: { BASE_IMAGE: mordomus-php:8.3, SERVICE: notification }
-    image: mordomus-notification:dev
-    environment:
-      <<: *laravel-env
-      APP_NAME: Mordomus Notification
-      SERVICE_NAME: notification
-      DB_DATABASE: mordomus_notification
-    volumes:
-      - ./services/notification:/var/www/html
-      - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
-      - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
-    ports:
-      - "8005:8080"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-
-  # ------------------------- worker de fila (Redis) -------------------------
-  notification-worker:
-    build:
-      context: .
-      dockerfile: docker/php/service.Dockerfile
-      args: { BASE_IMAGE: mordomus-php:8.3, SERVICE: notification }
-    image: mordomus-notification:dev
-    environment:
-      <<: *laravel-env
-      APP_NAME: Mordomus Notification Worker
-      SERVICE_NAME: notification
-      DB_DATABASE: mordomus_notification
+      APP_NAME: Mordomus Worker
       RUN_ROLE: worker
-    volumes:
-      - ./services/notification:/var/www/html
-      - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
-      - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-      notification: { condition: service_healthy }
-    # worker não serve HTTP: healthcheck do processo (o do image é curl :8080)
+    # worker não serve HTTP: healthcheck do processo
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'artisan queue:work' > /dev/null"]
       interval: 15s
       timeout: 5s
       retries: 6
       start_period: 60s
-    networks: [backend]
-    restart: unless-stopped
+
+  api-scheduler:
+    <<: *app
+    environment:
+      <<: *laravel-env
+      APP_NAME: Mordomus Scheduler
+      RUN_ROLE: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'artisan schedule:work' > /dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
   # ------------------------------ frontend ---------------------------------
   frontend:

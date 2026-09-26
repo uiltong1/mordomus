@@ -76,6 +76,12 @@ if [ "${RUN_ROLE:-http}" = "worker" ]; then
         --sleep=1 --tries=3 --max-time=3600 --memory=256
 fi
 
+# --- scheduler de fila --------------------------------------------------------
+if [ "${RUN_ROLE:-http}" = "scheduler" ]; then
+    log "iniciando scheduler (schedule:work)"
+    exec php artisan schedule:work
+fi
+
 # --- http (nginx + php-fpm) ---------------------------------------------------
 log "iniciando nginx (8080) e php-fpm (9000)"
 nginx -g 'daemon on;'

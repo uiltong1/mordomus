@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Mordomus — gera segredos do ambiente local (T1.1.8)
-#   .secrets/rsa_private.pem   chave RS256 privada (assina JWT de serviço/usuário)
+#   .secrets/rsa_private.pem   chave RS256 privada (assina o JWT de usuário)
 #   .secrets/rsa_public.pem    chave pública
 #   gateway/jwks/jwks.json     JWKS servido pelo gateway em /.well-known/jwks.json
-#   .env                       APP_KEY, segredos JWT e credenciais do Postgres
+#   .env                       APP_KEY, segredo JWT e credenciais do Postgres
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,7 +21,6 @@ POSTGRES_USER=mordomus
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
 APP_KEY=base64:$(openssl rand -base64 32 | tr -d '\n')
 JWT_USER_SECRET=$(openssl rand -hex 48)
-JWT_SERVICE_SECRET=$(openssl rand -hex 48)
 EOF
     chmod 600 "$ENV_FILE"
     echo "[secrets] .env criado"

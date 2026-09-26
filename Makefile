@@ -1,18 +1,20 @@
 # ---------------------------------------------------------------------------
-# Mordomus — atalhos do ambiente de desenvolvimento (T1.1)
-#   make secrets  gera .env + chaves JWT RS256 + JWKS
-#   make up       sobe tudo (build + containers)
-#   make health   GET /health em todos os serviços
-#   make test     php artisan test em cada serviço
+# Mordomus — atalhos do ambiente de desenvolvimento (T1.1 + T1.3 / ADR-011)
+#   make secrets   gera .env + chaves JWT RS256 + JWKS
+#   make up        sobe tudo (build + containers)
+#   make health    saúde do ambiente (gateway, api, postgres, redis)
+#   make test      php artisan test no monólito
+#   make smoke     smoke E2E do identity via gateway (T1.0.10 / T1.3.8)
+#   make migrate   php artisan migrate
 # ---------------------------------------------------------------------------
 SHELL := /bin/bash
 COMPOSE ?= docker compose
 BASE_IMAGE ?= mordomus-php:8.3
-SERVICES := identity maintenance financial scheduling notification
+SERVICE ?= api
 
 .DEFAULT_GOAL := help
 
-.PHONY: help secrets base build install up dev down restart logs ps health test clean shell
+.PHONY: help secrets base build install up dev down restart logs ps health test smoke migrate shell
 
 help: ## mostra esta ajuda
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -24,14 +26,11 @@ secrets: ## gera .env, chaves JWT RS256 e JWKS local
 base: ## build da imagem base PHP (nginx + fpm + extensões)
 	docker build -f docker/php/Dockerfile -t $(BASE_IMAGE) .
 
-build: base ## build de todas as imagens do compose
+build: base ## build da imagem do monólito
 	$(COMPOSE) build
 
-install: ## composer install em cada serviço (sem subir dependências)
-	@for s in $(SERVICES); do \
-		echo "==> composer install: $$s"; \
-		$(COMPOSE) run --rm --no-deps -e WAIT_FOR_DB=0 $$s true || exit 1; \
-	done
+install: ## composer install no monólito (sem subir dependências)
+	$(COMPOSE) run --rm --no-deps -e WAIT_FOR_DB=0 $(SERVICE) true
 
 up: secrets ## sobe o ambiente completo
 	$(COMPOSE) up -d --remove-orphans
@@ -54,14 +53,17 @@ logs: ## logs agregados
 ps: ## status dos containers
 	$(COMPOSE) ps
 
-health: ## verifica GET /health em todos os serviços
+health: ## verifica a saúde do ambiente
 	@bash bin/healthcheck.sh
 
-test: ## php artisan test em cada serviço
-	@for s in $(SERVICES); do \
-		echo "==> $$s"; \
-		$(COMPOSE) run --rm --no-deps -e WAIT_FOR_DB=0 $$s php artisan test || exit 1; \
-	done
+test: ## php artisan test no monólito
+	$(COMPOSE) run --rm --no-deps -e WAIT_FOR_DB=0 $(SERVICE) php artisan test
 
-shell: ## shell em um serviço: make shell SERVICE=identity
+smoke: ## smoke E2E do identity via gateway (exige gateway de pé)
+	@bash bin/smoke.sh
+
+migrate: ## php artisan migrate
+	$(COMPOSE) run --rm --no-deps $(SERVICE) php artisan migrate
+
+shell: ## shell no monólito: make shell [SERVICE=api]
 	$(COMPOSE) run --rm --no-deps -e WAIT_FOR_DB=0 $(SERVICE) sh
