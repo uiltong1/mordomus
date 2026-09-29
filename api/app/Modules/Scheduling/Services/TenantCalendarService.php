@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mordomus\Scheduling\Services;
 
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 
@@ -29,6 +31,13 @@ final class TenantCalendarService implements TenantCalendarServiceInterface
         $hour = $configHour ?: $this->tenant($tenantId)?->preferred_hour;
 
         return $this->normalize($hour);
+    }
+
+    public function day(CarbonInterface|string $day, string $tenantId): CarbonImmutable
+    {
+        $calendar = $day instanceof CarbonInterface ? $day->format('Y-m-d') : $day;
+
+        return CarbonImmutable::createFromFormat('Y-m-d', $calendar, $this->timezone($tenantId))->startOfDay();
     }
 
     private function tenant(string $tenantId): ?Tenant

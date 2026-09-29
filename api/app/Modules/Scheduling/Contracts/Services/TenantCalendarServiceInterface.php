@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Mordomus\Scheduling\Contracts\Services;
 
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+
 /**
  * Os fatos de calendário da residência: fuso e horário preferido.
  *
@@ -17,4 +20,13 @@ interface TenantCalendarServiceInterface
 
     /** Config → residência → 09:00. */
     public function preferredHour(?string $configHour, string $tenantId): string;
+
+    /**
+     * Dia de calendário (`Y-m-d` ou instante) às 00:00 no fuso da residência.
+     *
+     * Existe porque coluna `date` do PostgreSQL não é instante: um dia lido
+     * como Carbon cai em UTC à meia-noite, e converter isso para um fuso atrás
+     * devolve o dia anterior — o ciclo inteiro andaria um dia para trás.
+     */
+    public function day(CarbonInterface|string $day, string $tenantId): CarbonImmutable;
 }

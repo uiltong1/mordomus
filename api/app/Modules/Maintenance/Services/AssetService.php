@@ -15,7 +15,9 @@ use Mordomus\Maintenance\Exceptions\RoomNotFound;
 use Mordomus\Maintenance\Http\Resources\AssetResource;
 use Mordomus\Maintenance\Models\Asset;
 use Mordomus\Maintenance\Models\Room;
+use Mordomus\Scheduling\Contracts\Services\OccurrenceServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
+use Mordomus\Scheduling\Models\TriggerConfig;
 
 final class AssetService implements AssetServiceInterface
 {
@@ -25,6 +27,7 @@ final class AssetService implements AssetServiceInterface
         private readonly AssetResource $resource,
         private readonly TenantClockServiceInterface $clock,
         private readonly TriggerConfigServiceInterface $triggers,
+        private readonly OccurrenceServiceInterface $occurrences,
     ) {}
 
     public function index(Request $request): array
@@ -123,6 +126,21 @@ final class AssetService implements AssetServiceInterface
         $asset = $this->assets->findOrFail($assetId, ActiveTenant::id($request));
 
         return $this->triggers->storeForAsset($request, $asset->id);
+    }
+
+    /**
+     * Check-in do card: a ocorrência mora no Scheduling (dono do ciclo), e o
+     * `subject_type` travado em `asset` é o que impede que o check-in de um
+     * ativo conclua a ocorrência de uma conta.
+     */
+    public function completeOccurrence(Request $request, string $occurrenceId): array
+    {
+        return $this->occurrences->complete($request, $occurrenceId, TriggerConfig::SUBJECT_ASSET);
+    }
+
+    public function skipOccurrence(Request $request, string $occurrenceId): array
+    {
+        return $this->occurrences->skip($request, $occurrenceId, TriggerConfig::SUBJECT_ASSET);
     }
 
     /**

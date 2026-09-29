@@ -26,7 +26,11 @@ trait TriggerTypeRules
             TriggerConfig::TYPE_INTERVAL => ['interval_value', 'interval_unit'],
             TriggerConfig::TYPE_CALENDAR_MONTHLY => ['day_of_month'],
             TriggerConfig::TYPE_POST_COMPLETION => ['interval_value', 'interval_unit', 'recalculate_base'],
-            TriggerConfig::TYPE_ESCALATED => ['custom_offsets'],
+            // `ESCALATED` é um `INTERVAL` com avisos: o intervalo diz de quanto
+            // em quanto tempo o ciclo se repete, e os offsets só multiplicam os
+            // avisos. Sem o intervalo a ocorrência nunca voltaria, e a regra
+            // ficaria presa num único dia.
+            TriggerConfig::TYPE_ESCALATED => ['interval_value', 'interval_unit', 'custom_offsets'],
         ];
     }
 

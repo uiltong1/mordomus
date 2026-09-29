@@ -95,11 +95,19 @@ class TriggerPreviewTest extends FeatureTestCase
             ->assertJsonPath('data.next_due_at', null);
     }
 
-    public function test_preview_of_escalated_without_base_is_null(): void
+    public function test_preview_of_escalated_counts_from_today(): void
     {
-        $this->preview(['type' => TriggerConfig::TYPE_ESCALATED, 'custom_offsets' => [-7, 0, 1]])
+        // `ESCALATED` repete pelo intervalo como o `INTERVAL`; os offsets só
+        // multiplicam os avisos, e nenhum deles desloca a data.
+        $this->preview([
+            'type' => TriggerConfig::TYPE_ESCALATED,
+            'interval_value' => 30,
+            'interval_unit' => 'days',
+            'custom_offsets' => [-7, 0, 1],
+        ])
             ->assertOk()
-            ->assertJsonPath('data.next_due_at', null);
+            ->assertJsonPath('data.scheduled_for', '2026-04-14')
+            ->assertJsonPath('data.next_due_at', '2026-04-14T12:00:00+00:00');
     }
 
     public function test_preview_uses_the_preferred_hour_from_the_payload(): void
@@ -127,6 +135,8 @@ class TriggerPreviewTest extends FeatureTestCase
     {
         $this->preview([
             'type' => TriggerConfig::TYPE_ESCALATED,
+            'interval_value' => 30,
+            'interval_unit' => 'days',
             'custom_offsets' => [0],
             'day_of_month' => 10,
         ])

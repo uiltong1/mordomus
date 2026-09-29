@@ -32,4 +32,22 @@ interface AssetServiceInterface
      * @return array{data: array<string, mixed>}
      */
     public function schedule(Request $request, string $assetId): array;
+
+    /**
+     * Check-in de conclusão do card do ativo.
+     *
+     * A ocorrência e o recálculo do ciclo são do módulo Scheduling; o
+     * Maintenance só confirma que a ocorrência é mesmo de um ativo e repassa
+     * a chamada.
+     *
+     * @return array{data: array<string, mixed>}
+     */
+    public function completeOccurrence(Request $request, string $occurrenceId): array;
+
+    /**
+     * Dispensa de uma ocorrência de ativo, pelo mesmo caminho do check-in.
+     *
+     * @return array{data: array<string, mixed>}
+     */
+    public function skipOccurrence(Request $request, string $occurrenceId): array;
 }

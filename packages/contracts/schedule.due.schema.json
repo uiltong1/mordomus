@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mordomus.app/contracts/schedule.due.schema.json",
+  "title": "schedule.due",
+  "description": "Vencimento (ou aviso antecipado / offset escalonado) de uma ocorrência. Envelope publicado pelo módulo Scheduling na fila do Notification (TECHSPEC §7).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event", "event_id", "occurred_at", "tenant_id", "payload"],
+  "properties": {
+    "event": { "const": "schedule.due" },
+    "event_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "schedule_id",
+        "trigger_config_id",
+        "subject_type",
+        "subject_id",
+        "kind",
+        "title",
+        "due_at",
+        "scheduled_for",
+        "offsets",
+        "dedupe_key"
+      ],
+      "properties": {
+        "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "schedule_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "trigger_config_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "subject_type": { "type": "string", "enum": ["asset", "bill"] },
+        "subject_id": {
+          "type": "string",
+          "pattern": "^[0-9a-hjkmnp-tv-z]{26}$",
+          "description": "Contrato público: internamente a regra guarda `asset_id`/`bill_id` e o publicador resolve para o par genérico."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["advance_notice", "due", "offset"],
+          "description": "advance_notice: aviso `advance_notice_days` antes. due: no vencimento. offset: um dos offsets de uma regra ESCALATED."
+        },
+        "title": { "type": "string" },
+        "due_at": { "type": "string", "format": "date-time" },
+        "scheduled_for": { "type": "string", "format": "date" },
+        "offsets": {
+          "type": ["integer", "null"],
+          "description": "Offset em dias que disparou o aviso; nulo fora de ESCALATED."
+        },
+        "dedupe_key": {
+          "type": "string",
+          "pattern": "^tenant:[0-9a-hjkmnp-tv-z]{26}:[0-9a-hjkmnp-tv-z]{26}:(advance_notice|due|offset:-?[0-9]+)$",
+          "description": "Chave estável do aviso. É função do aviso, não da passada do varrimento — é o que permite ao consumidor descartar a reentrega do at-least-once."
+        }
+      }
+    }
+  }
+}

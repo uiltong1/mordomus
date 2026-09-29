@@ -33,10 +33,11 @@ final class TriggerDateService implements TriggerDateServiceInterface
             TriggerConfig::TYPE_CALENDAR_MONTHLY => $this->onDayOfMonth($anchor, $config, $today),
             // Os dois medem a partir de um cumprimento: sem âncora não há data,
             // e a data precisa vir do registro concluído, não de um palpite.
-            TriggerConfig::TYPE_POST_COMPLETION => $anchor === null
+            // `ESCALATED` divide o mesmo caminho do `INTERVAL` — o que o faz
+            // repetir é o intervalo, e o que o distingue são os N avisos.
+            TriggerConfig::TYPE_POST_COMPLETION, TriggerConfig::TYPE_ESCALATED => $anchor === null
                 ? null
                 : $this->addInterval($anchor, $config),
-            TriggerConfig::TYPE_ESCALATED => $anchor,
             default => throw IncompleteTriggerRule::make((string) $config->type, ['type']),
         };
     }
@@ -52,10 +53,12 @@ final class TriggerDateService implements TriggerDateServiceInterface
      * Âncora do ciclo: a base explícita quando existe, senão a data da última
      * base gravada, senão o que o tipo permitir.
      *
-     * `INTERVAL` e `CALENDAR_MONTHLY` contam a partir de hoje, então nunca
-     * ficam sem âncora. `POST_COMPLETION` e `ESCALATED` medem a partir de um
-     * cumprimento que ainda não aconteceu — sem âncora eles devolvem `null`, e
-     * quem chama decide o que fazer com uma regra que ainda não rodou.
+     * `INTERVAL`, `CALENDAR_MONTHLY` e `ESCALATED` contam a partir de hoje,
+     * então nunca ficam sem âncora — `ESCALATED` é um `INTERVAL` com avisos e
+     * repetiria em ciclo fechado se esperasse um cumprimento. Só
+     * `POST_COMPLETION` mede a partir de uma entrega que ainda não aconteceu:
+     * sem âncora ele devolve `null`, e quem chama decide o que fazer com uma
+     * regra que ainda não rodou.
      */
     private function resolveAnchor(TriggerConfig $config, ?CarbonImmutable $base, CarbonImmutable $today, string $timezone): ?CarbonImmutable
     {
@@ -75,6 +78,7 @@ final class TriggerDateService implements TriggerDateServiceInterface
         return in_array($config->type, [
             TriggerConfig::TYPE_INTERVAL,
             TriggerConfig::TYPE_CALENDAR_MONTHLY,
+            TriggerConfig::TYPE_ESCALATED,
         ], true) ? $today : null;
     }
 

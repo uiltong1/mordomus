@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mordomus.app/contracts/schedule.occurrence.created.schema.json",
+  "title": "schedule.occurrence.created",
+  "description": "Ocorrência materializada pelo motor. O Financial persiste `bill_occurrences.schedule_id` a partir daqui (R7: nenhuma data é calculada fora do Scheduling) (TECHSPEC §7).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event", "event_id", "occurred_at", "tenant_id", "payload"],
+  "properties": {
+    "event": { "const": "schedule.occurrence.created" },
+    "event_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "schedule_id",
+        "trigger_config_id",
+        "subject_type",
+        "subject_id",
+        "scheduled_for",
+        "due_at"
+      ],
+      "properties": {
+        "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "schedule_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "trigger_config_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "subject_type": { "type": "string", "enum": ["asset", "bill"] },
+        "subject_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "scheduled_for": { "type": "string", "format": "date" },
+        "due_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

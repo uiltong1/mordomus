@@ -1677,6 +1677,148 @@ paths:
       security:
         -
           jwtBearerAuth: []
+  '/api/v1/maintenance/occurrences/{occurrence}/complete':
+    post:
+      tags:
+        - maintenance
+      summary: 'Check-in de conclusão de uma ocorrência de ativo'
+      description: 'Delega ao módulo Scheduling, que é dono da ocorrência e do recálculo do ciclo. Idempotente.'
+      operationId: a2af747b6dc932ee986d8a887f60843b
+      parameters:
+        -
+          parameter: occurrence
+          name: complete
+          in: path
+          description: 'Id ULID da ocorrência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Ocorrência concluída'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Occurrence' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability occurrences.complete ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ocorrência de ativo não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Ocorrência já dispensada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/maintenance/occurrences/{occurrence}/skip':
+    post:
+      tags:
+        - maintenance
+      summary: 'Dispensa uma ocorrência de ativo'
+      description: 'Delega ao módulo Scheduling. A linha vira `skipped` e permanece como histórico; o ciclo não é recalculado.'
+      operationId: 2d8883f243dde36fca49df6288e527e9
+      parameters:
+        -
+          parameter: occurrence
+          name: skip
+          in: path
+          description: 'Id ULID da ocorrência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Ocorrência dispensada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Occurrence' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability occurrences.skip ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ocorrência de ativo não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Ocorrência já concluída'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
   '/api/v1/maintenance/assets/{asset}/schedule':
     post:
       tags:
@@ -1719,6 +1861,7 @@ paths:
                   example: INTERVAL
                   enum: [INTERVAL, CALENDAR_MONTHLY, POST_COMPLETION, ESCALATED]
                 interval_value:
+                  description: 'Obrigatório em INTERVAL, POST_COMPLETION e ESCALATED'
                   type: integer
                   maximum: 65535
                   minimum: 1
@@ -1738,6 +1881,7 @@ paths:
                   type: string
                   enum: [DUE_DATE, COMPLETION]
                 custom_offsets:
+                  description: 'Obrigatório em ESCALATED; ex.: [-7,-3,0,1]'
                   type: array
                   items: { type: integer }
                 preferred_hour:
@@ -2189,6 +2333,254 @@ paths:
       security:
         -
           jwtBearerAuth: []
+  /api/v1/scheduling/occurrences:
+    get:
+      tags:
+        - scheduling
+      summary: 'Lista as ocorrências da residência ativa'
+      description: 'Ordena por `due_at`. `from`/`to` são dias de calendário no fuso da residência e `to` é inclusivo; sem eles a agenda inteira é devolvida, paginada.'
+      operationId: 34bfae6fd3a2c04e0baf2eeaf72a56ad
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+        -
+          parameter: from
+          name: index
+          in: query
+          schema:
+            type: string
+            format: date
+            example: '2026-10-01'
+        -
+          parameter: to
+          name: index
+          in: query
+          schema:
+            type: string
+            format: date
+            example: '2026-10-31'
+        -
+          parameter: subject_type
+          name: index
+          in: query
+          description: 'Filtra por tipo de alvo'
+          schema:
+            type: string
+            enum:
+              - asset
+              - bill
+        -
+          parameter: status
+          name: index
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - notified
+              - completed
+              - skipped
+              - overdue
+      responses:
+        '200':
+          description: 'Ocorrências paginadas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Occurrence' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Filtro inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/scheduling/occurrences/{occurrence}/complete':
+    post:
+      tags:
+        - scheduling
+      summary: 'Conclui uma ocorrência e recalcula o ciclo'
+      description: 'Idempotente: concluir de novo devolve a mesma ocorrência sem abrir um segundo ciclo. O recálculo roda na fila e publica `occurrence.completed` com a próxima data.'
+      operationId: 90ac2195920cced5e5ada4cc7ff41066
+      parameters:
+        -
+          parameter: occurrence
+          name: complete
+          in: path
+          description: 'Id ULID da ocorrência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Ocorrência concluída; a próxima data vem no evento `occurrence.completed`'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Occurrence' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability occurrences.complete ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ocorrência não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Ocorrência já dispensada'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/scheduling/occurrences/{occurrence}/skip':
+    post:
+      tags:
+        - scheduling
+      summary: 'Dispensa uma ocorrência sem concluir o ciclo'
+      description: 'A linha vira `skipped` e permanece como histórico. O ciclo não é recalculado: pular diz que aquele dia não acontece, e a próxima data continua a que a regra já tinha.'
+      operationId: 5a6382fb32b391b2e0de26d73930844d
+      parameters:
+        -
+          parameter: occurrence
+          name: skip
+          in: path
+          description: 'Id ULID da ocorrência'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Ocorrência dispensada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Occurrence' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability occurrences.skip ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ocorrência não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Ocorrência já concluída'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
   /api/v1/scheduling/trigger-configs:
     get:
       tags:
@@ -2314,7 +2706,7 @@ paths:
                   example: INTERVAL
                   enum: [INTERVAL, CALENDAR_MONTHLY, POST_COMPLETION, ESCALATED]
                 interval_value:
-                  description: 'Obrigatório em INTERVAL e POST_COMPLETION'
+                  description: 'Obrigatório em INTERVAL, POST_COMPLETION e ESCALATED'
                   type: integer
                   example: 90
                   maximum: 65535
@@ -2338,7 +2730,7 @@ paths:
                   type: string
                   enum: [DUE_DATE, COMPLETION]
                 custom_offsets:
-                  description: 'Obrigatório em ESCALATED; ex.: [-7,-3,0,1]'
+                  description: 'Obrigatório em ESCALATED; ex.: [-7,-3,0,1]. O intervalo define a repetição e os offsets apenas multiplicam os avisos.'
                   type: array
                   items: { type: integer }
                 preferred_hour:
@@ -2932,6 +3324,81 @@ components:
           example:
             - bills.pay
       type: object
+    Occurrence:
+      description: 'Ocorrência materializada de uma regra: dia do calendário, instante de disparo e situação no ciclo'
+      required:
+        - id
+        - tenant_id
+        - trigger_config_id
+        - subject_type
+        - subject_id
+        - title
+        - scheduled_for
+        - due_at
+        - status
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D2
+        tenant_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D1
+        trigger_config_id:
+          description: 'Regra que gerou a ocorrência'
+          type: string
+        subject_type:
+          description: 'Alvo da regra; sempre presente — a FK leva a ocorrência junto na cascata'
+          type: string
+          enum:
+            - asset
+            - bill
+        subject_id:
+          description: 'Ativo ou conta alvo, conforme subject_type'
+          type: string
+        title:
+          type: string
+          example: 'Trocar o filtro do ar'
+        scheduled_for:
+          description: 'Dia do calendário a que a ocorrência pertence'
+          type: string
+          format: date
+          example: '2026-10-15'
+        due_at:
+          description: 'Instante de disparo, na hora preferida da residência'
+          type: string
+          format: date-time
+          example: '2026-10-15T12:00:00Z'
+        status:
+          description: 'overdue é constatação de atraso e ainda aceita check-in'
+          type: string
+          enum:
+            - pending
+            - notified
+            - completed
+            - skipped
+            - overdue
+        notified_at:
+          description: 'Primeiro aviso publicado para esta ocorrência'
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_by:
+          description: 'Morador que fechou o ciclo; nulo para ocorrência gerada pela fila'
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
     PageMeta:
       description: 'Paginação offset'
       required:
@@ -3219,7 +3686,7 @@ components:
             - POST_COMPLETION
             - ESCALATED
         interval_value:
-          description: 'Obrigatório em INTERVAL e POST_COMPLETION'
+          description: 'Obrigatório em INTERVAL, POST_COMPLETION e ESCALATED'
           type: integer
           nullable: true
           maximum: 65535
@@ -3250,7 +3717,7 @@ components:
             - DUE_DATE
             - COMPLETION
         custom_offsets:
-          description: 'Obrigatório em ESCALATED; negativo avisa antes, positivo atrasado'
+          description: 'Obrigatório em ESCALATED; o intervalo repete o ciclo e os offsets multiplicam os avisos — negativo avisa antes, positivo atrasado'
           type: array
           items:
             type: integer

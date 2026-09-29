@@ -59,11 +59,25 @@ use Mordomus\Maintenance\Repositories\RoomRepository;
 use Mordomus\Maintenance\Services\AssetService;
 use Mordomus\Maintenance\Services\RoomService;
 use Mordomus\Maintenance\Services\TenantClockService;
+use Mordomus\Scheduling\Contracts\Repositories\JobScheduleRepositoryInterface;
+use Mordomus\Scheduling\Contracts\Repositories\ScheduleEventRepositoryInterface;
 use Mordomus\Scheduling\Contracts\Repositories\TriggerConfigRepositoryInterface;
+use Mordomus\Scheduling\Contracts\Services\DueNoticeServiceInterface;
+use Mordomus\Scheduling\Contracts\Services\EventPublisherServiceInterface;
+use Mordomus\Scheduling\Contracts\Services\OccurrenceMaterializerServiceInterface;
+use Mordomus\Scheduling\Contracts\Services\OccurrenceRecalculatorServiceInterface;
+use Mordomus\Scheduling\Contracts\Services\OccurrenceServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerDateServiceInterface;
+use Mordomus\Scheduling\Repositories\JobScheduleRepository;
+use Mordomus\Scheduling\Repositories\ScheduleEventRepository;
 use Mordomus\Scheduling\Repositories\TriggerConfigRepository;
+use Mordomus\Scheduling\Services\DueNoticeService;
+use Mordomus\Scheduling\Services\EventPublisherService;
+use Mordomus\Scheduling\Services\OccurrenceMaterializerService;
+use Mordomus\Scheduling\Services\OccurrenceRecalculatorService;
+use Mordomus\Scheduling\Services\OccurrenceService;
 use Mordomus\Scheduling\Services\TenantCalendarService;
 use Mordomus\Scheduling\Services\TriggerConfigService;
 use Mordomus\Scheduling\Services\TriggerDateService;
@@ -136,7 +150,15 @@ class AppServiceProvider extends ServiceProvider
     private function registerSchedulingBindings(): void
     {
         $this->app->bind(TriggerConfigRepositoryInterface::class, TriggerConfigRepository::class);
+        $this->app->bind(JobScheduleRepositoryInterface::class, JobScheduleRepository::class);
+        $this->app->bind(ScheduleEventRepositoryInterface::class, ScheduleEventRepository::class);
+
         $this->app->bind(TriggerConfigServiceInterface::class, TriggerConfigService::class);
+        $this->app->bind(OccurrenceServiceInterface::class, OccurrenceService::class);
+        $this->app->bind(OccurrenceMaterializerServiceInterface::class, OccurrenceMaterializerService::class);
+        $this->app->bind(OccurrenceRecalculatorServiceInterface::class, OccurrenceRecalculatorService::class);
+        $this->app->bind(DueNoticeServiceInterface::class, DueNoticeService::class);
+        $this->app->bind(EventPublisherServiceInterface::class, EventPublisherService::class);
         $this->app->bind(TriggerDateServiceInterface::class, TriggerDateService::class);
         $this->app->bind(TenantCalendarServiceInterface::class, TenantCalendarService::class);
     }

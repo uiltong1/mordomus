@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mordomus\Scheduling\Repositories;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Mordomus\Http\Exceptions\ResourceNotFound;
 use Mordomus\Http\Pagination\OffsetPagination;
 use Mordomus\Scheduling\Contracts\Repositories\TriggerConfigRepositoryInterface;
@@ -36,16 +37,15 @@ final class TriggerConfigRepository implements TriggerConfigRepositoryInterface
             throw ResourceNotFound::make();
         }
 
-        $config = TriggerConfig::query()
+        return $this->find($triggerConfigId, $tenantId) ?? throw TriggerConfigNotFound::make(['trigger_config_id' => $triggerConfigId]);
+    }
+
+    public function find(string $triggerConfigId, ?string $tenantId): ?TriggerConfig
+    {
+        return TriggerConfig::query()
             ->where('id', $triggerConfigId)
-            ->where('tenant_id', $tenantId)
+            ->when($tenantId !== null, fn ($query) => $query->where('tenant_id', $tenantId))
             ->first();
-
-        if ($config === null) {
-            throw TriggerConfigNotFound::make(['trigger_config_id' => $triggerConfigId]);
-        }
-
-        return $config;
     }
 
     public function findByTitle(string $tenantId, string $subjectType, string $subjectId, string $title): ?TriggerConfig
@@ -56,6 +56,16 @@ final class TriggerConfigRepository implements TriggerConfigRepositoryInterface
             ->where($this->targetColumn($subjectType), $subjectId)
             ->where('title', $title)
             ->first();
+    }
+
+    public function activeFor(string $tenantId): Collection
+    {
+        return TriggerConfig::query()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
     }
 
     public function create(array $attributes): TriggerConfig

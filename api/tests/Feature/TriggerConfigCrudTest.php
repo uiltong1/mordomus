@@ -172,7 +172,7 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertJsonStructure(['error' => ['details' => ['day_of_month']]]);
     }
 
-    public function test_escalated_requires_custom_offsets(): void
+    public function test_escalated_requires_the_interval_and_the_offsets(): void
     {
         $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', [
             'subject_type' => 'asset',
@@ -181,19 +181,31 @@ class TriggerConfigCrudTest extends FeatureTestCase
             'type' => TriggerConfig::TYPE_ESCALATED,
         ])
             ->assertStatus(422)
-            ->assertJsonStructure(['error' => ['details' => ['custom_offsets']]]);
+            ->assertJsonStructure(['error' => ['details' => ['interval_value', 'interval_unit', 'custom_offsets']]]);
 
-        // O atalho `createRule` manda `interval_value`/`interval_unit`, que são
-        // proibidos em ESCALATED — a chamada vai direta, com o payload certo.
+        // Só `custom_offsets` não fecha: sem intervalo o ciclo não voltaria.
+        $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', [
+            'subject_type' => 'asset',
+            'subject_id' => $this->assetId,
+            'title' => 'Avisos sem intervalo',
+            'type' => TriggerConfig::TYPE_ESCALATED,
+            'custom_offsets' => [-7, -3, 0, 1],
+        ])
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['details' => ['interval_value', 'interval_unit']]]);
+
         $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', [
             'subject_type' => 'asset',
             'subject_id' => $this->assetId,
             'title' => 'Avisos de atraso',
             'type' => TriggerConfig::TYPE_ESCALATED,
+            'interval_value' => 30,
+            'interval_unit' => 'days',
             'custom_offsets' => [-7, -3, 0, 1],
         ])
             ->assertCreated()
-            ->assertJsonPath('data.custom_offsets', [-7, -3, 0, 1]);
+            ->assertJsonPath('data.custom_offsets', [-7, -3, 0, 1])
+            ->assertJsonPath('data.interval_value', 30);
     }
 
     public function test_day_of_month_out_of_range_is_rejected(): void
@@ -261,7 +273,7 @@ class TriggerConfigCrudTest extends FeatureTestCase
         $this->withHeaders($this->headers)
             ->patchJson('/api/v1/scheduling/trigger-configs/'.$id, ['type' => TriggerConfig::TYPE_ESCALATED])
             ->assertStatus(422)
-            ->assertJsonStructure(['error' => ['details' => ['custom_offsets']]]);
+            ->assertJsonStructure(['error' => ['details' => ['interval_value', 'interval_unit', 'custom_offsets']]]);
     }
 
     public function test_patch_without_any_field_is_rejected(): void

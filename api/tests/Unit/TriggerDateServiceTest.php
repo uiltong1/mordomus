@@ -175,21 +175,29 @@ class TriggerDateServiceTest extends TestCase
 
     // ---------------------------------------------------------------- ESCALATED
 
-    /** Os offsets geram N avisos; a data em si não se move. */
-    public function test_escalated_keeps_the_base_date(): void
+    /**
+     * O que distingue `ESCALATED` do `INTERVAL` são os N avisos; a data
+     * avança pelo mesmo intervalo, senão o ciclo nunca se repetiria.
+     */
+    public function test_escalated_advances_by_the_interval(): void
     {
-        $this->assertSame('2026-03-15', $this->due($this->config([
+        $this->assertSame('2026-04-14', $this->due($this->config([
             'type' => TriggerConfig::TYPE_ESCALATED,
+            'interval_value' => 30,
+            'interval_unit' => 'days',
             'custom_offsets' => [-7, -3, 0, 1],
         ], base: '2026-03-15')));
     }
 
-    public function test_escalated_has_no_date_without_a_base(): void
+    /** É um `INTERVAL` com avisos: sem entrega anterior, conta a partir de hoje. */
+    public function test_escalated_without_a_base_counts_from_today(): void
     {
-        $this->assertNull($this->dates->nextDue($this->config([
+        $this->assertSame('2026-04-14', $this->due($this->config([
             'type' => TriggerConfig::TYPE_ESCALATED,
+            'interval_value' => 30,
+            'interval_unit' => 'days',
             'custom_offsets' => [-7, 0],
-        ]), null, self::SAO_PAULO));
+        ])));
     }
 
     // -------------------------------------------------------------------- FUSO

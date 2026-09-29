@@ -13,6 +13,8 @@ use Mordomus\Http\Middleware\ClearTenantContext;
 use Mordomus\Http\Middleware\RequestContext;
 use Mordomus\Http\Middleware\TenantScope;
 use Mordomus\Http\Responses\ErrorEnvelope;
+use Mordomus\Scheduling\Console\Commands\MaterializeOccurrencesCommand;
+use Mordomus\Scheduling\Console\Commands\PublishDueNoticesCommand;
 use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -24,6 +26,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         apiPrefix: 'api/v1',
     )
+    // Comandos de console por módulo (ADR-011). As classes entram na mão
+    // porque a descoberta por diretório do `withCommands` monta o FQCN a
+    // partir do único prefixo do `app/` (`Mordomus\`), e aqui cada módulo tem
+    // o seu (`Mordomus\Scheduling\` → `app/Modules/Scheduling`) — o nome
+    // traduzido sairia `Mordomus\Modules\Scheduling\...` e não carregaria.
+    ->withCommands([
+        MaterializeOccurrencesCommand::class,
+        PublishDueNoticesCommand::class,
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         // sem rota de login: 401 JSON em vez de route('login')
         $middleware->redirectGuestsTo(fn () => null);
