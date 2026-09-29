@@ -59,6 +59,14 @@ use Mordomus\Maintenance\Repositories\RoomRepository;
 use Mordomus\Maintenance\Services\AssetService;
 use Mordomus\Maintenance\Services\RoomService;
 use Mordomus\Maintenance\Services\TenantClockService;
+use Mordomus\Scheduling\Contracts\Repositories\TriggerConfigRepositoryInterface;
+use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
+use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
+use Mordomus\Scheduling\Contracts\Services\TriggerDateServiceInterface;
+use Mordomus\Scheduling\Repositories\TriggerConfigRepository;
+use Mordomus\Scheduling\Services\TenantCalendarService;
+use Mordomus\Scheduling\Services\TriggerConfigService;
+use Mordomus\Scheduling\Services\TriggerDateService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -66,6 +74,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->registerMaintenanceBindings();
         $this->registerIdentityBindings();
+        $this->registerSchedulingBindings();
     }
 
     public function boot(): void
@@ -122,6 +131,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(RefreshTokenServiceInterface::class, RefreshTokenService::class);
         $this->app->bind(TokenPackagerServiceInterface::class, TokenPackagerService::class);
         $this->app->bind(TenantProvisionerServiceInterface::class, TenantProvisionerService::class);
+    }
+
+    private function registerSchedulingBindings(): void
+    {
+        $this->app->bind(TriggerConfigRepositoryInterface::class, TriggerConfigRepository::class);
+        $this->app->bind(TriggerConfigServiceInterface::class, TriggerConfigService::class);
+        $this->app->bind(TriggerDateServiceInterface::class, TriggerDateService::class);
+        $this->app->bind(TenantCalendarServiceInterface::class, TenantCalendarService::class);
     }
 
     /** Guard stateless: driver `jwt` (config/auth.php). */

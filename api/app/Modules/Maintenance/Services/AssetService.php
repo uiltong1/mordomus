@@ -15,6 +15,7 @@ use Mordomus\Maintenance\Exceptions\RoomNotFound;
 use Mordomus\Maintenance\Http\Resources\AssetResource;
 use Mordomus\Maintenance\Models\Asset;
 use Mordomus\Maintenance\Models\Room;
+use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
 
 final class AssetService implements AssetServiceInterface
 {
@@ -23,6 +24,7 @@ final class AssetService implements AssetServiceInterface
         private readonly RoomRepositoryInterface $rooms,
         private readonly AssetResource $resource,
         private readonly TenantClockServiceInterface $clock,
+        private readonly TriggerConfigServiceInterface $triggers,
     ) {}
 
     public function index(Request $request): array
@@ -108,6 +110,19 @@ final class AssetService implements AssetServiceInterface
             'data' => $this->resource->make($asset, $this->clock->timezone($request)),
             'archived' => true,
         ];
+    }
+
+    /**
+     * Atalho proxied: a regra de manutenção é do módulo Scheduling, dono do
+     * cálculo de data. O Maintenance só resolve o ativo dentro da residência —
+     * assim um id de ativo alheio é `404` antes de qualquer escrita — e
+     * repassa o payload.
+     */
+    public function schedule(Request $request, string $assetId): array
+    {
+        $asset = $this->assets->findOrFail($assetId, ActiveTenant::id($request));
+
+        return $this->triggers->storeForAsset($request, $asset->id);
     }
 
     /**

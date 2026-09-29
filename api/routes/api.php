@@ -22,3 +22,4 @@ Route::get('/docs', [OpenApiDocsController::class, 'ui']);
 
 Route::prefix('identity')->group(__DIR__.'/modules/identity.php');
 Route::prefix('maintenance')->group(__DIR__.'/modules/maintenance.php');
+Route::prefix('scheduling')->group(__DIR__.'/modules/scheduling.php');

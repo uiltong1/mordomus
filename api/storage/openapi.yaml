@@ -1677,6 +1677,121 @@ paths:
       security:
         -
           jwtBearerAuth: []
+  '/api/v1/maintenance/assets/{asset}/schedule':
+    post:
+      tags:
+        - maintenance
+      summary: 'Cria ou atualiza a regra de manutenção de um ativo'
+      description: 'Mesmos parâmetros de `/scheduling/trigger-configs`, com o alvo fixado pela rota. Repetir o mesmo `title` atualiza a regra existente.'
+      operationId: 868172592a208c4b7899b73cb69df03c
+      parameters:
+        -
+          parameter: asset
+          name: store
+          in: path
+          description: 'Id ULID do ativo'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - title
+                - type
+              properties:
+                title:
+                  type: string
+                  example: 'Trocar o filtro do ar'
+                  maxLength: 160
+                description:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                is_active:
+                  type: boolean
+                  default: true
+                type:
+                  type: string
+                  example: INTERVAL
+                  enum: [INTERVAL, CALENDAR_MONTHLY, POST_COMPLETION, ESCALATED]
+                interval_value:
+                  type: integer
+                  maximum: 65535
+                  minimum: 1
+                interval_unit:
+                  type: string
+                  enum: [days, weeks, months]
+                day_of_month:
+                  type: integer
+                  maximum: 31
+                  minimum: 1
+                advance_notice_days:
+                  type: integer
+                  default: 0
+                  maximum: 365
+                  minimum: 0
+                recalculate_base:
+                  type: string
+                  enum: [DUE_DATE, COMPLETION]
+                custom_offsets:
+                  type: array
+                  items: { type: integer }
+                preferred_hour:
+                  type: string
+                  example: '09:00'
+              type: object
+      responses:
+        '201':
+          description: 'Regra criada para o ativo'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/TriggerConfig' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rules.edit ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Ativo não encontrado na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos; os campos do tipo aparecem em details'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
   /api/v1/maintenance/rooms:
     get:
       tags:
@@ -2055,6 +2170,522 @@ paths:
                 $ref: '#/components/schemas/Error'
         '422':
           description: 'Lista fora do esperado ou dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/scheduling/trigger-configs:
+    get:
+      tags:
+        - scheduling
+      summary: 'Lista as regras de recorrência da residência ativa'
+      operationId: 81be4153a26b007ef35d1a9bf77a961f
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+        -
+          parameter: subject_type
+          name: index
+          in: query
+          description: 'Filtra por tipo de alvo'
+          schema:
+            type: string
+            enum:
+              - asset
+              - bill
+        -
+          parameter: subject_id
+          name: index
+          in: query
+          description: 'Filtra por alvo; exige subject_type'
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Regras paginadas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/TriggerConfig' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Filtro inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    post:
+      tags:
+        - scheduling
+      summary: 'Cria uma regra de recorrência para um alvo'
+      operationId: 3637fdb9a49f12072bfee71a953e1c4b
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - subject_type
+                - subject_id
+                - title
+                - type
+              properties:
+                subject_type:
+                  type: string
+                  example: asset
+                  enum: [asset, bill]
+                subject_id:
+                  description: 'Ativo ou conta alvo'
+                  type: string
+                  maxLength: 26
+                title:
+                  type: string
+                  example: 'Trocar o filtro do ar'
+                  maxLength: 160
+                description:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                is_active:
+                  type: boolean
+                  default: true
+                type:
+                  type: string
+                  example: INTERVAL
+                  enum: [INTERVAL, CALENDAR_MONTHLY, POST_COMPLETION, ESCALATED]
+                interval_value:
+                  description: 'Obrigatório em INTERVAL e POST_COMPLETION'
+                  type: integer
+                  example: 90
+                  maximum: 65535
+                  minimum: 1
+                interval_unit:
+                  type: string
+                  example: days
+                  enum: [days, weeks, months]
+                day_of_month:
+                  description: 'Obrigatório em CALENDAR_MONTHLY'
+                  type: integer
+                  maximum: 31
+                  minimum: 1
+                advance_notice_days:
+                  type: integer
+                  default: 0
+                  maximum: 365
+                  minimum: 0
+                recalculate_base:
+                  description: 'Obrigatório em POST_COMPLETION'
+                  type: string
+                  enum: [DUE_DATE, COMPLETION]
+                custom_offsets:
+                  description: 'Obrigatório em ESCALATED; ex.: [-7,-3,0,1]'
+                  type: array
+                  items: { type: integer }
+                preferred_hour:
+                  description: 'HH:MM; sem ela vale a da residência'
+                  type: string
+                  example: '09:00'
+              type: object
+      responses:
+        '201':
+          description: 'Regra criada com a próxima data calculada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/TriggerConfig' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rules.edit ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Já existe regra com este título para o mesmo alvo'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos; os campos do tipo aparecem em details'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/scheduling/trigger-configs/{triggerConfig}':
+    get:
+      tags:
+        - scheduling
+      summary: 'Detalhe de uma regra de recorrência'
+      operationId: 154c04d869085ec3472fbff2d861346e
+      parameters:
+        -
+          parameter: triggerConfig
+          name: show
+          in: path
+          description: 'Id ULID da regra'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: Regra
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/TriggerConfig' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Regra não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    delete:
+      tags:
+        - scheduling
+      summary: 'Exclui uma regra de recorrência'
+      description: 'Exclusão de verdade: as ocorrências e a trilha da regra vão junto, em cascata. Para pausar sem perder o histórico, use `is_active = false`.'
+      operationId: e9c37f7dd790c872a9103ac8d1bb0021
+      parameters:
+        -
+          parameter: triggerConfig
+          name: destroy
+          in: path
+          description: 'Id ULID da regra'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Regra excluída'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/TriggerConfig' }
+                  deleted: { type: boolean, example: true }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rules.edit ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Regra não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    patch:
+      tags:
+        - scheduling
+      summary: 'Atualiza uma regra de recorrência'
+      description: 'Trocar o `type` exige o conjunto de campos do tipo novo e limpa os que sobraram.'
+      operationId: df044a8efda35b040825d7e189c97a65
+      parameters:
+        -
+          parameter: triggerConfig
+          name: update
+          in: path
+          description: 'Id ULID da regra'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                type:
+                  type: string
+                  enum: [INTERVAL, CALENDAR_MONTHLY, POST_COMPLETION, ESCALATED]
+                title:
+                  type: string
+                  maxLength: 160
+                description:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+                is_active:
+                  type: boolean
+                interval_value:
+                  type: integer
+                  maximum: 65535
+                  minimum: 1
+                interval_unit:
+                  type: string
+                  enum: [days, weeks, months]
+                day_of_month:
+                  type: integer
+                  maximum: 31
+                  minimum: 1
+                advance_notice_days:
+                  type: integer
+                  maximum: 365
+                  minimum: 0
+                recalculate_base:
+                  type: string
+                  enum: [DUE_DATE, COMPLETION]
+                custom_offsets:
+                  type: array
+                  items: { type: integer }
+                preferred_hour:
+                  type: string
+                  example: '09:00'
+              type: object
+      responses:
+        '200':
+          description: 'Regra atualizada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/TriggerConfig' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability rules.edit ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Regra não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos; os campos do tipo aparecem em details'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/scheduling/preview:
+    post:
+      tags:
+        - scheduling
+      summary: 'Calcula a próxima data sem persistir'
+      description: 'Não pede alvo: a matemática da data não depende do ativo nem da conta. `base` simula a âncora do ciclo.'
+      operationId: 1da593d7c627536e290c9cfe5c117533
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  example: CALENDAR_MONTHLY
+                  enum: [INTERVAL, CALENDAR_MONTHLY, POST_COMPLETION, ESCALATED]
+                interval_value:
+                  type: integer
+                  maximum: 65535
+                  minimum: 1
+                interval_unit:
+                  type: string
+                  enum: [days, weeks, months]
+                day_of_month:
+                  type: integer
+                  maximum: 31
+                  minimum: 1
+                recalculate_base:
+                  type: string
+                  enum: [DUE_DATE, COMPLETION]
+                custom_offsets:
+                  type: array
+                  items: { type: integer }
+                base:
+                  type: string
+                  format: date
+                  example: '2026-01-15'
+                  nullable: true
+                preferred_hour:
+                  type: string
+                  example: '09:00'
+              type: object
+      responses:
+        '200':
+          description: 'Data calculada; `next_due_at` é nulo em POST_COMPLETION/ESCALATED sem `base`'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { properties: { type: { type: string, enum: [INTERVAL, CALENDAR_MONTHLY, POST_COMPLETION, ESCALATED] }, scheduled_for: { type: string, format: date, example: '2026-10-15', nullable: true }, next_due_at: { type: string, format: date-time, example: '2026-10-15T12:00:00Z', nullable: true }, preferred_hour: { type: string, example: '09:00' }, timezone: { type: string, example: America/Sao_Paulo } }, type: object }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos; os campos do tipo aparecem em details'
           content:
             application/json:
               schema:
@@ -2541,6 +3172,113 @@ components:
           example:
             - rooms.manage
       type: object
+    TriggerConfig:
+      description: 'Regra de recorrência de um alvo (ativo ou conta), com a próxima data já calculada no fuso da residência'
+      required:
+        - id
+        - tenant_id
+        - subject_type
+        - subject_id
+        - title
+        - is_active
+        - type
+        - advance_notice_days
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        tenant_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D1
+        subject_type:
+          description: 'Alvo da regra'
+          type: string
+          enum:
+            - asset
+            - bill
+        subject_id:
+          description: 'Ativo ou conta alvo, conforme subject_type'
+          type: string
+        title:
+          type: string
+          example: 'Trocar o filtro do ar'
+          maxLength: 160
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        is_active:
+          description: 'Regra pausada não gera novas datas'
+          type: boolean
+          example: true
+        type:
+          type: string
+          enum:
+            - INTERVAL
+            - CALENDAR_MONTHLY
+            - POST_COMPLETION
+            - ESCALATED
+        interval_value:
+          description: 'Obrigatório em INTERVAL e POST_COMPLETION'
+          type: integer
+          nullable: true
+          maximum: 65535
+          minimum: 1
+        interval_unit:
+          type: string
+          nullable: true
+          enum:
+            - days
+            - weeks
+            - months
+        day_of_month:
+          description: 'Obrigatório em CALENDAR_MONTHLY; preso ao último dia em meses curtos'
+          type: integer
+          nullable: true
+          maximum: 31
+          minimum: 1
+        advance_notice_days:
+          description: ' antecedência do aviso, em dias'
+          type: integer
+          maximum: 365
+          minimum: 0
+        recalculate_base:
+          description: 'Obrigatório em POST_COMPLETION'
+          type: string
+          nullable: true
+          enum:
+            - DUE_DATE
+            - COMPLETION
+        custom_offsets:
+          description: 'Obrigatório em ESCALATED; negativo avisa antes, positivo atrasado'
+          type: array
+          items:
+            type: integer
+          nullable: true
+        preferred_hour:
+          description: 'HH:MM; sem ela vale a da residência'
+          type: string
+          example: '09:00'
+          nullable: true
+        last_base_date:
+          description: 'Âncora do ciclo corrente'
+          type: string
+          format: date
+          nullable: true
+        next_due_at:
+          type: string
+          format: date-time
+          example: '2026-11-24T12:00:00Z'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
     User:
       description: 'Perfil do usuário autenticado'
       required:
@@ -2579,3 +3317,6 @@ tags:
   -
     name: maintenance
     description: 'Cômodos e inventário do imóvel'
+  -
+    name: scheduling
+    description: scheduling
