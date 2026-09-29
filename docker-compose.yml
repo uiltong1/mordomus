@@ -29,6 +29,8 @@ x-laravel-env: &laravel-env
   # filas nomeadas que o api-worker drena (TECHSPEC §2.1); sem esta lista o
   # worker só consumiria `default` e o motor de agendamento ficaria parado
   QUEUE_WORKER_QUEUES: "default,mordomus:scheduling:occurrences,mordomus:notification:events"
+  # janela de materialização do motor, em dias
+  SCHEDULING_HORIZON_DAYS: "45"
   SESSION_DRIVER: file
   MAIL_MAILER: smtp
   MAIL_HOST: mailpit
