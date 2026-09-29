@@ -72,7 +72,11 @@ fi
 # --- worker de fila -----------------------------------------------------------
 if [ "${RUN_ROLE:-http}" = "worker" ]; then
     log "iniciando queue worker"
+    # As filas são nomeadas por módulo (`mordomus:<módulo>:<fila>`, config/scheduling.php
+    # e config/queue.php do consumidor). Sem --queue o worker só drena a fila
+    # `default` e os jobs do motor ficam parados no Redis para sempre.
     exec php artisan queue:work "${QUEUE_CONNECTION:-redis}" \
+        --queue="${QUEUE_WORKER_QUEUES:-default,mordomus:scheduling:occurrences,mordomus:notification:events}" \
         --sleep=1 --tries=3 --max-time=3600 --memory=256
 fi
 

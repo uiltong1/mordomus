@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Str;
 use Pdo\Mysql;
 
 return [
@@ -153,7 +152,14 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+            // Prefixo fixo, e não derivado de `APP_NAME`: `api`, `api-worker`
+            // e `api-scheduler` rodam o mesmo código com nomes diferentes
+            // ("Mordomus", "Mordomus Worker", …) e um prefixo por processo os
+            // colocaria em keyspaces distintos — as filas e os locks de
+            // `ShouldBeUnique` não atravessariam a fronteira, e o motor de
+            // agendamento ficaria parado com o worker olhando para o vazio.
+            // É o cache compartilhado que o ADR-011 exige.
+            'prefix' => env('REDIS_PREFIX', 'mordomus-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 

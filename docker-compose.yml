@@ -19,9 +19,16 @@ x-laravel-env: &laravel-env
   DB_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD ausente — rode 'make secrets'}"
   REDIS_HOST: redis
   REDIS_PORT: "6379"
+  # prefixo único e explícito: api/api-worker/api-scheduler compartilham o
+  # mesmo Redis, e é o que faz a fila e o lock de `ShouldBeUnique` atravessarem
+  # a fronteira entre os processos
+  REDIS_PREFIX: mordomus-database-
   CACHE_STORE: redis
   CACHE_PREFIX: mordomus-cache-
   QUEUE_CONNECTION: redis
+  # filas nomeadas que o api-worker drena (TECHSPEC §2.1); sem esta lista o
+  # worker só consumiria `default` e o motor de agendamento ficaria parado
+  QUEUE_WORKER_QUEUES: "default,mordomus:scheduling:occurrences,mordomus:notification:events"
   SESSION_DRIVER: file
   MAIL_MAILER: smtp
   MAIL_HOST: mailpit
