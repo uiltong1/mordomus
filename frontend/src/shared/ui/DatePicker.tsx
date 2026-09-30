@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { toDateInputValue } from '@/shared/datetime'
 
 export interface DatePickerProps {
   label?: string
@@ -12,12 +13,7 @@ export interface DatePickerProps {
 }
 
 /** `YYYY-MM-DD` — o formato que o backend valida e que o `<input type="date">` usa. */
-export function toApiDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+export const toApiDate = toDateInputValue
 
 /**
  * Data em `YYYY-MM-DD`. É controlado de propósito: espelhar o prop em estado

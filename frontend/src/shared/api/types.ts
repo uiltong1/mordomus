@@ -103,6 +103,131 @@ export interface TenantCreatedSession {
   data: Tenant
 }
 
+/* Maintenance — cômodos e inventário. `archived` chega materializado: o recurso
+ * traduz `archived_at !== null`, então a UI filtra por ele em vez de adivinhar. */
+
+export interface Room {
+  id: string
+  tenant_id: string
+  name: string
+  icon: string | null
+  sort_order: number
+  archived: boolean
+  archived_at: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface Asset {
+  id: string
+  tenant_id: string
+  room_id: string
+  name: string
+  category: string | null
+  brand: string | null
+  model: string | null
+  acquired_at: string | null
+  warranty_until: string | null
+  metadata: Record<string, unknown> | null
+  archived: boolean
+  archived_at: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+/* Scheduling — motor de regras e agenda. */
+
+/** Alvo do ciclo. O monólito só agenda `asset` aqui; `bill` pertence à Fase 5. */
+export type SubjectType = 'asset' | 'bill'
+
+export const SUBJECT_TYPES = ['asset', 'bill'] as const
+
+export type TriggerType = 'INTERVAL' | 'CALENDAR_MONTHLY' | 'POST_COMPLETION' | 'ESCALATED'
+
+export const TRIGGER_TYPES = [
+  'INTERVAL',
+  'CALENDAR_MONTHLY',
+  'POST_COMPLETION',
+  'ESCALATED',
+] as const
+
+export type IntervalUnit = 'days' | 'weeks' | 'months'
+
+export const INTERVAL_UNITS = ['days', 'weeks', 'months'] as const
+
+export type RecalculateBase = 'DUE_DATE' | 'COMPLETION'
+
+export const RECALCULATE_BASES = ['DUE_DATE', 'COMPLETION'] as const
+
+export interface TriggerConfig {
+  id: string
+  tenant_id: string
+  subject_type: SubjectType
+  subject_id: string
+  title: string
+  description: string | null
+  is_active: boolean
+  type: TriggerType
+  interval_value: number | null
+  interval_unit: IntervalUnit | null
+  day_of_month: number | null
+  advance_notice_days: number
+  recalculate_base: RecalculateBase | null
+  custom_offsets: number[] | null
+  preferred_hour: string | null
+  last_base_date: string | null
+  next_due_at: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export type OccurrenceStatus = 'pending' | 'notified' | 'completed' | 'skipped' | 'overdue'
+
+export const OCCURRENCE_STATUSES = [
+  'pending',
+  'notified',
+  'completed',
+  'skipped',
+  'overdue',
+] as const
+
+/** Status que ainda aceitam check-in. Concluir uma finalize devolve 409. */
+export const OPEN_OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = [
+  'pending',
+  'notified',
+  'overdue',
+]
+
+export interface Occurrence {
+  id: string
+  tenant_id: string
+  trigger_config_id: string
+  subject_type: SubjectType
+  subject_id: string
+  title: string
+  scheduled_for: string | null
+  due_at: string | null
+  status: OccurrenceStatus
+  notified_at: string | null
+  completed_at: string | null
+  completed_by: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+/**
+ * `POST /scheduling/preview`. `next_due_at` sai em UTC enquanto o recurso da
+ * regra devolve o mesmo instante no fuso da residência — a comparação da tela
+ * passa pelo `scheduled_for`, que é dia de calendário nos dois caminhos.
+ */
+export interface TriggerPreview {
+  type: TriggerType
+  scheduled_for: string | null
+  next_due_at: string | null
+  preferred_hour: string
+  timezone: string
+}
+
 /** Capacidades do RBAC (ADR-007); `role_permissions` no monólito. */
 export const CAPABILITIES = [
   'tenant.manage',

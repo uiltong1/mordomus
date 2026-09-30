@@ -1,10 +1,15 @@
 import { useState } from 'react'
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { TenantSwitcher } from '@/tenants/TenantSwitcher'
 import { useTenant } from '@/tenants/TenantProvider'
 import { CreateTenantPage } from '@/features/settings/CreateTenantPage'
+
+const NAV_ITEMS = [
+  { to: '/', label: 'Painel', end: true },
+  { to: '/agenda', label: 'Agenda', end: false },
+] as const
 
 /**
  * Moldura da área logada. A troca de residência fica no cabeçalho porque é uma
@@ -32,6 +37,28 @@ export function AppLayout() {
             Mordomus
           </Link>
 
+          {needsTenant ? null : (
+            <nav aria-label="Seções" className="ml-4 hidden items-center gap-1 sm:flex">
+              {NAV_ITEMS.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    [
+                      'rounded-control px-3 py-1.5 text-sm transition-colors',
+                      isActive
+                        ? 'bg-surface-2 font-medium text-ink'
+                        : 'text-ink-muted hover:text-ink',
+                    ].join(' ')
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
+
           <div className="ml-auto flex items-center gap-2">
             {needsTenant ? null : <TenantSwitcher />}
             <NotificationBell />
@@ -49,6 +76,29 @@ export function AppLayout() {
             </button>
           </div>
         </div>
+
+        {needsTenant ? null : (
+          <nav
+            aria-label="Seções"
+            className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto border-t border-line px-4 py-2 sm:hidden"
+          >
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  [
+                    'rounded-control px-3 py-1.5 text-sm transition-colors',
+                    isActive ? 'bg-surface-2 font-medium text-ink' : 'text-ink-muted',
+                  ].join(' ')
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">

@@ -28,4 +28,12 @@ export const authKeys = {
 export const resourceKeys = {
   tenant: (tenantId: string | null) => tenantKey(tenantId, 'tenant'),
   devices: (tenantId: string | null) => tenantKey(tenantId, 'devices'),
+  rooms: (tenantId: string | null) => tenantKey(tenantId, 'rooms'),
+  room: (tenantId: string | null, roomId: string) => tenantKey(tenantId, 'rooms', roomId),
+  assets: (tenantId: string | null, roomId: string | null = null) =>
+    tenantKey(tenantId, 'assets', roomId),
+  occurrences: (tenantId: string | null, ...filters: readonly (string | null)[]) =>
+    tenantKey(tenantId, 'occurrences', ...filters),
+  triggerConfigs: (tenantId: string | null, subjectId: string | null = null) =>
+    tenantKey(tenantId, 'trigger-configs', subjectId),
 } as const
