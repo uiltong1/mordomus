@@ -114,6 +114,37 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+  it('limita o painel à tela e deixa o corpo rolar', () => {
+    render(
+      <Modal
+        open
+        title="Nova regra"
+        onClose={() => {}}
+        footer={<button type="button">Cancelar</button>}
+      >
+        <input aria-label="Nome da regra" />
+      </Modal>,
+    )
+
+    // contrato de layout, não de comportamento: o jsdom não calcula altura, e
+    // o que segura o formulário comprido na tela são estas três classes
+    const painel = screen.getByRole('dialog')
+    expect(painel.className).toContain('max-h-full')
+    expect(painel.className).toContain('flex-col')
+
+    const corpo = painel.querySelector('input')?.closest('div')
+    expect(corpo?.className).toContain('overflow-y-auto')
+    expect(corpo?.className).toContain('min-h-0')
+
+    // título e ações são filhos diretos e não encolhem: eles não podem sumir
+    // nem sairem da rolagem do corpo
+    const [cabecalho, , rodape] = Array.from(painel.children)
+    expect(cabecalho?.tagName).toBe('HEADER')
+    expect(cabecalho?.className).toContain('shrink-0')
+    expect(rodape?.tagName).toBe('FOOTER')
+    expect(rodape?.className).toContain('shrink-0')
+  })
+
   it('mantém o foco preso: o último focável devolve ao primeiro', async () => {
     render(
       <Modal open title="Excluir cômodo" onClose={() => {}}>

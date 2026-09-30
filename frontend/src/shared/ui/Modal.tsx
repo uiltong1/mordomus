@@ -72,16 +72,25 @@ export function Modal({ open, title, description, onClose, children, footer }: M
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+    // O fundo é o que rola quando a tela é menor que o diálogo. `my-auto` no
+    // painel substitui o `items-center`: com centralização por flex, a parte que
+    // sobrava acima do topo ficava fora do alcance da rolagem — o título e o X
+    // sumiam justamente nos modais mais longos, que são os que precisam do
+    // formulário inteiro.
+    <div className="fixed inset-0 z-50 flex overflow-y-auto overscroll-contain p-4">
       <div className="absolute inset-0 bg-scrim/70 backdrop-blur-sm" aria-hidden="true" />
+      {/* `max-h-full` limita o painel à altura da tela e o corpo é que rola: é o
+          que mantém título e ações sempre à vista, sem a faixa de conteúdo que
+          um rodapé grudado deixaria escapar por baixo. `min-h-0` é o que
+          autoriza o corpo a encolher abaixo do próprio conteúdo. */}
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative w-full max-w-lg rounded-card border border-line bg-surface shadow-pop"
+        className="relative mx-auto my-auto flex max-h-full w-full max-w-lg flex-col rounded-card border border-line bg-surface shadow-pop"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-ink">{title}</h2>
             {description ? <p className="mt-1 text-xs text-ink-muted">{description}</p> : null}
@@ -90,9 +99,13 @@ export function Modal({ open, title, description, onClose, children, footer }: M
             ✕
           </Button>
         </header>
-        {children ? <div className="px-5 py-4">{children}</div> : null}
+        {children ? (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+            {children}
+          </div>
+        ) : null}
         {footer ? (
-          <footer className="flex justify-end gap-2 border-t border-line px-5 py-3">
+          <footer className="flex shrink-0 justify-end gap-2 border-t border-line px-5 py-3">
             {footer}
           </footer>
         ) : null}
