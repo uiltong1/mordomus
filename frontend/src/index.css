@@ -1,11 +1,60 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-html,
-body,
-#root {
-  height: 100%;
+/* ---------------------------------------------------------------------------
+   Tokens do design system (T4.1.5)
+   Fonte única de verdade de cor, raio e sombra. Os utilitários Tailwind são
+   gerados a partir daqui — nada de cor literal em componente.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-canvas: #020617;
+  --color-surface: #0b1220;
+  --color-surface-2: #131e32;
+  --color-line: #1e293b;
+  --color-line-strong: #334155;
+
+  --color-ink: #e2e8f0;
+  --color-ink-muted: #94a3b8;
+  --color-ink-subtle: #64748b;
+
+  --color-brand: #38bdf8;
+  --color-brand-strong: #0ea5e9;
+  --color-brand-ink: #04121d;
+
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #fb7185;
+
+  --radius-card: 0.875rem;
+  --radius-control: 0.625rem;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 12px 40px -12px rgb(0 0 0 / 0.75);
 }
 
-body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+  }
+
+  /* foco sempre visível: navegação por teclado é requisito, não enfeite */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand;
+  }
+
+  ::selection {
+    @apply bg-brand/30 text-ink;
+  }
+}
+
+@layer components {
+  /* o primeiro campo de um formulário recebe o foco ao abrir a tela */
+  .field-invalid {
+    @apply border-danger/60 focus-visible:outline-danger;
+  }
 }
