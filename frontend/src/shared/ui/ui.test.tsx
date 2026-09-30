@@ -138,6 +138,62 @@ describe('Modal', () => {
     await userEvent.tab({ shift: true })
     expect(document.activeElement).toBe(last)
   })
+
+  it('não fecha quando o clique cai fora do diálogo', async () => {
+    const onClose = vi.fn()
+    const { container } = render(
+      <Modal open title="Nova regra" onClose={onClose}>
+        <button type="button">Cancelar</button>
+      </Modal>,
+    )
+
+    // o fundo é irmão do painel, dentro do portal: é nele que mora o clique
+    // que antes fechava o diálogo e levava o que o morador digitou junto
+    const backdrop = document.querySelector('[aria-hidden="true"].absolute')
+    expect(backdrop).not.toBeNull()
+
+    await userEvent.click(backdrop!)
+    await userEvent.click(container)
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'Nova regra' })).toBeInTheDocument()
+  })
+
+  it('fecha pelo X e pelo Cancelar, que são as saídas declaradas', async () => {
+    function Harness() {
+      const [open, setOpen] = useState(true)
+      if (!open) {
+        return (
+          <button type="button" onClick={() => setOpen(true)}>
+            Reabrir
+          </button>
+        )
+      }
+      return (
+        <Modal
+          open
+          title="Nova regra"
+          onClose={() => setOpen(false)}
+          footer={
+            <button type="button" onClick={() => setOpen(false)}>
+              Cancelar
+            </button>
+          }
+        >
+          <button type="button">Confirmar</button>
+        </Modal>
+      )
+    }
+
+    render(<Harness />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reabrir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
 })
 
 describe('DatePicker', () => {

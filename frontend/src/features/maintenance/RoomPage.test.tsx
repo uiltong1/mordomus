@@ -268,6 +268,24 @@ describe('RoomPage', () => {
     expect(createAsset).not.toHaveBeenCalled()
   })
 
+  it('o clique fora do modal não leva o que foi digitado', async () => {
+    open()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Adicionar item' }))
+    const nome = screen.getByLabelText('Nome do item')
+    await userEvent.type(nome, 'Lâmpada do corredor')
+
+    const backdrop = document.querySelector('[aria-hidden="true"].absolute')
+    await userEvent.click(backdrop!)
+
+    expect(screen.getByRole('dialog', { name: 'Novo item' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Nome do item')).toHaveValue('Lâmpada do corredor')
+
+    // o Cancelar é a saída declarada, e aí o que foi digitado vai mesmo
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('arquiva em vez de apagar, e devolve o item quando restaura', async () => {
     vi.mocked(archiveAsset).mockResolvedValue({ ...assets[0]!, archived: true })
     open()

@@ -15,6 +15,12 @@ export interface ModalProps {
  * Diálogo modal. Fica em portal, prende o Tab dentro dele, devolve o foco ao
  * elemento de origem e fecha com Esc — o conjunto mínimo para não aprisionar
  * quem navega por teclado ou leitor de tela.
+ *
+ * O clique fora **não** fecha: os diálogos desta aplicação são formulários, e
+ * um clique no vazio perdia o que o morador tinha digitado sem nenhum aviso. A
+ * saída é deliberada — o X, o Cancelar do rodapé ou o envio. O fundo continua
+ * lá, para escurecer a tela e engolir o clique, que é o que impede o clique de
+ * alcançar a página de trás.
  */
 export function Modal({ open, title, description, onClose, children, footer }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
@@ -67,11 +73,7 @@ export function Modal({ open, title, description, onClose, children, footer }: M
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <div
-        className="absolute inset-0 bg-scrim/70 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-scrim/70 backdrop-blur-sm" aria-hidden="true" />
       <div
         ref={panelRef}
         role="dialog"
