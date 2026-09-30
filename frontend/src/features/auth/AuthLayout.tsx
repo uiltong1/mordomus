@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ThemeToggle } from '@/shared/theme'
 
 /** Moldura comum das telas de entrada: mesma coluna, mesma promessa. */
 export function AuthLayout({
@@ -13,7 +14,13 @@ export function AuthLayout({
   footer?: ReactNode
 }) {
   return (
-    <div className="flex min-h-full items-center justify-center px-5 py-12">
+    <div className="relative flex min-h-full items-center justify-center px-5 py-12">
+      {/* antes do login não háresidência nem sino: o tema é a única coisa que a
+          tela oferece, e quem odeia o tema escuro do aparelho precisa poder
+          trocar sem entrar na conta primeiro */}
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-brand">Mordomus</p>

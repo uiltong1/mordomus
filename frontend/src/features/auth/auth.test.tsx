@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { ToastProvider } from '@/shared/ui'
 import type { Session, TenantSummary } from '@/shared/api/types'
 import { getSession, saveSession } from '@/shared/api/tokenStore'
-import { createTestQueryClient, errorResponse, jsonResponse } from '@/test/utils'
-import { AuthProvider } from './AuthProvider'
+import { TestProviders, errorResponse, jsonResponse } from '@/test/utils'
 import { LoginPage } from './LoginPage'
 import { AcceptInvitationPage } from './AcceptInvitationPage'
-import { TenantProvider } from '@/tenants/TenantProvider'
 import { TenantSwitcher } from '@/tenants/TenantSwitcher'
 
 const TENANT_A = '01J8Z0M9W3K6Q2T4R5Y7B8C9D0'
@@ -51,17 +47,11 @@ function profileResponse(activeTenant: string) {
   })
 }
 
-/** Aplica o mesmo providers do app real, sem BrowserRouter. */
+/** O mesmo providers do app real (`TestProviders`), sem BrowserRouter. */
 function Providers({ children, route = '/entrar' }: { children: React.ReactNode; route?: string }) {
   return (
     <MemoryRouter initialEntries={[route]}>
-      <QueryClientProvider client={createTestQueryClient()}>
-        <ToastProvider>
-          <AuthProvider>
-            <TenantProvider>{children}</TenantProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </QueryClientProvider>
+      <TestProviders>{children}</TestProviders>
     </MemoryRouter>
   )
 }

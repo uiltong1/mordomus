@@ -5,6 +5,7 @@ import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { TenantSwitcher } from '@/tenants/TenantSwitcher'
 import { useTenant } from '@/tenants/TenantProvider'
 import { CreateTenantPage } from '@/features/settings/CreateTenantPage'
+import { ThemeToggle } from '@/shared/theme'
 import { UpdateBanner } from './UpdateBanner'
 
 const NAV_ITEMS = [
@@ -63,6 +64,7 @@ export function AppLayout() {
           <div className="ml-auto flex items-center gap-2">
             {needsTenant ? null : <TenantSwitcher />}
             <NotificationBell />
+            <ThemeToggle />
             <div className="hidden items-center gap-2 sm:flex">
               <span className="max-w-40 truncate text-xs text-ink-muted" title={user?.email}>
                 {user?.name}

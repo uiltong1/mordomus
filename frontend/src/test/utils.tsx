@@ -3,6 +3,7 @@ import { render, type RenderOptions } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { ReactElement, ReactNode } from 'react'
 import { ToastProvider } from '@/shared/ui'
+import { ThemeProvider } from '@/shared/theme'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { TenantProvider } from '@/tenants/TenantProvider'
 
@@ -19,13 +20,15 @@ export function createTestQueryClient(): QueryClient {
 /** Espelha o `AppProviders` real, sem BrowserRouter nem ErrorBoundary. */
 export function TestProviders({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={createTestQueryClient()}>
-      <ToastProvider>
-        <AuthProvider>
-          <TenantProvider>{children}</TenantProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <ToastProvider>
+          <AuthProvider>
+            <TenantProvider>{children}</TenantProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
 

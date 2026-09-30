@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { ToastProvider } from '@/shared/ui'
+import { ThemeProvider } from '@/shared/theme'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { TenantProvider } from '@/tenants/TenantProvider'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -31,14 +32,19 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient)
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <AuthProvider>
-            <TenantProvider>{children}</TenantProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    // O tema é o provider mais externo porque a própria tela de erro do
+    // ErrorBoundary é feita com os tokens — se o atributo chegasse depois dela,
+    // o fallback apareceria na paleta errada.
+    <ThemeProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <AuthProvider>
+              <TenantProvider>{children}</TenantProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </ThemeProvider>
   )
 }

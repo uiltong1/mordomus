@@ -11,6 +11,7 @@
   --color-surface-2: #131e32;
   --color-line: #1e293b;
   --color-line-strong: #334155;
+  --color-scrim: #020617;
 
   --color-ink: #e2e8f0;
   --color-ink-muted: #94a3b8;
@@ -26,12 +27,59 @@
 
   --radius-card: 0.875rem;
   --radius-control: 0.625rem;
-
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
-  --shadow-pop: 0 12px 40px -12px rgb(0 0 0 / 0.75);
 }
 
+/* ---------------------------------------------------------------------------
+   Tema (pendência 4 da T4.1).
+
+   Trocar de tema é reescrever variável: o utilitário `bg-canvas` continua lendo
+   `var(--color-canvas)`, então nenhum componente muda. O bloco claro precisa de
+   seletor mais específico que o `:root` que o `@theme` gera, senão a paleta
+   escura vence e a escolha do morador não teria efeito.
+
+   A sombra fica **fora** do `@theme` de propósito: o Tailwind despeja o valor de
+   `--shadow-*` dentro da utility (`box-shadow: … #0006`) em vez de referenciar a
+   variável, o que congelaria a sombra do tema escuro em qualquer palette. Como
+   custom property comum ela é reescrita junto com o resto.
+   --------------------------------------------------------------------------- */
 @layer base {
+  :root {
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+    --shadow-pop: 0 12px 40px -12px rgb(0 0 0 / 0.75);
+  }
+
+  html[data-theme='light'] {
+    color-scheme: light;
+
+    --color-canvas: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-2: #f1f5f9;
+    --color-line: #e2e8f0;
+    --color-line-strong: #cbd5e1;
+    --color-scrim: #1e293b;
+
+    --color-ink: #0f172a;
+    --color-ink-muted: #475569;
+    --color-ink-subtle: #64748b;
+
+    /* brand escurece porque `text-brand` aparece no body do texto: com o tom
+       claro do tema escuro o contraste no canvas ficaria em 3.9:1 */
+    --color-brand: #0369a1;
+    --color-brand-strong: #075985;
+    --color-brand-ink: #ffffff;
+
+    --color-success: #047857;
+    --color-warning: #b45309;
+    --color-danger: #be123c;
+
+    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 24px -12px rgb(15 23 42 / 0.18);
+    --shadow-pop: 0 12px 40px -12px rgb(15 23 42 / 0.25);
+  }
+
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+
   html,
   body,
   #root {
@@ -50,6 +98,15 @@
   ::selection {
     @apply bg-brand/30 text-ink;
   }
+}
+
+/* Sombras: utilitário próprio para ler a variável do tema. */
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+@utility shadow-pop {
+  box-shadow: var(--shadow-pop);
 }
 
 @layer components {
