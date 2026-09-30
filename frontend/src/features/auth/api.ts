@@ -38,9 +38,16 @@ export function logout(refreshToken: string): Promise<{ status: string }> {
 /**
  * Troca de residência. Não é um header: o `TenantScope` deriva o tenant do claim
  * `tid`, então a troca emite um JWT novo (R1). O par anterior deixa de valer.
+ *
+ * `skipTenantLost` porque o 403 aqui é sobre o **destino** — a residência atual
+ * continua válida e a tela deve recuar para ela, não cair na seleção.
  */
 export function switchTenant(tenantId: string): Promise<Session> {
-  return api.post<Session>('/identity/auth/switch-tenant', { tenant_id: tenantId })
+  return api.post<Session>(
+    '/identity/auth/switch-tenant',
+    { tenant_id: tenantId },
+    { skipTenantLost: true },
+  )
 }
 
 export function acceptInvitation(token: string): Promise<AcceptedInvitation> {

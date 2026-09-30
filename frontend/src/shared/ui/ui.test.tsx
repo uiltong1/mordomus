@@ -113,6 +113,31 @@ describe('Modal', () => {
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+
+  it('mantém o foco preso: o último focável devolve ao primeiro', async () => {
+    render(
+      <Modal open title="Excluir cômodo" onClose={() => {}}>
+        <button type="button">Cancelar</button>
+        <button type="button">Confirmar</button>
+      </Modal>,
+    )
+
+    const dialog = screen.getByRole('dialog')
+    const focusables = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled])',
+      ),
+    )
+    const first = focusables[0]!
+    const last = focusables[focusables.length - 1]!
+    last.focus()
+
+    await userEvent.tab()
+    expect(document.activeElement).toBe(first)
+
+    await userEvent.tab({ shift: true })
+    expect(document.activeElement).toBe(last)
+  })
 })
 
 describe('DatePicker', () => {

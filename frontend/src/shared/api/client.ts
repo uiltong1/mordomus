@@ -37,16 +37,41 @@ export interface RequestOptions {
   /** `false` para as rotas públicas de sessão (login, registro, refresh). */
   auth?: boolean
   signal?: AbortSignal
+  /**
+   * A troca deresidência também recebe 403 quando o destino não é acessível,
+   * mas nesse caso a residência atual continua válida — a recusa é sobre o
+   * destino, não sobre a sessão.
+   */
+  skipTenantLost?: boolean
 }
 
 type SessionListener = (session: StoredSession | null) => void
+type TenantLostListener = (error: ApiError) => void
 
 const listeners = new Set<SessionListener>()
+const tenantLostListeners = new Set<TenantLostListener>()
 
 /** Notifica a aplicação de troca de sessão: usado no login, no refresh e no logout. */
 export function onSessionChange(listener: SessionListener): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
+}
+
+/**
+ * O token é válido mas a residência ativa deixou de servir: membership
+ * removido, tenant arquivado ou `tid` ausente. A sessão continua de pé, então
+ * quem reage é a tela — normalmente o `TenantProvider` caindo na seleção.
+ */
+export function onTenantLost(listener: TenantLostListener): () => void {
+  tenantLostListeners.add(listener)
+  return () => tenantLostListeners.delete(listener)
+}
+
+/** Códigos que significam "esta residência não é mais sua", não "sem permissão pontual". */
+const TENANT_LOST_CODES = new Set(['tenant_required', 'membership_required'])
+
+function emitTenantLost(error: ApiError): void {
+  for (const listener of tenantLostListeners) listener(error)
 }
 
 function emitSession(session: StoredSession | null): void {
@@ -168,7 +193,13 @@ export async function request<T>(options: RequestOptions): Promise<T> {
       response = await send(options, getAccessToken())
     }
 
-    if (!response.ok) throw await toApiError(response)
+    if (!response.ok) {
+      const error = await toApiError(response)
+      if (authenticated && !options.skipTenantLost && TENANT_LOST_CODES.has(error.code)) {
+        emitTenantLost(error)
+      }
+      throw error
+    }
 
     return await parse<T>(response)
   } catch (error) {

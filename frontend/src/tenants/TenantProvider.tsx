@@ -9,8 +9,8 @@ import {
 } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '@/shared/api/errors'
-import { onSessionChange } from '@/shared/api/client'
-import { getActiveTenant } from '@/shared/api/tokenStore'
+import { onSessionChange, onTenantLost } from '@/shared/api/client'
+import { getActiveTenant, setActiveTenant } from '@/shared/api/tokenStore'
 import type { TenantSummary } from '@/shared/api/types'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { switchTenant as switchTenantRequest } from '@/features/auth/api'
@@ -49,6 +49,19 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     () =>
       onSessionChange(() => {
         setActiveTenantId(getActiveTenant())
+      }),
+    [],
+  )
+
+  // O token continua válido, mas a residência parou de servir: o outro
+  // proprietário removeu o membership, ou o tenant foi arquivado. Sem isto a
+  // tela ficaria presa num erro que "Tentar de novo" nunca resolve — o
+  // caminho é escolher outra residência ou sair.
+  useEffect(
+    () =>
+      onTenantLost(() => {
+        setActiveTenant(null)
+        setActiveTenantId(null)
       }),
     [],
   )
