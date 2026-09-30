@@ -5,6 +5,7 @@ import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { TenantSwitcher } from '@/tenants/TenantSwitcher'
 import { useTenant } from '@/tenants/TenantProvider'
 import { CreateTenantPage } from '@/features/settings/CreateTenantPage'
+import { UpdateBanner } from './UpdateBanner'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Painel', end: true },
@@ -100,6 +101,8 @@ export function AppLayout() {
           </nav>
         )}
       </header>
+
+      <UpdateBanner />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         {needsTenant && !creating ? (
