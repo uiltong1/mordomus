@@ -59,6 +59,17 @@ interface JobScheduleRepositoryInterface
      */
     public function createIfAbsent(array $attributes): ?JobSchedule;
 
+    /**
+     * Ocorrências de um alvo, da mais antiga para a mais nova.
+     *
+     * É a leitura que o consumidor usa para reconciliar o lado dele: o evento
+     * é o caminho rápido, e esta lista é o que garante que nada se perca
+     * quando o consumidor falhou depois de a ocorrência existir.
+     *
+     * @return Collection<int, JobSchedule>
+     */
+    public function forSubject(string $tenantId, string $subjectType): Collection;
+
     public function markNotified(JobSchedule $occurrence, CarbonImmutable $at): bool;
 
     public function markCompleted(JobSchedule $occurrence, CarbonImmutable $at, string $userId): bool;

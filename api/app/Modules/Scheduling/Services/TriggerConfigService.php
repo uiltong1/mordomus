@@ -99,7 +99,7 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
             ]);
         }
 
-        $config = $this->configs->create($this->attributes($request, $subjectType, $subjectId));
+        $config = $this->configs->createFor($tenantId, $subjectType, $subjectId, $this->ruleAttributes($request));
 
         return ['data' => $this->present($this->withNextDue($config, $tenantId), $tenantId)];
     }
@@ -148,22 +148,60 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
     public function storeForAsset(Request $request, string $assetId): array
     {
         $tenantId = $this->tenantId($request);
-        $attributes = $this->attributes($request, TriggerConfig::SUBJECT_ASSET, $assetId);
-
-        $existing = $this->configs->findByTitle(
-            $tenantId,
-            TriggerConfig::SUBJECT_ASSET,
-            $assetId,
-            $attributes['title'],
-        );
 
         // Substituição completa: o atalho é um POST de formulário, então o
         // payload descreve a regra inteira.
+        $config = $this->storeForSubject(
+            $tenantId,
+            TriggerConfig::SUBJECT_ASSET,
+            $assetId,
+            $this->ruleAttributes($request),
+        );
+
+        return ['data' => $this->present($config, $tenantId)];
+    }
+
+    public function storeForSubject(string $tenantId, string $subjectType, string $subjectId, array $attributes): TriggerConfig
+    {
+        $existing = $this->configs->findByTitle($tenantId, $subjectType, $subjectId, (string) $attributes['title']);
+
         $config = $existing === null
-            ? $this->configs->create($attributes)
+            ? $this->configs->createFor($tenantId, $subjectType, $subjectId, $attributes)
             : $this->configs->change($existing, $attributes);
 
-        return ['data' => $this->present($this->withNextDue($config, $tenantId), $tenantId)];
+        return $this->withNextDue($config, $tenantId);
+    }
+
+    public function storeExclusiveForSubject(string $tenantId, string $subjectType, string $subjectId, array $attributes): TriggerConfig
+    {
+        $existing = $this->configs->findByTitle($tenantId, $subjectType, $subjectId, (string) $attributes['title'])
+            ?? $this->configs->forSubject($tenantId, $subjectType, $subjectId)->first();
+
+        $config = $existing === null
+            ? $this->configs->createFor($tenantId, $subjectType, $subjectId, $attributes)
+            : $this->configs->change($existing, $attributes);
+
+        return $this->withNextDue($config, $tenantId);
+    }
+
+    public function pauseForSubject(string $tenantId, string $subjectType, string $subjectId): int
+    {
+        return $this->configs->deactivateFor($tenantId, $subjectType, $subjectId);
+    }
+
+    public function resumeForSubject(string $tenantId, string $subjectType, string $subjectId): int
+    {
+        $paused = $this->configs->forSubject($tenantId, $subjectType, $subjectId)
+            ->reject(fn (TriggerConfig $config): bool => $config->isActive());
+
+        // A data é recalculada porque uma regra pausada por meses tem
+        // `next_due_at` no passado, e a agenda mostraria um vencimento que já
+        // passou.
+        foreach ($paused as $config) {
+            $this->withNextDue($this->configs->activate($config), $tenantId);
+        }
+
+        return $paused->count();
     }
 
     public function preview(Request $request): array
@@ -216,14 +254,15 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
     }
 
     /**
+     * Campos da regra, sem o alvo: `subject_type`/`asset_id`/`bill_id` são
+     * resolvidos pelo repositório, que é quem sabe qual das duas colunas o
+     * tipo de alvo usa.
+     *
      * @return array<string, mixed>
      */
-    private function attributes(Request $request, string $subjectType, string $subjectId): array
+    private function ruleAttributes(Request $request): array
     {
         return [
-            'subject_type' => $subjectType,
-            'asset_id' => $subjectType === TriggerConfig::SUBJECT_ASSET ? $subjectId : null,
-            'bill_id' => $subjectType === TriggerConfig::SUBJECT_BILL ? $subjectId : null,
             'title' => $request->string('title')->toString(),
             'description' => $request->input('description'),
             'is_active' => $request->has('is_active') ? $request->boolean('is_active') : true,

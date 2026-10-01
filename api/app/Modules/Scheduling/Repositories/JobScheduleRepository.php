@@ -112,6 +112,17 @@ final class JobScheduleRepository implements JobScheduleRepositoryInterface
             : null;
     }
 
+    public function forSubject(string $tenantId, string $subjectType): Collection
+    {
+        return JobSchedule::query()
+            ->with('triggerConfig')
+            ->where('tenant_id', $tenantId)
+            ->whereHas('triggerConfig', fn ($trigger) => $trigger->where('subject_type', $subjectType))
+            ->orderBy('scheduled_for')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function markNotified(JobSchedule $occurrence, CarbonImmutable $at): bool
     {
         // Só a primeira passagem escreve o relógio: num `ESCALATED` os offsets

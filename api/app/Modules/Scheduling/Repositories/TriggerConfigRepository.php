@@ -58,6 +58,17 @@ final class TriggerConfigRepository implements TriggerConfigRepositoryInterface
             ->first();
     }
 
+    public function forSubject(string $tenantId, string $subjectType, string $subjectId): Collection
+    {
+        return TriggerConfig::query()
+            ->where('tenant_id', $tenantId)
+            ->where('subject_type', $subjectType)
+            ->where($this->targetColumn($subjectType), $subjectId)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function activeFor(string $tenantId): Collection
     {
         return TriggerConfig::query()
@@ -71,6 +82,33 @@ final class TriggerConfigRepository implements TriggerConfigRepositoryInterface
     public function create(array $attributes): TriggerConfig
     {
         return TriggerConfig::create($attributes);
+    }
+
+    public function createFor(string $tenantId, string $subjectType, string $subjectId, array $attributes): TriggerConfig
+    {
+        return TriggerConfig::create([
+            'tenant_id' => $tenantId,
+            'subject_type' => $subjectType,
+            $this->targetColumn($subjectType) => $subjectId,
+        ] + $attributes);
+    }
+
+    public function deactivateFor(string $tenantId, string $subjectType, string $subjectId): int
+    {
+        return TriggerConfig::query()
+            ->where('tenant_id', $tenantId)
+            ->where('subject_type', $subjectType)
+            ->where($this->targetColumn($subjectType), $subjectId)
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
+    }
+
+    public function activate(TriggerConfig $config): TriggerConfig
+    {
+        $config->is_active = true;
+        $config->save();
+
+        return $config;
     }
 
     public function change(TriggerConfig $config, array $attributes): TriggerConfig
