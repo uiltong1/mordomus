@@ -42,3 +42,8 @@ Thumbs.db
 .nova/
 .zed/
 .codex/
+
+# Configuração local de ferramenta de IA: as convenções do projeto e os
+# agentes por módulo servem a esta máquina, não ao código versionado.
+/AGENTS.md
+/.opencode/
