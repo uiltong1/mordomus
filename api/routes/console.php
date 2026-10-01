@@ -28,3 +28,10 @@ Schedule::command('scheduling:materialize')
 Schedule::command('scheduling:publish-due')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
+
+// A projeção do financeiro roda no mesmo relógio do aviso: ela refaz os
+// vencimentos a partir da agenda (o evento é o caminho rápido, esta passagem é
+// a que garante que nada se perca) e marca o que já venceu.
+Schedule::command('financial:project')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();

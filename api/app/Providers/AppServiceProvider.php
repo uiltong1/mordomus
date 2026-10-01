@@ -6,12 +6,30 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Mordomus\Common\Eloquent\TenantGlobalScope;
+use Mordomus\Financial\Contracts\Repositories\BillOccurrenceRepositoryInterface;
+use Mordomus\Financial\Contracts\Repositories\BillRepositoryInterface;
+use Mordomus\Financial\Contracts\Repositories\PaymentRecordRepositoryInterface;
+use Mordomus\Financial\Contracts\Services\BillOccurrenceServiceInterface;
+use Mordomus\Financial\Contracts\Services\BillScheduleConsumerServiceInterface;
+use Mordomus\Financial\Contracts\Services\BillServiceInterface;
+use Mordomus\Financial\Contracts\Services\BillSummaryServiceInterface;
+use Mordomus\Financial\Contracts\Services\MoneyServiceInterface;
+use Mordomus\Financial\Listeners\BillScheduleListener;
+use Mordomus\Financial\Repositories\BillOccurrenceRepository;
+use Mordomus\Financial\Repositories\BillRepository;
+use Mordomus\Financial\Repositories\PaymentRecordRepository;
+use Mordomus\Financial\Services\BillOccurrenceService;
+use Mordomus\Financial\Services\BillScheduleConsumerService;
+use Mordomus\Financial\Services\BillService;
+use Mordomus\Financial\Services\BillSummaryService;
+use Mordomus\Financial\Services\MoneyService;
 use Mordomus\Identity\Auth\JwtGuard;
 use Mordomus\Identity\Contracts\Repositories\InvitationRepositoryInterface;
 use Mordomus\Identity\Contracts\Repositories\MembershipRepositoryInterface;
@@ -70,6 +88,7 @@ use Mordomus\Scheduling\Contracts\Services\OccurrenceServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerDateServiceInterface;
+use Mordomus\Scheduling\Events\DomainEvent;
 use Mordomus\Scheduling\Repositories\JobScheduleRepository;
 use Mordomus\Scheduling\Repositories\ScheduleEventRepository;
 use Mordomus\Scheduling\Repositories\TriggerConfigRepository;
@@ -89,6 +108,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerMaintenanceBindings();
         $this->registerIdentityBindings();
         $this->registerSchedulingBindings();
+        $this->registerFinancialBindings();
     }
 
     public function boot(): void
@@ -98,6 +118,20 @@ class AppServiceProvider extends ServiceProvider
         $this->registerFactoryNames();
         $this->registerRateLimits();
         $this->registerTenantBindings();
+        $this->registerFinancialListeners();
+    }
+
+    /**
+     * Consumidor in-process do Scheduling (ADR-011).
+     *
+     * O envelope é publicado dentro do processo e a fila continua sendo a
+     * entrega para quem só observa depois; aqui quem reage na mesma transação
+     * é o Financial, que grava o `schedule_id` do vencimento logo depois de a
+     * ocorrência do motor existir.
+     */
+    private function registerFinancialListeners(): void
+    {
+        Event::listen(DomainEvent::class, BillScheduleListener::class);
     }
 
     /**
@@ -161,6 +195,19 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EventPublisherServiceInterface::class, EventPublisherService::class);
         $this->app->bind(TriggerDateServiceInterface::class, TriggerDateService::class);
         $this->app->bind(TenantCalendarServiceInterface::class, TenantCalendarService::class);
+    }
+
+    private function registerFinancialBindings(): void
+    {
+        $this->app->bind(BillRepositoryInterface::class, BillRepository::class);
+        $this->app->bind(BillOccurrenceRepositoryInterface::class, BillOccurrenceRepository::class);
+        $this->app->bind(PaymentRecordRepositoryInterface::class, PaymentRecordRepository::class);
+
+        $this->app->bind(BillServiceInterface::class, BillService::class);
+        $this->app->bind(BillOccurrenceServiceInterface::class, BillOccurrenceService::class);
+        $this->app->bind(BillSummaryServiceInterface::class, BillSummaryService::class);
+        $this->app->bind(BillScheduleConsumerServiceInterface::class, BillScheduleConsumerService::class);
+        $this->app->bind(MoneyServiceInterface::class, MoneyService::class);
     }
 
     /** Guard stateless: driver `jwt` (config/auth.php). */

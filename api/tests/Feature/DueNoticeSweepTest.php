@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Queue;
+use Mordomus\Financial\Models\Bill;
 use Mordomus\Scheduling\Contracts\Services\OccurrenceMaterializerServiceInterface;
 use Mordomus\Scheduling\Events\EventName;
 use Mordomus\Scheduling\Jobs\PublishEvent;
@@ -239,7 +240,13 @@ class DueNoticeSweepTest extends FeatureTestCase
 
         // O AC do `subject_type=bill`: a ocorrência é do Scheduling, e o
         // `subject_id` publicado é o da conta — o Financial não calcula data.
-        $billId = '01j8z0m9w3k6q2t4r5y7b8c9d0';
+        $billId = $this->withTenantContext($this->tenantId, fn (): string => Bill::create([
+            'tenant_id' => $this->tenantId,
+            'name' => 'Conta de energia',
+            'kind' => Bill::KIND_FIXED,
+            'amount' => '210.00',
+        ])->id);
+
         $this->withTenantContext($this->tenantId, function () use ($billId): void {
             TriggerConfig::create([
                 'tenant_id' => $this->tenantId,
@@ -259,9 +266,12 @@ class DueNoticeSweepTest extends FeatureTestCase
         $this->sweepAt('2026-04-07 12:00:00');
         $this->assertSame(['advance_notice'], $this->publishedKinds());
 
+        // A mesma fila leva o aviso republicado pelo Financial (`bill.due`),
+        // então a verificação olha só o envelope do Scheduling.
         Queue::assertPushed(PublishEvent::class, function (PublishEvent $job) use ($billId): bool {
-            return $job->envelope['payload']['subject_type'] === TriggerConfig::SUBJECT_BILL
-                && $job->envelope['payload']['subject_id'] === $billId;
+            return ($job->envelope['event'] ?? null) === EventName::SCHEDULE_DUE
+                && ($job->envelope['payload']['subject_type'] ?? null) === TriggerConfig::SUBJECT_BILL
+                && ($job->envelope['payload']['subject_id'] ?? null) === $billId;
         });
     }
 

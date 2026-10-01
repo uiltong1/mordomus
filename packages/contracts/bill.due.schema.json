@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mordomus.app/contracts/bill.due.schema.json",
+  "title": "bill.due",
+  "description": "Vencimento de conta que a casa precisa lembrar de pagar. O Financial republica aqui o `schedule.due` do Scheduling, já com o id do vencimento e o `dedupe_key` que impede o mesmo aviso de virar duas notificações (R6) (TECHSPEC §7).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event", "event_id", "occurred_at", "tenant_id", "payload"],
+  "properties": {
+    "event": { "const": "bill.due" },
+    "event_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "bill_occurrence_id",
+        "bill_id",
+        "due_date",
+        "amount",
+        "kind",
+        "due_at",
+        "dedupe_key"
+      ],
+      "properties": {
+        "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "bill_occurrence_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "bill_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "due_date": { "type": "string", "format": "date" },
+        "amount": { "type": "string", "pattern": "^-?\\d+\\.\\d{2}$" },
+        "kind": {
+          "type": "string",
+          "enum": ["advance_notice", "due", "offset"],
+          "description": "Antecedência, dia do vencimento ou um offset de regra escalonada"
+        },
+        "due_at": { "type": "string", "format": "date-time" },
+        "dedupe_key": { "type": "string" }
+      }
+    }
+  }
+}

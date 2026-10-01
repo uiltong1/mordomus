@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Mordomus\Financial\Console\Commands\ProjectBillsCommand;
 use Mordomus\Http\Exceptions\ApiException;
 use Mordomus\Http\Middleware\Can;
 use Mordomus\Http\Middleware\ClearTenantContext;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         MaterializeOccurrencesCommand::class,
         PublishDueNoticesCommand::class,
+        ProjectBillsCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
         // sem rota de login: 401 JSON em vez de route('login')

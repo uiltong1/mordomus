@@ -140,6 +140,700 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceInfo'
+  /api/v1/financial/bills:
+    get:
+      tags:
+        - financial
+      summary: 'Lista as contas da residência ativa'
+      operationId: b3e4865dea202ed2dca313d7277b2bc6
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+        -
+          parameter: kind
+          name: index
+          in: query
+          schema:
+            type: string
+            enum:
+              - fixed
+              - variable
+        -
+          parameter: is_active
+          name: index
+          in: query
+          schema:
+            type: boolean
+        -
+          parameter: category
+          name: index
+          in: query
+          schema:
+            type: string
+            maxLength: 40
+      responses:
+        '200':
+          description: 'Contas paginadas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Bill' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Filtro inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    post:
+      tags:
+        - financial
+      summary: 'Cadastra uma conta'
+      description: 'Conta com `due_day` recebe uma regra `CALENDAR_MONTHLY` no módulo Scheduling, que calcula a primeira data e materializa os vencimentos. Sem `due_day`, a conta fica sem cadência e o vencimento é lançado à mão.'
+      operationId: a6b0f60a9ea370e1e39b60219e564abe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - kind
+              properties:
+                name:
+                  type: string
+                  example: 'Conta de luz'
+                  maxLength: 120
+                kind:
+                  type: string
+                  example: fixed
+                  enum: [fixed, variable]
+                category:
+                  type: string
+                  example: energia
+                  nullable: true
+                  maxLength: 40
+                amount:
+                  description: 'Valor previsto; em conta variável é omitido e entra na baixa de pagamento'
+                  type: number
+                  example: 187.43
+                  nullable: true
+                  minimum: 0
+                currency:
+                  type: string
+                  default: BRL
+                  maxLength: 3
+                  minLength: 3
+                is_active:
+                  type: boolean
+                  default: true
+                due_day:
+                  description: 'Dia do vencimento mensal'
+                  type: integer
+                  example: 10
+                  nullable: true
+                  maximum: 31
+                  minimum: 1
+                advance_notice_days:
+                  description: 'Aviso quantos dias antes do vencimento'
+                  type: integer
+                  example: 3
+                  maximum: 365
+                  minimum: 0
+              type: object
+      responses:
+        '201':
+          description: 'Conta criada com a primeira data calculada pelo Scheduling'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Bill' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability bills.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/financial/bills/{bill}':
+    get:
+      tags:
+        - financial
+      summary: 'Detalhe de uma conta, com a cadência que ela pediu'
+      operationId: 26617b68b1956ab8336f9b73c30b050d
+      parameters:
+        -
+          parameter: bill
+          name: show
+          in: path
+          description: 'Id ULID da conta'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: Conta
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Bill' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Conta não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    patch:
+      tags:
+        - financial
+      summary: 'Atualiza uma conta'
+      description: 'Enviar `due_day` reescreve a cadência da conta; `due_day: null` a remove sem apagar o histórico. Desativar a conta cancela o que ainda não venceu e mantém em aberto o que já venceu.'
+      operationId: 847284883f5a14c9a489aa45e562b923
+      parameters:
+        -
+          parameter: bill
+          name: update
+          in: path
+          description: 'Id ULID da conta'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                  maxLength: 120
+                kind:
+                  type: string
+                  enum: [fixed, variable]
+                category:
+                  type: string
+                  nullable: true
+                  maxLength: 40
+                amount:
+                  type: number
+                  nullable: true
+                  minimum: 0
+                currency:
+                  type: string
+                  maxLength: 3
+                  minLength: 3
+                is_active:
+                  type: boolean
+                due_day:
+                  type: integer
+                  nullable: true
+                  maximum: 31
+                  minimum: 1
+                advance_notice_days:
+                  type: integer
+                  maximum: 365
+                  minimum: 0
+              type: object
+      responses:
+        '200':
+          description: 'Conta atualizada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/Bill' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability bills.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Conta não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/financial/occurrences:
+    get:
+      tags:
+        - financial
+      summary: 'Lista os vencimentos da residência'
+      description: 'O histórico filtra por tenant e por período; `month` traz o mês fechado e não combina com `from`/`to`.'
+      operationId: 35154b234f09aa38e066d39a3bca8415
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+        -
+          parameter: month
+          name: index
+          in: query
+          description: 'Mês fechado (`YYYY-MM`) no fuso da residência'
+          schema:
+            type: string
+            example: 2026-04
+        -
+          parameter: from
+          name: index
+          in: query
+          schema:
+            type: string
+            format: date
+            example: '2026-04-01'
+        -
+          parameter: to
+          name: index
+          in: query
+          schema:
+            type: string
+            format: date
+            example: '2026-04-30'
+        -
+          parameter: bill_id
+          name: index
+          in: query
+          schema:
+            type: string
+            maxLength: 26
+        -
+          parameter: status
+          name: index
+          in: query
+          schema:
+            type: string
+            enum:
+              - open
+              - paid
+              - overdue
+              - cancelled
+      responses:
+        '200':
+          description: 'Vencimentos paginados'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/BillOccurrence' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Filtro inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    post:
+      tags:
+        - financial
+      summary: 'Lança um vencimento manual'
+      description: 'Caminho da conta variável: a data e o valor são os que o morador leu na fatura e vão como vieram, sem cálculo de data.'
+      operationId: 16f0b08c72f25e37f2112c6cbbb84a7b
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - bill_id
+                - due_date
+                - amount
+              properties:
+                bill_id:
+                  type: string
+                  example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+                  maxLength: 26
+                due_date:
+                  type: string
+                  format: date
+                  example: '2026-04-10'
+                amount:
+                  type: number
+                  example: 187.43
+                  minimum: 0
+              type: object
+      responses:
+        '201':
+          description: 'Vencimento lançado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/BillOccurrence' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability bills.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Conta não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Já existe vencimento desta conta nesta data'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  '/api/v1/financial/occurrences/{billOccurrence}/paid':
+    post:
+      tags:
+        - financial
+      summary: 'Baixa o pagamento de um vencimento'
+      description: 'Idempotente: marcar duas vezes devolve o mesmo lançamento e não abre um segundo. Vencimento cancelado é 409.'
+      operationId: 309279b28f267a431385c6b7acb28847
+      parameters:
+        -
+          parameter: billOccurrence
+          name: pay
+          in: path
+          description: 'Id ULID do vencimento'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - method
+              properties:
+                amount:
+                  description: 'Valor pago; sem ele vale o valor do vencimento'
+                  type: number
+                  example: 187.43
+                  nullable: true
+                  minimum: 0
+                method:
+                  type: string
+                  example: pix
+                  enum: [pix, boleto, debit_card, credit_card, cash, transfer, other]
+                paid_at:
+                  description: 'Instante do pagamento no fuso da residência; sem ele vale o momento da baixa'
+                  type: string
+                  format: date-time
+                  nullable: true
+                receipt_url:
+                  type: string
+                  nullable: true
+                  maxLength: 500
+              type: object
+      responses:
+        '200':
+          description: 'Vencimento quitado'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/BillOccurrence' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability bills.pay ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Vencimento não encontrado na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Vencimento cancelado não recebe pagamento'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/financial/summary:
+    get:
+      tags:
+        - financial
+      summary: 'Consolidação mensal dos vencimentos'
+      description: 'Sem `month`, devolve o mês corrente da residência no fuso dela. Os valores são texto decimal com duas casas, porque a soma de centavo é o que fecha com o total.'
+      operationId: c1ca9ac9a98e0574f84a8b30a860a18d
+      parameters:
+        -
+          parameter: month
+          name: summary
+          in: query
+          schema:
+            type: string
+            example: 2026-04
+      responses:
+        '200':
+          description: 'Consolidação do mês'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/BillSummary' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Mês inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
   /api/v1/identity/auth/register:
     post:
       tags:
@@ -3162,6 +3856,252 @@ components:
           format: date-time
           nullable: true
       type: object
+    Bill:
+      description: 'Conta da residência; a cadência é a regra do Scheduling lida por `schedule`'
+      required:
+        - id
+        - tenant_id
+        - name
+        - kind
+        - currency
+        - is_active
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        tenant_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D1
+        name:
+          type: string
+          example: 'Conta de luz'
+        kind:
+          description: 'fixed tem valor e vencimento conhecidos; variable tem valor que só existe na fatura'
+          type: string
+          enum:
+            - fixed
+            - variable
+        category:
+          type: string
+          example: energia
+          nullable: true
+        amount:
+          description: 'Texto decimal com duas casas; nulo quando o valor só existe na fatura'
+          type: string
+          pattern: '^-?\d+\.\d{2}$'
+          example: '187.43'
+          nullable: true
+        currency:
+          type: string
+          example: BRL
+          maxLength: 3
+          minLength: 3
+        is_active:
+          type: boolean
+          example: true
+        schedule:
+          description: 'Cadência viva da conta, escrita pelo módulo Scheduling; nula quando a conta não pediu vencimento automático'
+          properties:
+            id:
+              description: 'Regra de recorrência'
+              type: string
+            type:
+              type: string
+              enum:
+                - CALENDAR_MONTHLY
+            day_of_month:
+              type: integer
+              example: 10
+              maximum: 31
+              minimum: 1
+            advance_notice_days:
+              type: integer
+              example: 3
+              maximum: 365
+              minimum: 0
+            preferred_hour:
+              type: string
+              example: '09:00'
+              nullable: true
+            is_active:
+              type: boolean
+            next_due_at:
+              description: 'Próxima data calculada pelo Scheduling (R7)'
+              type: string
+              format: date-time
+              nullable: true
+          type: object
+          nullable: true
+        created_by:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
+    BillOccurrence:
+      description: 'Vencimento de conta: um dia a pagar, com o histórico do que o quitou'
+      required:
+        - id
+        - tenant_id
+        - bill_id
+        - due_date
+        - amount
+        - status
+        - payments
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D4
+        tenant_id:
+          type: string
+        bill_id:
+          type: string
+        bill_name:
+          type: string
+          example: 'Conta de luz'
+          nullable: true
+        bill_kind:
+          type: string
+          nullable: true
+          enum:
+            - fixed
+            - variable
+        category:
+          type: string
+          example: energia
+          nullable: true
+        schedule_id:
+          description: 'Ocorrência do Scheduling que gerou o vencimento; nulo no lançamento manual'
+          type: string
+          nullable: true
+        due_date:
+          description: 'Dia de calendário no fuso da residência'
+          type: string
+          format: date
+          example: '2026-04-10'
+        amount:
+          description: 'Valor do vencimento; em conta variável começa em 0.00 e passa a valer o que foi pago'
+          type: string
+          pattern: '^-?\d+\.\d{2}$'
+          example: '187.43'
+        status:
+          type: string
+          enum:
+            - open
+            - paid
+            - overdue
+            - cancelled
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        paid_by:
+          type: string
+          nullable: true
+        payments:
+          description: 'Baixas que quitam o vencimento, da mais antiga para a mais nova'
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentRecord'
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
+    BillSummary:
+      description: 'Consolidação mensal da residência: quanto venceu, quanto foi pago e o que ficou em aberto'
+      required:
+        - month
+        - timezone
+        - totals
+        - counts
+        - by_status
+        - by_category
+      properties:
+        month:
+          type: string
+          example: 2026-04
+        timezone:
+          type: string
+          example: America/Sao_Paulo
+        totals:
+          description: 'Textos decimais com duas casas; a soma fecha com o total (R5)'
+          properties:
+            due:
+              description: 'Tudo que venceu no mês, qualquer estado'
+              type: string
+              pattern: '^-?\d+\.\d{2}$'
+              example: '2450.00'
+            paid:
+              type: string
+              pattern: '^-?\d+\.\d{2}$'
+              example: '1200.00'
+            open:
+              type: string
+              pattern: '^-?\d+\.\d{2}$'
+              example: '850.00'
+            overdue:
+              type: string
+              pattern: '^-?\d+\.\d{2}$'
+              example: '400.00'
+            cancelled:
+              type: string
+              pattern: '^-?\d+\.\d{2}$'
+              example: '0.00'
+          type: object
+        counts:
+          properties:
+            occurrences:
+              type: integer
+              example: 6
+            paid:
+              type: integer
+              example: 3
+            open:
+              type: integer
+              example: 2
+            overdue:
+              type: integer
+              example: 1
+            cancelled:
+              type: integer
+              example: 0
+          type: object
+        by_status:
+          description: 'Contagem por estado, sempre com as quatro chaves'
+          type: object
+          additionalProperties: true
+        by_category:
+          type: array
+          items:
+            properties:
+              category:
+                type: string
+                example: energia
+                nullable: true
+              occurrences:
+                type: integer
+              due:
+                type: string
+                pattern: '^-?\d+\.\d{2}$'
+              paid:
+                type: string
+                pattern: '^-?\d+\.\d{2}$'
+              open:
+                type: string
+                pattern: '^-?\d+\.\d{2}$'
+            type: object
+      type: object
     Error:
       description: 'Envelope de erro da API'
       required:
@@ -3419,6 +4359,47 @@ components:
         last_page:
           type: integer
           example: 2
+      type: object
+    PaymentRecord:
+      description: 'Baixa de pagamento de um vencimento; linha imutável de histórico'
+      required:
+        - id
+        - bill_occurrence_id
+        - amount
+        - method
+        - paid_at
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D3
+        bill_occurrence_id:
+          type: string
+        user_id:
+          description: 'Quem pagou; nulo depois que a conta é removida da residência'
+          type: string
+          nullable: true
+        amount:
+          description: 'Valor pago, que em conta variável é o único lugar onde o valor real aparece'
+          type: string
+          pattern: '^-?\d+\.\d{2}$'
+          example: '187.43'
+        method:
+          type: string
+          enum:
+            - pix
+            - boleto
+            - debit_card
+            - credit_card
+            - cash
+            - transfer
+            - other
+        paid_at:
+          type: string
+          format: date-time
+          example: '2026-04-10T12:00:00-03:00'
+        receipt_url:
+          type: string
+          nullable: true
       type: object
     Preferences:
       description: 'Preferências da residência'
@@ -3786,4 +4767,7 @@ tags:
     description: 'Cômodos e inventário do imóvel'
   -
     name: scheduling
-    description: scheduling
+    description: 'Regras de recorrência, agenda de ocorrências e cálculo de datas'
+  -
+    name: financial
+    description: 'Contas, vencimentos, baixas de pagamento e consolidação mensal'

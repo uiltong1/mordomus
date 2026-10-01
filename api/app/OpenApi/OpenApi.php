@@ -20,4 +20,6 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'system', description: 'Saúde do serviço, raiz do host e documentação')]
 #[OA\Tag(name: 'identity', description: 'Autenticação, residências, convites e membros')]
 #[OA\Tag(name: 'maintenance', description: 'Cômodos e inventário do imóvel')]
+#[OA\Tag(name: 'scheduling', description: 'Regras de recorrência, agenda de ocorrências e cálculo de datas')]
+#[OA\Tag(name: 'financial', description: 'Contas, vencimentos, baixas de pagamento e consolidação mensal')]
 final class OpenApi {}

@@ -6,6 +6,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Mordomus\Financial\Models\Bill;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 use Mordomus\Maintenance\Models\Asset;
@@ -19,6 +20,10 @@ use Mordomus\Maintenance\Models\Room;
  * por alvo, uma ocorrência por data (é o que torna o recálculo idempotente),
  * referência real para as linhas de cima e o destino das linhas filhas quando
  * o pai é removido.
+ *
+ * O alvo de conta entra com FK de verdade (ADR-011): `trigger_configs.bill_id`
+ * só aceita uma conta que existe, e por isso o `Str::ulid()` solto não serve
+ * como id de conta neste teste.
  *
  * As inserções são feitas por `DB::table` porque os models dessas tabelas
  * ainda não existem — este teste é sobre o esquema, não sobre a camada de
@@ -84,7 +89,7 @@ class ScheduleSchemaTest extends FeatureTestCase
 
         $this->assertRejected(fn () => $this->insertTriggerConfig([
             'title' => 'Com os dois alvos',
-            'bill_id' => (string) Str::ulid(),
+            'bill_id' => $this->createBill('Luz da Casa B'),
         ]));
 
         $this->assertRejected(fn () => $this->insertTriggerConfig([
@@ -96,7 +101,7 @@ class ScheduleSchemaTest extends FeatureTestCase
             'title' => 'Conta de luz',
             'subject_type' => 'bill',
             'asset_id' => null,
-            'bill_id' => (string) Str::ulid(),
+            'bill_id' => $this->createBill('Conta de luz'),
         ]);
 
         $this->assertSame(2, DB::table('trigger_configs')->count());
@@ -117,7 +122,7 @@ class ScheduleSchemaTest extends FeatureTestCase
             'title' => 'Trocar o filtro',
             'subject_type' => 'bill',
             'asset_id' => null,
-            'bill_id' => (string) Str::ulid(),
+            'bill_id' => $this->createBill('Conta de luz'),
         ]);
 
         $this->assertSame(3, DB::table('trigger_configs')->count());
@@ -216,6 +221,15 @@ class ScheduleSchemaTest extends FeatureTestCase
             'tenant_id' => $this->tenantId,
             'room_id' => $this->roomId,
             'name' => $name,
+        ])->id;
+    }
+
+    private function createBill(string $name): string
+    {
+        return Bill::create([
+            'tenant_id' => $this->tenantId,
+            'name' => $name,
+            'kind' => Bill::KIND_FIXED,
         ])->id;
     }
 

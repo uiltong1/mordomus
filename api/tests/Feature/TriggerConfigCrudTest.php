@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Testing\TestResponse;
+use Mordomus\Financial\Models\Bill;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
@@ -394,21 +395,22 @@ class TriggerConfigCrudTest extends FeatureTestCase
     }
 
     /**
-     * `bills` ainda não tem FK na regra enquanto a tabela `bills` não existe
-     * (o vínculo é fechado em `50_financial_links`). O caminho do `bill` já
-     * nasce gravando a coluna certa, para o módulo Financial só precisar
-     * acrescentar a restrição.
+     * O caminho de `bill` grava a coluna certa — e a coluna tem FK de verdade
+     * desde `50_financial_links`, o que o esquema do Financial verifica no
+     * nível do banco.
      */
     public function test_bill_rule_records_the_bill_column(): void
     {
+        $billId = $this->createBill('Conta de luz');
+
         $this->createRule([
             'subject_type' => 'bill',
-            'subject_id' => '01J8Z0M9W3K6Q2T4R5Y7B8C9D0',
+            'subject_id' => $billId,
             'title' => 'Pagar conta de luz',
         ])
             ->assertCreated()
             ->assertJsonPath('data.subject_type', 'bill')
-            ->assertJsonPath('data.subject_id', '01J8Z0M9W3K6Q2T4R5Y7B8C9D0')
+            ->assertJsonPath('data.subject_id', $billId)
             ->assertJsonPath('data.asset_id', null);
     }
 
@@ -432,6 +434,19 @@ class TriggerConfigCrudTest extends FeatureTestCase
     private function showRule(string $id): TestResponse
     {
         return $this->withHeaders($this->headers)->getJson('/api/v1/scheduling/trigger-configs/'.$id);
+    }
+
+    private function createBill(string $name): string
+    {
+        return $this->withTenantContext(
+            $this->tenantId,
+            fn (): string => Bill::create([
+                'tenant_id' => $this->tenantId,
+                'name' => $name,
+                'kind' => Bill::KIND_FIXED,
+                'amount' => '150.00',
+            ])->id,
+        );
     }
 
     private function createAsset(string $name): string

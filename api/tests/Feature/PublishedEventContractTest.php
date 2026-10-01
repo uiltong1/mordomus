@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Queue;
+use Mordomus\Financial\Models\Bill;
 use Mordomus\Scheduling\Events\EventName;
 use Mordomus\Scheduling\Jobs\PublishEvent;
 use Mordomus\Scheduling\Models\JobSchedule;
@@ -33,7 +34,7 @@ class PublishedEventContractTest extends FeatureTestCase
 
     private string $assetId;
 
-    private string $billId = '01j8z0m9w3k6q2t4r5y7b8c9d0';
+    private string $billId = '';
 
     private Validator $validator;
 
@@ -70,11 +71,18 @@ class PublishedEventContractTest extends FeatureTestCase
         parent::tearDown();
     }
 
-    public function test_every_published_event_has_a_schema(): void
+    /** Cada módulo publica os seus; o outro par é conferido no teste do Financial. */
+    public function test_every_scheduling_event_has_a_schema(): void
     {
+        $published = [
+            EventName::OCCURRENCE_COMPLETED,
+            EventName::OCCURRENCE_CREATED,
+            EventName::SCHEDULE_DUE,
+        ];
+
         $this->assertSame(
-            [EventName::OCCURRENCE_COMPLETED, EventName::SCHEDULE_DUE, EventName::OCCURRENCE_CREATED],
-            $this->eventNamesWithSchema(),
+            $published,
+            array_values(array_intersect($published, $this->eventNamesWithSchema())),
         );
     }
 
@@ -127,6 +135,13 @@ class PublishedEventContractTest extends FeatureTestCase
 
     public function test_schedule_due_of_a_bill_resolves_the_public_subject_id(): void
     {
+        $this->billId = $this->withTenantContext($this->tenantId, fn (): string => Bill::create([
+            'tenant_id' => $this->tenantId,
+            'name' => 'Conta de energia',
+            'kind' => Bill::KIND_FIXED,
+            'amount' => '210.00',
+        ])->id);
+
         $this->withTenantContext($this->tenantId, function (): void {
             TriggerConfig::create([
                 'tenant_id' => $this->tenantId,

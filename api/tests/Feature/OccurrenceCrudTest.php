@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Carbon\CarbonImmutable;
+use Mordomus\Financial\Models\Bill;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Permission;
 use Mordomus\Identity\Models\User;
@@ -226,7 +227,14 @@ class OccurrenceCrudTest extends FeatureTestCase
 
     public function test_asset_shortcut_does_not_touch_a_bill_occurrence(): void
     {
-        $billId = '01j8z0m9w3k6q2t4r5y7b8c9d0';
+        // A conta existe de verdade: `trigger_configs.bill_id` tem FK desde
+        // `50_financial_links`.
+        $billId = $this->withTenantContext($this->tenantId, fn (): string => Bill::create([
+            'tenant_id' => $this->tenantId,
+            'name' => 'Conta de energia',
+            'kind' => Bill::KIND_FIXED,
+            'amount' => '210.00',
+        ])->id);
 
         $this->withTenantContext($this->tenantId, function () use ($billId): void {
             TriggerConfig::create([

@@ -20,9 +20,12 @@ use Illuminate\Support\Facades\Schema;
  * `coalesce(asset_id, bill_id)` — é ele que resolve o "um título por alvo"
  * em uma única restrição.
  *
- * `bill_id` nasce sem FK porque a tabela `bills` ainda não existe; a
- * referência é adicionada em `50_financial_links`, depois que a tabela do
- * módulo dono da conta estiver criada.
+ * `bill_id` tem FK para `bills` (ADR-011) porque a tabela do módulo dono da
+ * conta é criada antes desta (`30_financial`). Declarar a chave aqui, e não em
+ * `50_financial_links`, é exigência do SQLite: acrescentar chave estrangeira
+ * com `ALTER TABLE` reconstrói a tabela e o banco perde as garantias que o
+ * `CREATE TABLE` tinha criado — o CHECK de exclusão mútua e o índice único
+ * sobre a expressão `coalesce`, que é o que faz "um título por alvo" valer.
  */
 return new class extends Migration
 {
@@ -53,6 +56,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'is_active', 'next_due_at']);
             $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
             $table->foreign('asset_id')->references('id')->on('assets')->cascadeOnDelete();
+            $table->foreign('bill_id')->references('id')->on('bills')->cascadeOnDelete();
         });
 
         DB::statement(<<<'SQL'
