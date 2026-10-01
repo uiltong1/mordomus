@@ -12,6 +12,7 @@ use Mordomus\Financial\Contracts\Repositories\BillRepositoryInterface;
 use Mordomus\Financial\Contracts\Repositories\PaymentRecordRepositoryInterface;
 use Mordomus\Financial\Contracts\Services\BillOccurrenceServiceInterface;
 use Mordomus\Financial\Contracts\Services\MoneyServiceInterface;
+use Mordomus\Financial\Contracts\Services\SplitResultServiceInterface;
 use Mordomus\Financial\Events\EventName;
 use Mordomus\Financial\Exceptions\BillOccurrenceNotPayable;
 use Mordomus\Financial\Exceptions\DuplicateBillOccurrence;
@@ -36,6 +37,7 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
         private readonly BillRepositoryInterface $bills,
         private readonly BillOccurrenceRepositoryInterface $occurrences,
         private readonly PaymentRecordRepositoryInterface $payments,
+        private readonly SplitResultServiceInterface $splits,
         private readonly BillOccurrenceResource $resource,
         private readonly MoneyServiceInterface $money,
         private readonly TenantCalendarServiceInterface $calendar,
@@ -83,6 +85,8 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
             'due_date' => $dueDate,
             'amount' => $this->amount($request, $bill->amount),
         ]);
+
+        $this->splits->compute($occurrence);
 
         return ['data' => $this->resource->make($occurrence, $timezone)];
     }
@@ -134,6 +138,14 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
             return ['data' => $this->resource->make($this->reload($occurrence, $tenantId), $timezone)];
         }
 
+        $paid = $this->reload($occurrence, $tenantId);
+
+        // A cota é do valor que a casa quitou: em conta variável o valor real
+        // só aparece na baixa, e a divisão feita sobre o valor previsto seria a
+        // divisão de um valor que ninguém pagou. A cota que o morador já
+        // baixou e que muda de valor volta a ficar em aberto.
+        $this->splits->compute($paid);
+
         $this->publisher->publish(EventName::BILL_PAID, $tenantId, [
             'tenant_id' => $tenantId,
             'bill_occurrence_id' => $occurrence->id,
@@ -145,7 +157,7 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
             'paid_at' => $paidAt->toIso8601String(),
         ]);
 
-        return ['data' => $this->resource->make($this->reload($occurrence, $tenantId), $timezone)];
+        return ['data' => $this->resource->make($paid, $timezone)];
     }
 
     /**

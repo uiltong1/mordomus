@@ -122,6 +122,17 @@ final class BillOccurrenceRepository implements BillOccurrenceRepositoryInterfac
             ->get();
     }
 
+    public function open(string $tenantId, ?string $billId = null): Collection
+    {
+        return $this->query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', BillOccurrence::PAYABLE_STATUSES)
+            ->when($billId !== null, fn ($query) => $query->where('bill_id', $billId))
+            ->orderBy('due_date')
+            ->orderBy('id')
+            ->get();
+    }
+
     /**
      * Base das leituras, com a conta e as baixas já anexadas.
      *

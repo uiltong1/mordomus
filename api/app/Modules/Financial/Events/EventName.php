@@ -15,4 +15,12 @@ final class EventName
 
     /** Quitação registrada, com quem pagou e por quanto. */
     public const BILL_PAID = 'bill.paid';
+
+    /**
+     * Cotas do vencimento calculadas, uma vez por mudança no número.
+     *
+     * O `dedupe_key` carrega o resumo das cotas, então a reentrega da fila e a
+     * regra salva sem diferença real não viram dois avisos do mesmo lançamento.
+     */
+    public const EXPENSE_SPLIT_COMPUTED = 'expense.split_computed';
 }

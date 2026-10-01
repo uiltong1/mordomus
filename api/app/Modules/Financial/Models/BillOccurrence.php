@@ -101,6 +101,19 @@ class BillOccurrence extends Model
         return $this->hasMany(PaymentRecord::class);
     }
 
+    /**
+     * Cotas já calculadas deste vencimento.
+     *
+     * Entra na resposta porque é a resposta natural da pergunta que a lista de
+     * vencimentos faz — "isso já foi dividido, e quem já quitou a parte dele".
+     *
+     * @return HasMany<SplitResult, $this>
+     */
+    public function splitResults(): HasMany
+    {
+        return $this->hasMany(SplitResult::class);
+    }
+
     public function isPaid(): bool
     {
         return $this->status === self::STATUS_PAID;

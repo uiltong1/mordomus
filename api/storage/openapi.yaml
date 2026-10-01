@@ -834,6 +834,291 @@ paths:
       security:
         -
           jwtBearerAuth: []
+  '/api/v1/financial/occurrences/{billOccurrence}/split':
+    get:
+      tags:
+        - financial
+      summary: 'Cota-parte calculada de um vencimento'
+      description: 'A soma das cotas é o valor do vencimento (R5). Vencimento sem regra ativa na residência é 404; vencimento ainda não materializado responde pelo cálculo, sem gravar.'
+      operationId: 3188be4647f4c949feeaabe3d93ab6b4
+      parameters:
+        -
+          parameter: billOccurrence
+          name: show
+          in: path
+          description: 'Id ULID do vencimento'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Divisão do vencimento'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/OccurrenceSplit' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem `splits.manage` nem `splits.view_own`'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Vencimento fora da residência ativa, ou conta sem regra de divisão ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Regra que não fecha a conta: participantes vazios, pesos ou percentuais de soma zero, ou cotas fechadas acima do total'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    patch:
+      tags:
+        - financial
+      summary: 'Baixa (ou desfaz) a cota de um morador'
+      description: 'Idempotente: repetir a baixa devolve a mesma linha e o instante da primeira continua valendo. `settled: false` desfaz, para quando a casa anotou errado.'
+      operationId: b328b127e5bdbd8eeaa33d0d36a677bb
+      parameters:
+        -
+          parameter: billOccurrence
+          name: settle
+          in: path
+          description: 'Id ULID do vencimento'
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - user_id
+              properties:
+                user_id:
+                  description: 'Morador da cota'
+                  type: string
+                  maxLength: 26
+                settled:
+                  description: 'Omitido vale `true`; `false` desfaz a baixa'
+                  type: boolean
+                  default: true
+              type: object
+      responses:
+        '200':
+          description: 'Cota baixada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/OccurrenceSplit' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability splits.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Vencimento fora da residência ativa, ou morador sem cota nele'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Dados inválidos'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/financial/split-rules:
+    get:
+      tags:
+        - financial
+      summary: 'Lista as regras de divisão da residência'
+      description: 'Leitura livre para qualquer morador ativo: a regra padrão da casa vem primeiro, e `bill_id` filtra pela conta.'
+      operationId: beb92d04a15b49d5d7b36bcdeb3ab932
+      parameters:
+        -
+          parameter: bill_id
+          name: index
+          in: query
+          description: 'Conta da regra; sem ele vem todas as regras da residência'
+          schema:
+            type: string
+            maxLength: 26
+      responses:
+        '200':
+          description: 'Regras de divisão'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/SplitRule' } }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Filtro inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    put:
+      tags:
+        - financial
+      summary: 'Grava a regra de divisão de uma conta (ou a padrão da casa)'
+      description: 'Upsert pela conta: `entries` é o conjunto completo de participantes, e salvar refaz as cotas dos vencimentos em aberto que a regra governa (R5).'
+      operationId: a902fb8bab1708e96a996bb98b654470
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - mode
+                - entries
+              properties:
+                bill_id:
+                  description: 'Conta da regra; ausente ou nulo grava a regra padrão da casa'
+                  type: string
+                  nullable: true
+                  maxLength: 26
+                mode:
+                  type: string
+                  example: PERCENT
+                  enum: [EQUAL, WEIGHTED, PERCENT, CUSTOM]
+                is_active:
+                  description: 'Pausar a regra devolve a conta ao padrão da casa'
+                  type: boolean
+                entries:
+                  type: array
+                  items: { required: [user_id], properties: { user_id: { type: string, maxLength: 26 }, weight: { description: 'Exigido em `WEIGHTED` e proibido nos demais', type: number, example: 1.5, nullable: true, maximum: 9999.99, minimum: 0.01 }, percent: { description: 'Exigido em `PERCENT` e proibido nos demais; a soma é normalizada, então 30/30/30 é um terço para cada', type: number, example: 40, nullable: true, maximum: 999.99, minimum: 0.01 }, fixed_amount: { description: 'Exigido em `CUSTOM` e proibido nos demais', type: number, example: 750, nullable: true, maximum: 9999999999.99, minimum: 0 } }, type: object }
+                  maxItems: 50
+                  minItems: 1
+              type: object
+      responses:
+        '200':
+          description: 'Regra gravada e vencimentos em aberto recalculados'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/SplitRule' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Capability splits.manage ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Conta não encontrada na residência ativa'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Regra inválida: regime desconhecido, morador fora da residência, campo do regime faltando ou de outro regime, ou regra que não fecha a conta'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
   /api/v1/identity/auth/register:
     post:
       tags:
@@ -4339,6 +4624,90 @@ components:
           format: date-time
           nullable: true
       type: object
+    OccurrenceSplit:
+      description: 'Divisão de um vencimento: a regra que a produziu e as cotas. `scope` diz se `shares` traz a divisão inteira ou só a cota de quem perguntou — em leitura restrita a soma da lista não fecha, e `total` continua sendo o valor do vencimento (R5)'
+      required:
+        - bill_occurrence_id
+        - bill_id
+        - due_date
+        - amount
+        - status
+        - split_rule_id
+        - mode
+        - is_house_default
+        - total
+        - scope
+        - shares
+      properties:
+        bill_occurrence_id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D1
+        bill_id:
+          type: string
+        bill_name:
+          type: string
+          example: 'Conta de luz'
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          example: '2026-04-10'
+        amount:
+          type: string
+          pattern: '^-?\d+\.\d{2}$'
+          example: '187.43'
+        status:
+          type: string
+          enum:
+            - open
+            - paid
+            - overdue
+            - cancelled
+        split_rule_id:
+          type: string
+        mode:
+          type: string
+          enum:
+            - EQUAL
+            - WEIGHTED
+            - PERCENT
+            - CUSTOM
+        is_house_default:
+          description: 'A regra que vale é a padrão da casa, e não uma desta conta'
+          type: boolean
+        total:
+          description: 'Valor do vencimento, sobre o qual as cotas somam 100%'
+          type: string
+          pattern: '^-?\d+\.\d{2}$'
+          example: '187.43'
+        scope:
+          description: 'Alcance da lista: `all` para quem administra a divisão, `own` para quem só lê a cota própria'
+          type: string
+          enum:
+            - all
+            - own
+        shares:
+          type: array
+          items:
+            properties:
+              user_id:
+                type: string
+              user_name:
+                type: string
+                example: Ana
+                nullable: true
+              share_amount:
+                type: string
+                pattern: '^-?\d+\.\d{2}$'
+                example: '62.48'
+              settled:
+                type: boolean
+              settled_at:
+                type: string
+                format: date-time
+                nullable: true
+            type: object
+      type: object
     PageMeta:
       description: 'Paginação offset'
       required:
@@ -4530,6 +4899,83 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TenantSummary'
+      type: object
+    SplitRule:
+      description: 'Regra de divisão de uma conta: como a cota de cada morador é calculada. `bill_id` nulo é a regra padrão da casa, que vale para toda conta sem regra própria'
+      required:
+        - id
+        - tenant_id
+        - mode
+        - is_active
+        - is_house_default
+        - entries
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D0
+        tenant_id:
+          type: string
+        bill_id:
+          description: 'Conta da regra; nulo na regra padrão da casa'
+          type: string
+          nullable: true
+        bill_name:
+          type: string
+          example: Aluguel
+          nullable: true
+        mode:
+          description: 'Regime do cálculo: igual, proporcional ao peso, proporcional ao percentual ou cota fechada'
+          type: string
+          enum:
+            - EQUAL
+            - WEIGHTED
+            - PERCENT
+            - CUSTOM
+        is_active:
+          description: 'Regra pausada não divide a conta, que volta ao padrão da casa'
+          type: boolean
+        is_house_default:
+          type: boolean
+        entries:
+          description: 'Participantes, na ordem em que a casa cadastrou; o resíduo de arredondamento da R5 fica com o último'
+          type: array
+          items:
+            properties:
+              id:
+                type: string
+              user_id:
+                type: string
+              user_name:
+                type: string
+                example: Ana
+                nullable: true
+              weight:
+                description: 'Preenchido só em `WEIGHTED`'
+                type: string
+                pattern: '^-?\d+\.\d{2}$'
+                example: '1.50'
+                nullable: true
+              percent:
+                description: 'Preenchido só em `PERCENT`'
+                type: string
+                pattern: '^-?\d+\.\d{2}$'
+                example: '40.00'
+                nullable: true
+              fixed_amount:
+                description: 'Preenchido só em `CUSTOM`'
+                type: string
+                pattern: '^-?\d+\.\d{2}$'
+                example: '750.00'
+                nullable: true
+            type: object
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
       type: object
     Tenant:
       description: 'Residência com as capabilities do membro autenticado'

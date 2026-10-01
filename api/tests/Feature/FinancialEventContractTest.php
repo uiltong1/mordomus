@@ -8,6 +8,11 @@ use Mordomus\Financial\Events\EventName;
 use Mordomus\Financial\Models\Bill;
 use Mordomus\Financial\Models\BillOccurrence;
 use Mordomus\Financial\Models\PaymentRecord;
+use Mordomus\Financial\Models\SplitEntry;
+use Mordomus\Financial\Models\SplitRule;
+use Mordomus\Identity\Models\Membership;
+use Mordomus\Identity\Models\Role;
+use Mordomus\Identity\Models\User;
 use Mordomus\Scheduling\Jobs\PublishEvent;
 use Opis\JsonSchema\Validator;
 
@@ -34,12 +39,15 @@ class FinancialEventContractTest extends FeatureTestCase
 
     private Validator $validator;
 
+    private string $ownerId = '';
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $auth = $this->registerUser('contrato-financas@mordomus.test', 'Contrato', 'Casa Contrato');
         $this->tenantId = $auth['active_tenant'];
+        $this->ownerId = (string) $auth['user']['id'];
         $this->headers = [
             'Authorization' => 'Bearer '.$auth['access_token'],
             'Accept' => 'application/json',
@@ -59,7 +67,7 @@ class FinancialEventContractTest extends FeatureTestCase
 
     public function test_every_financial_event_has_a_schema(): void
     {
-        $published = [EventName::BILL_DUE, EventName::BILL_PAID];
+        $published = [EventName::BILL_DUE, EventName::BILL_PAID, EventName::EXPENSE_SPLIT_COMPUTED];
 
         $this->assertSame(
             $published,
@@ -121,6 +129,34 @@ class FinancialEventContractTest extends FeatureTestCase
         $this->assertSame('2026-04-10', $payload['due_date']);
     }
 
+    /**
+     * As cotas do vencimento saem no `expense.split_computed`, e a soma delas
+     * é o valor da conta (R5). A validação é do envelope que foi para a fila,
+     * com o módulo inteiro rodando.
+     */
+    public function test_expense_split_computed_matches_the_contract(): void
+    {
+        $this->createSplitRule([$this->ownerId, $this->addResident('bruno@mordomus.test', 'Bruno')]);
+
+        $billId = $this->createBill();
+
+        $splits = $this->publishes(function (): void {
+            $this->artisan('scheduling:materialize')->assertSuccessful();
+        });
+
+        $this->assertNotSame([], $splits);
+        $this->assertValid(EventName::EXPENSE_SPLIT_COMPUTED, $splits);
+
+        $payload = $splits[0]['payload'];
+
+        $this->assertSame($this->tenantId, $payload['tenant_id']);
+        $this->assertSame($billId, $payload['bill_id']);
+        $this->assertSame('187.43', $payload['amount']);
+        $this->assertSame('2026-04-10', $payload['due_date']);
+        $this->assertSame('EQUAL', $payload['mode']);
+        $this->assertNotEmpty($payload['dedupe_key']);
+    }
+
     public function test_a_manual_launch_publishes_no_event(): void
     {
         $billId = $this->createBill();
@@ -142,6 +178,42 @@ class FinancialEventContractTest extends FeatureTestCase
     }
 
     // -------------------------------------------------------------- helpers
+
+    /**
+     * Regra padrão da casa em `EQUAL`, com os moradores que a casa tem.
+     *
+     * @param  list<string>  $userIds
+     */
+    private function createSplitRule(array $userIds): void
+    {
+        $ruleId = $this->withTenantContext($this->tenantId, fn (): string => (string) SplitRule::create([
+            'tenant_id' => $this->tenantId,
+            'bill_id' => null,
+            'mode' => SplitRule::MODE_EQUAL,
+            'is_active' => true,
+        ])->id);
+
+        foreach ($userIds as $userId) {
+            $this->withTenantContext($this->tenantId, fn () => SplitEntry::create([
+                'split_rule_id' => $ruleId,
+                'user_id' => $userId,
+            ]));
+        }
+    }
+
+    private function addResident(string $email, string $name): string
+    {
+        $user = User::factory()->create(['email' => $email, 'name' => $name]);
+
+        $this->withTenantContext($this->tenantId, fn () => Membership::create([
+            'user_id' => $user->id,
+            'tenant_id' => $this->tenantId,
+            'role_id' => Role::systemByKey(Role::MEMBER)->id,
+            'status' => Membership::STATUS_ACTIVE,
+        ]));
+
+        return (string) $user->id;
+    }
 
     private function createBill(): string
     {
@@ -172,7 +244,7 @@ class FinancialEventContractTest extends FeatureTestCase
 
         return Queue::pushed(PublishEvent::class)
             ->map(fn (PublishEvent $job): array => $job->envelope)
-            ->filter(fn (array $envelope): bool => in_array($envelope['event'], [EventName::BILL_DUE, EventName::BILL_PAID], true))
+            ->filter(fn (array $envelope): bool => in_array($envelope['event'], $this->contractedEvents(), true))
             ->values()
             ->all();
     }
@@ -200,6 +272,16 @@ class FinancialEventContractTest extends FeatureTestCase
                 ),
             );
         }
+    }
+
+    /**
+     * Eventos do Financial que têm contrato em `packages/contracts`.
+     *
+     * @return list<string>
+     */
+    private function contractedEvents(): array
+    {
+        return [EventName::BILL_DUE, EventName::BILL_PAID, EventName::EXPENSE_SPLIT_COMPUTED];
     }
 
     /** @return list<string> */

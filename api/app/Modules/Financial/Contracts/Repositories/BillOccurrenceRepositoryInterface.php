@@ -63,4 +63,15 @@ interface BillOccurrenceRepositoryInterface
 
     /** Vencimentos do período, para a consolidação mensal. @return Collection<int, BillOccurrence> */
     public function between(string $tenantId, string $from, string $to): Collection;
+
+    /**
+     * Vencimentos que ainda aceitam mudança de valor.
+     *
+     * É o recorte do recálculo de split: conta paga tem o valor congelado no
+     * que foi quitado, e reescrevê-lo trocaria o histórico de quem pagou o quê.
+     *
+     * @param  string|null  $billId  null = todos os vencimentos da residência
+     * @return Collection<int, BillOccurrence>
+     */
+    public function open(string $tenantId, ?string $billId = null): Collection;
 }

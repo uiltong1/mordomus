@@ -10,6 +10,7 @@ use Mordomus\Financial\Contracts\Repositories\BillOccurrenceRepositoryInterface;
 use Mordomus\Financial\Contracts\Repositories\BillRepositoryInterface;
 use Mordomus\Financial\Contracts\Services\BillScheduleConsumerServiceInterface;
 use Mordomus\Financial\Contracts\Services\MoneyServiceInterface;
+use Mordomus\Financial\Contracts\Services\SplitResultServiceInterface;
 use Mordomus\Financial\Events\EventName;
 use Mordomus\Financial\Models\Bill;
 use Mordomus\Financial\Models\BillOccurrence;
@@ -36,6 +37,7 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
         private readonly BillRepositoryInterface $bills,
         private readonly BillOccurrenceRepositoryInterface $occurrences,
         private readonly JobScheduleRepositoryInterface $schedules,
+        private readonly SplitResultServiceInterface $splits,
         private readonly MoneyServiceInterface $money,
         private readonly EventPublisherServiceInterface $publisher,
     ) {}
@@ -98,13 +100,18 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
             return false;
         }
 
-        $this->occurrences->create([
+        $occurrence = $this->occurrences->create([
             'tenant_id' => $tenantId,
             'bill_id' => $bill->id,
             'schedule_id' => $payload['schedule_id'],
             'due_date' => $payload['due_date'],
             'amount' => $this->amount($bill),
         ]);
+
+        // A cota é do mesmo instante em que o vencimento passa a existir: é o
+        // dia em que a casa pode dizer a cada morador quanto é a parte dele, e
+        // esperar a tela abrir para isso deixaria a conta sem dono.
+        $this->splits->compute($occurrence);
 
         return true;
     }
@@ -173,7 +180,12 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
             return;
         }
 
-        $this->occurrences->change($occurrence, $attributes);
+        $occurrence = $this->occurrences->change($occurrence, $attributes);
+
+        // O valor previsto da conta é a base da divisão, então mudá-lo muda a
+        // cota de todo mundo. Sem isto, a casa ficaria com a cota do valor
+        // antigo e o total da fatura nova.
+        $this->splits->compute($occurrence);
     }
 
     /** Conta variável não tem valor previsto: o lançamento começa em zero. */

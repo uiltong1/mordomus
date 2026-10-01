@@ -75,6 +75,12 @@ class Bill extends Model
         return $this->hasMany(TriggerConfig::class, 'bill_id');
     }
 
+    /** @return HasMany<SplitRule, $this> */
+    public function splitRules(): HasMany
+    {
+        return $this->hasMany(SplitRule::class);
+    }
+
     public function isActive(): bool
     {
         return $this->is_active;

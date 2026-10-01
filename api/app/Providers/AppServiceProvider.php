@@ -16,20 +16,30 @@ use Mordomus\Common\Eloquent\TenantGlobalScope;
 use Mordomus\Financial\Contracts\Repositories\BillOccurrenceRepositoryInterface;
 use Mordomus\Financial\Contracts\Repositories\BillRepositoryInterface;
 use Mordomus\Financial\Contracts\Repositories\PaymentRecordRepositoryInterface;
+use Mordomus\Financial\Contracts\Repositories\SplitResultRepositoryInterface;
+use Mordomus\Financial\Contracts\Repositories\SplitRuleRepositoryInterface;
 use Mordomus\Financial\Contracts\Services\BillOccurrenceServiceInterface;
 use Mordomus\Financial\Contracts\Services\BillScheduleConsumerServiceInterface;
 use Mordomus\Financial\Contracts\Services\BillServiceInterface;
 use Mordomus\Financial\Contracts\Services\BillSummaryServiceInterface;
 use Mordomus\Financial\Contracts\Services\MoneyServiceInterface;
+use Mordomus\Financial\Contracts\Services\SplitCalculatorInterface;
+use Mordomus\Financial\Contracts\Services\SplitResultServiceInterface;
+use Mordomus\Financial\Contracts\Services\SplitRuleServiceInterface;
 use Mordomus\Financial\Listeners\BillScheduleListener;
 use Mordomus\Financial\Repositories\BillOccurrenceRepository;
 use Mordomus\Financial\Repositories\BillRepository;
 use Mordomus\Financial\Repositories\PaymentRecordRepository;
+use Mordomus\Financial\Repositories\SplitResultRepository;
+use Mordomus\Financial\Repositories\SplitRuleRepository;
 use Mordomus\Financial\Services\BillOccurrenceService;
 use Mordomus\Financial\Services\BillScheduleConsumerService;
 use Mordomus\Financial\Services\BillService;
 use Mordomus\Financial\Services\BillSummaryService;
 use Mordomus\Financial\Services\MoneyService;
+use Mordomus\Financial\Services\SplitCalculator;
+use Mordomus\Financial\Services\SplitResultService;
+use Mordomus\Financial\Services\SplitRuleService;
 use Mordomus\Identity\Auth\JwtGuard;
 use Mordomus\Identity\Contracts\Repositories\InvitationRepositoryInterface;
 use Mordomus\Identity\Contracts\Repositories\MembershipRepositoryInterface;
@@ -202,12 +212,17 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(BillRepositoryInterface::class, BillRepository::class);
         $this->app->bind(BillOccurrenceRepositoryInterface::class, BillOccurrenceRepository::class);
         $this->app->bind(PaymentRecordRepositoryInterface::class, PaymentRecordRepository::class);
+        $this->app->bind(SplitRuleRepositoryInterface::class, SplitRuleRepository::class);
+        $this->app->bind(SplitResultRepositoryInterface::class, SplitResultRepository::class);
 
         $this->app->bind(BillServiceInterface::class, BillService::class);
         $this->app->bind(BillOccurrenceServiceInterface::class, BillOccurrenceService::class);
         $this->app->bind(BillSummaryServiceInterface::class, BillSummaryService::class);
         $this->app->bind(BillScheduleConsumerServiceInterface::class, BillScheduleConsumerService::class);
         $this->app->bind(MoneyServiceInterface::class, MoneyService::class);
+        $this->app->bind(SplitCalculatorInterface::class, SplitCalculator::class);
+        $this->app->bind(SplitRuleServiceInterface::class, SplitRuleService::class);
+        $this->app->bind(SplitResultServiceInterface::class, SplitResultService::class);
     }
 
     /** Guard stateless: driver `jwt` (config/auth.php). */
