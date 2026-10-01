@@ -6,8 +6,8 @@ namespace Mordomus\Scheduling\Console\Commands;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Mordomus\Common\Console\EnumeratesTenants;
 use Mordomus\Common\Support\TenantContext;
-use Mordomus\Scheduling\Console\Concerns\EnumeratesTenants;
 use Mordomus\Scheduling\Contracts\Services\DueNoticeServiceInterface;
 
 class PublishDueNoticesCommand extends Command

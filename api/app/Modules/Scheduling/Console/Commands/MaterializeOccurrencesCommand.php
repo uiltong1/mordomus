@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mordomus\Scheduling\Console\Commands;
 
 use Illuminate\Console\Command;
-use Mordomus\Scheduling\Console\Concerns\EnumeratesTenants;
+use Mordomus\Common\Console\EnumeratesTenants;
 use Mordomus\Scheduling\Jobs\MaterializeTenantOccurrences;
 
 class MaterializeOccurrencesCommand extends Command
