@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mordomus.app/contracts/tenant.member_added.schema.json",
+  "title": "tenant.member_added",
+  "description": "Morador entrou na residência. Sai uma vez por aceite de convite, e é para quem entrou: a casa já vê o morador na tela de membros, e o único que não sabe que está dentro é o novo (TECHSPEC §7).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event", "event_id", "occurred_at", "tenant_id", "payload"],
+  "properties": {
+    "event": { "const": "tenant.member_added" },
+    "event_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenant_id", "user_id", "role"],
+      "properties": {
+        "tenant_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "user_id": { "type": "string", "pattern": "^[0-9a-hjkmnp-tv-z]{26}$" },
+        "role": { "type": "string", "enum": ["owner", "member"] },
+        "home_name": { "type": "string", "maxLength": 120 }
+      }
+    }
+  }
+}

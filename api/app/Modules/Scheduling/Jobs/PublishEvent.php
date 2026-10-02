@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Mordomus\Scheduling\Events\QueuedEnvelope;
 use Throwable;
 
 /**
@@ -19,8 +20,7 @@ use Throwable;
  * A entrega é a própria fila (SDD §5): não há HTTP entre módulos, e o
  * envelope viaja como job para que o `api-worker` a retire com a política de
  * retry e a DLQ de um só lugar. O tratamento da mensagem é do módulo
- * Notification (T6.1) — aqui não sobra o que fazer além de mantê-la viva e
- * observável.
+ * Notification — este job só a entrega e avisa que ela chegou.
  */
 class PublishEvent implements ShouldQueue
 {
@@ -36,7 +36,18 @@ class PublishEvent implements ShouldQueue
      */
     public function __construct(public readonly array $envelope) {}
 
-    public function handle(): void {}
+    /**
+     * Entrega o envelope a quem o trata.
+     *
+     * O evento é síncrono e roda dentro desta tentativa: se o consumidor
+     * falhar, a exceção sobe aqui, o job repete, e a mensagem vai para a DLQ
+     * com o motivo colado. Publicar outro evento e sair de mãos abanadas
+     * entregaria a falha da fila sem que ninguém soubesse.
+     */
+    public function handle(): void
+    {
+        event(new QueuedEnvelope($this->envelope));
+    }
 
     public function failed(?Throwable $exception): void
     {

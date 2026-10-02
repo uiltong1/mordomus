@@ -11,6 +11,7 @@ use Mordomus\Identity\Contracts\Repositories\MembershipRepositoryInterface;
 use Mordomus\Identity\Contracts\Repositories\RoleRepositoryInterface;
 use Mordomus\Identity\Contracts\Services\InvitationServiceInterface;
 use Mordomus\Identity\Contracts\Services\TokenPackagerServiceInterface;
+use Mordomus\Identity\Events\EventName;
 use Mordomus\Identity\Exceptions\InvitationAlreadyUsed;
 use Mordomus\Identity\Exceptions\InvitationEmailMismatch;
 use Mordomus\Identity\Exceptions\InvitationExpired;
@@ -20,6 +21,7 @@ use Mordomus\Identity\Models\Invitation;
 use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
+use Mordomus\Scheduling\Contracts\Services\EventPublisherServiceInterface;
 
 final class InvitationService implements InvitationServiceInterface
 {
@@ -28,6 +30,7 @@ final class InvitationService implements InvitationServiceInterface
         private readonly MembershipRepositoryInterface $memberships,
         private readonly RoleRepositoryInterface $roles,
         private readonly TokenPackagerServiceInterface $tokens,
+        private readonly EventPublisherServiceInterface $publisher,
         private readonly UserResource $resource,
     ) {}
 
@@ -99,6 +102,17 @@ final class InvitationService implements InvitationServiceInterface
 
             $this->invitations->markAccepted($invitation);
         });
+
+        // O aviso é para quem entrou, e não para os outros: a casa já vê o
+        // morador na tela de membros, e o único que não sabe que está dentro é
+        // o novo. Sai depois da transação, para o Notification nunca consumir
+        // um evento de um aceite que ainda pode desfazer.
+        $this->publisher->publish(EventName::MEMBER_ADDED, (string) $invitation->tenant_id, [
+            'tenant_id' => (string) $invitation->tenant_id,
+            'user_id' => (string) $user->id,
+            'role' => $invitation->role->key,
+            'home_name' => (string) $invitation->tenant->name,
+        ]);
 
         return array_merge(
             $this->tokens->tokenPair($user, $invitation->tenant_id),

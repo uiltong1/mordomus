@@ -3312,6 +3312,433 @@ paths:
       security:
         -
           jwtBearerAuth: []
+  /api/v1/notification/devices:
+    get:
+      tags:
+        - notification
+      summary: 'Lista as assinaturas de push do morador'
+      description: 'O recorte é o do chamador: a lista é dele. `p256dh` e `auth` não saem por serem segredo do navegador.'
+      operationId: 89303cc615ddd05367b6987cee1793fd
+      responses:
+        '200':
+          description: 'Assinaturas registradas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/DeviceToken' } }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    post:
+      tags:
+        - notification
+      summary: 'Registra (ou atualiza) a assinatura de push do morador'
+      description: 'Idempotente por `endpoint`: registrar a mesma assinatura duas vezes devolve a mesma linha com `last_seen_at` novo.'
+      operationId: 0d152eda5411d6189460c4068548447b
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - endpoint
+                - p256dh
+                - auth
+              properties:
+                platform:
+                  type: string
+                  default: web
+                  enum: [web, android, ios]
+                endpoint:
+                  type: string
+                  format: uri
+                  example: 'https://fcm.googleapis.com/fcm/send/abc123'
+                  maxLength: 2048
+                p256dh:
+                  description: 'Chave pública do assinante, base64url'
+                  type: string
+                  maxLength: 256
+                auth:
+                  description: 'Segredo de autenticação da assinatura, base64url'
+                  type: string
+                  maxLength: 64
+              type: object
+      responses:
+        '201':
+          description: 'Assinatura registrada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/DeviceToken' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Assinatura inválida: endpoint, `p256dh` ou `auth` fora do formato'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    delete:
+      tags:
+        - notification
+      summary: 'Desinscreve a assinatura de push do morador'
+      description: 'O alvo vem da query porque o `endpoint` é a chave natural da assinatura — é o que o navegador entrega e o que o serviço de push devolve quando ela morre.'
+      operationId: a070ccc7a3c69dcacf8c0d1f93891421
+      parameters:
+        -
+          parameter: endpoint
+          name: destroy
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 2048
+      responses:
+        '200':
+          description: 'Assinatura removida'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { properties: { removed: { type: integer, example: 1 }, endpoint: { type: string } }, type: object }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Assinatura não registrada para este morador'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Endpoint ausente'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/notification/devices/test:
+    post:
+      tags:
+        - notification
+      summary: 'Envia um aviso de teste para as assinaturas do morador'
+      description: 'Síncrono de propósito: a tela precisa saber agora se a assinatura funciona. Resposta `503` quando o ambiente não tem par VAPID.'
+      operationId: 43ab1ca641c424c16bae6cefa308d32c
+      responses:
+        '200':
+          description: 'Resultado por assinatura'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { properties: { devices: { type: integer, example: 1 }, delivered: { type: integer, example: 1 }, gone: { description: 'Assinaturas que o serviço de push deu como mortas e que foram removidas', type: integer, example: 0 }, errors: { type: array, items: { type: string } } }, type: object }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Ambiente sem par de chaves VAPID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/notification/logs:
+    get:
+      tags:
+        - notification
+      summary: 'Histórico de notificações do morador'
+      description: 'O recorte é o do chamador. `status = queued` é a intenção esperando a janela de silêncio; `failed` é a DLQ do módulo com o motivo.'
+      operationId: e62e9cadf3b5082a871fd2d850a21e70
+      parameters:
+        -
+          parameter: page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        -
+          parameter: per_page
+          name: index
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+            minimum: 1
+        -
+          parameter: channel
+          name: index
+          in: query
+          schema:
+            type: string
+            enum:
+              - push
+              - email
+              - inapp
+      responses:
+        '200':
+          description: 'Notificações paginadas'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/NotificationLog' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Filtro inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+  /api/v1/notification/preferences:
+    get:
+      tags:
+        - notification
+      summary: 'Preferências de notificação do morador'
+      description: 'Devolve o que o morador configurou, o padrão da casa e a precedência resolvida. `quiet_window_wraps_midnight` diz se a janela atravessa a meia-noite.'
+      operationId: 13daa90ab553d9dfefa4f6d96c15ae54
+      responses:
+        '200':
+          description: Preferências
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/NotificationPreference' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
+    put:
+      tags:
+        - notification
+      summary: 'Grava a preferência de notificação do morador'
+      description: 'Substitui o conjunto e grava só a linha do morador. Janela com um lado só é `422`: meia janela não existe.'
+      operationId: 6b3ad3f6c7d3e6dc6fd837038788a570
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                quiet_start:
+                  type: string
+                  pattern: '^\d{2}:\d{2}$'
+                  example: '22:00'
+                  nullable: true
+                quiet_end:
+                  type: string
+                  pattern: '^\d{2}:\d{2}$'
+                  example: '07:00'
+                  nullable: true
+                digest:
+                  description: '`instant` entrega por push assim que pode; `daily` entrega por e-mail no horário preferido'
+                  type: string
+                  nullable: true
+                  enum: [instant, daily]
+                preferred_hour:
+                  type: string
+                  pattern: '^\d{2}:\d{2}$'
+                  example: '09:00'
+                  nullable: true
+              type: object
+      responses:
+        '200':
+          description: 'Preferência gravada'
+          content:
+            application/json:
+              schema:
+                properties:
+                  data: { $ref: '#/components/schemas/NotificationPreference' }
+                type: object
+        '401':
+          description: 'Token ausente ou inválido'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Sem residência ativa no token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Horário inválido, digest desconhecido ou janela com um lado só'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Rate limit do gateway'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 'Erro interno'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        -
+          jwtBearerAuth: []
   /api/v1/scheduling/occurrences:
     get:
       tags:
@@ -4387,6 +4814,37 @@ components:
                 pattern: '^-?\d+\.\d{2}$'
             type: object
       type: object
+    DeviceToken:
+      description: 'Assinatura de Web Push de um morador. `p256dh` e `auth` são segredo do lado do navegador e não saem na resposta'
+      required:
+        - id
+        - platform
+        - endpoint
+        - last_seen_at
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D5
+        platform:
+          type: string
+          enum:
+            - web
+            - android
+            - ios
+        endpoint:
+          type: string
+          format: uri
+          example: 'https://fcm.googleapis.com/fcm/send/abc123'
+        last_seen_at:
+          description: 'Última vez que o navegador registrou esta assinatura'
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
     Error:
       description: 'Envelope de erro da API'
       required:
@@ -4548,6 +5006,119 @@ components:
             type: string
           example:
             - bills.pay
+      type: object
+    NotificationLog:
+      description: 'Uma notificação: o que foi avisado, por qual canal e com que resultado. É também a prova de que o aviso saiu e o que ele era'
+      required:
+        - id
+        - channel
+        - template
+        - subject
+        - body
+        - status
+        - available_at
+        - sent_at
+        - error
+        - created_at
+      properties:
+        id:
+          type: string
+          example: 01J8Z0M9W3K6Q2T4R5Y7B8C9D6
+        channel:
+          type: string
+          enum:
+            - push
+            - email
+            - inapp
+        template:
+          type: string
+          example: 'mordomus::bill.due'
+        subject:
+          type: string
+          example: 'Conta de luz vence em 10/04/2026'
+        body:
+          description: 'Conteúdo do aviso (`title`, `lines`, `tag`, `url`, `data`); é o que o canal traduz para o formato do provedor'
+          type: object
+          additionalProperties: true
+        status:
+          description: '`queued` é a intenção com o instante em que pode sair; `failed` é a DLQ do módulo'
+          type: string
+          enum:
+            - queued
+            - sent
+            - failed
+        available_at:
+          description: 'Instante em que a janela de silêncio permitiu sair'
+          type: string
+          format: date-time
+          nullable: true
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          description: 'Motivo da falha, quando houve'
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+      type: object
+    NotificationPreference:
+      description: 'Quiet hours, digest e horário preferido em três camadas: a do morador, a da casa e a que vale depois da precedência'
+      required:
+        - own
+        - house
+        - effective
+      properties:
+        own:
+          oneOf:
+            -
+              $ref: '#/components/schemas/NotificationPreferenceLayer'
+          nullable: true
+          description: 'O que este morador configurou; null quando não configurou nada'
+          type: object
+        house:
+          oneOf:
+            -
+              $ref: '#/components/schemas/NotificationPreferenceLayer'
+          nullable: true
+          description: 'O padrão da residência (`user_id` nulo)'
+          type: object
+        effective:
+          $ref: '#/components/schemas/NotificationPreferenceLayer'
+      type: object
+    NotificationPreferenceLayer:
+      description: 'Uma camada da preferência de notificação. A janela de silêncio pode atravessar a meia-noite: 22:00–07:00 é uma janela só'
+      required:
+        - quiet_window_wraps_midnight
+      properties:
+        quiet_start:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: '22:00'
+          nullable: true
+        quiet_end:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: '07:00'
+          nullable: true
+        quiet_window_wraps_midnight:
+          type: boolean
+          example: true
+        digest:
+          description: '`instant` entrega por push assim que pode; `daily` entrega por e-mail no horário preferido'
+          type: string
+          nullable: true
+          enum:
+            - instant
+            - daily
+        preferred_hour:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: '09:00'
+          nullable: true
       type: object
     Occurrence:
       description: 'Ocorrência materializada de uma regra: dia do calendário, instante de disparo e situação no ciclo'
@@ -5217,3 +5788,6 @@ tags:
   -
     name: financial
     description: 'Contas, vencimentos, baixas de pagamento e consolidação mensal'
+  -
+    name: notification
+    description: notification

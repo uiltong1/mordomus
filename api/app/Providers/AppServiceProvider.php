@@ -87,6 +87,33 @@ use Mordomus\Maintenance\Repositories\RoomRepository;
 use Mordomus\Maintenance\Services\AssetService;
 use Mordomus\Maintenance\Services\RoomService;
 use Mordomus\Maintenance\Services\TenantClockService;
+use Mordomus\Notification\Contracts\Repositories\DeviceTokenRepositoryInterface;
+use Mordomus\Notification\Contracts\Repositories\NotificationLogRepositoryInterface;
+use Mordomus\Notification\Contracts\Repositories\NotificationPreferenceRepositoryInterface;
+use Mordomus\Notification\Contracts\Services\DeviceTokenServiceInterface;
+use Mordomus\Notification\Contracts\Services\NotificationConsumerServiceInterface;
+use Mordomus\Notification\Contracts\Services\NotificationDeliveryServiceInterface;
+use Mordomus\Notification\Contracts\Services\NotificationLogServiceInterface;
+use Mordomus\Notification\Contracts\Services\NotificationMessageServiceInterface;
+use Mordomus\Notification\Contracts\Services\NotificationPreferenceServiceInterface;
+use Mordomus\Notification\Contracts\Services\PushChannelInterface;
+use Mordomus\Notification\Contracts\Services\QuietWindowServiceInterface;
+use Mordomus\Notification\Contracts\Services\VapidTokenServiceInterface;
+use Mordomus\Notification\Contracts\Services\WebPushEncryptionServiceInterface;
+use Mordomus\Notification\Listeners\QueuedEnvelopeListener;
+use Mordomus\Notification\Repositories\DeviceTokenRepository;
+use Mordomus\Notification\Repositories\NotificationLogRepository;
+use Mordomus\Notification\Repositories\NotificationPreferenceRepository;
+use Mordomus\Notification\Services\DeviceTokenService;
+use Mordomus\Notification\Services\NotificationConsumerService;
+use Mordomus\Notification\Services\NotificationDeliveryService;
+use Mordomus\Notification\Services\NotificationLogService;
+use Mordomus\Notification\Services\NotificationMessageService;
+use Mordomus\Notification\Services\NotificationPreferenceService;
+use Mordomus\Notification\Services\QuietWindowService;
+use Mordomus\Notification\Services\VapidTokenService;
+use Mordomus\Notification\Services\WebPushChannel;
+use Mordomus\Notification\Services\WebPushEncryptionService;
 use Mordomus\Scheduling\Contracts\Repositories\JobScheduleRepositoryInterface;
 use Mordomus\Scheduling\Contracts\Repositories\ScheduleEventRepositoryInterface;
 use Mordomus\Scheduling\Contracts\Repositories\TriggerConfigRepositoryInterface;
@@ -99,6 +126,7 @@ use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerDateServiceInterface;
 use Mordomus\Scheduling\Events\DomainEvent;
+use Mordomus\Scheduling\Events\QueuedEnvelope;
 use Mordomus\Scheduling\Repositories\JobScheduleRepository;
 use Mordomus\Scheduling\Repositories\ScheduleEventRepository;
 use Mordomus\Scheduling\Repositories\TriggerConfigRepository;
@@ -119,6 +147,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerIdentityBindings();
         $this->registerSchedulingBindings();
         $this->registerFinancialBindings();
+        $this->registerNotificationBindings();
     }
 
     public function boot(): void
@@ -129,6 +158,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerRateLimits();
         $this->registerTenantBindings();
         $this->registerFinancialListeners();
+        $this->registerNotificationListeners();
     }
 
     /**
@@ -142,6 +172,19 @@ class AppServiceProvider extends ServiceProvider
     private function registerFinancialListeners(): void
     {
         Event::listen(DomainEvent::class, BillScheduleListener::class);
+    }
+
+    /**
+     * Consumidor in-process do envelope que chegou pela fila.
+     *
+     * O `PublishEvent` é o contrato do Scheduling — publicar o envelope é
+     * dele; o tratamento é deste módulo, e o listener é a ponte que faz o par
+     * fechar sem que nenhum dos dois conheça a implementação do outro. A
+     * entrega continua sendo a fila, e o retry e a DLQ são os do job.
+     */
+    private function registerNotificationListeners(): void
+    {
+        Event::listen(QueuedEnvelope::class, QueuedEnvelopeListener::class);
     }
 
     /**
@@ -223,6 +266,28 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SplitCalculatorInterface::class, SplitCalculator::class);
         $this->app->bind(SplitRuleServiceInterface::class, SplitRuleService::class);
         $this->app->bind(SplitResultServiceInterface::class, SplitResultService::class);
+    }
+
+    private function registerNotificationBindings(): void
+    {
+        $this->app->bind(DeviceTokenRepositoryInterface::class, DeviceTokenRepository::class);
+        $this->app->bind(NotificationLogRepositoryInterface::class, NotificationLogRepository::class);
+        $this->app->bind(NotificationPreferenceRepositoryInterface::class, NotificationPreferenceRepository::class);
+
+        $this->app->bind(NotificationConsumerServiceInterface::class, NotificationConsumerService::class);
+        $this->app->bind(NotificationDeliveryServiceInterface::class, NotificationDeliveryService::class);
+        $this->app->bind(NotificationMessageServiceInterface::class, NotificationMessageService::class);
+        $this->app->bind(NotificationPreferenceServiceInterface::class, NotificationPreferenceService::class);
+        $this->app->bind(DeviceTokenServiceInterface::class, DeviceTokenService::class);
+        $this->app->bind(NotificationLogServiceInterface::class, NotificationLogService::class);
+        $this->app->bind(QuietWindowServiceInterface::class, QuietWindowService::class);
+        $this->app->bind(VapidTokenServiceInterface::class, VapidTokenService::class);
+        $this->app->bind(WebPushEncryptionServiceInterface::class, WebPushEncryptionService::class);
+
+        // O canal é contrato porque o adapter de app nativo (FCM) entra depois
+        // pelo mesmo lugar: o serviço de entrega pergunta por `PushChannel` e
+        // não sabe se falou com um navegador ou com um telefone.
+        $this->app->bind(PushChannelInterface::class, WebPushChannel::class);
     }
 
     /** Guard stateless: driver `jwt` (config/auth.php). */
