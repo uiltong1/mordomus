@@ -46,15 +46,19 @@ if [ "${WAIT_FOR_DB:-0}" = "1" ]; then
     log "banco disponível"
 fi
 
-# --- chaves JWT montadas em /run/secrets (só root lê) → cópia p/ php-fpm -------
-if [ -f /run/secrets/rsa_private.pem ]; then
+# --- chaves montadas em /run/secrets (só root lê) → cópia p/ php-fpm ---------
+# O par VAPID entra na mesma lista do par do JWT: os dois são segredo do
+# ambiente, e os dois precisam ser legíveis pelo usuário do php-fpm.
+for key in rsa_private rsa_public vapid_private vapid_public; do
+    [ -f "/run/secrets/$key.pem" ] || continue
+
     mkdir -p /run/mordomus
-    install -m 640 -o root -g www-data /run/secrets/rsa_private.pem /run/mordomus/rsa_private.pem
-fi
-if [ -f /run/secrets/rsa_public.pem ]; then
-    mkdir -p /run/mordomus
-    install -m 644 /run/secrets/rsa_public.pem /run/mordomus/rsa_public.pem
-fi
+    if [ "$key" = "${key%_private}" ]; then
+        install -m 640 -o root -g www-data "/run/secrets/$key.pem" "/run/mordomus/$key.pem"
+    else
+        install -m 644 "/run/secrets/$key.pem" "/run/mordomus/$key.pem"
+    fi
+done
 
 # --- permissões ---------------------------------------------------------------
 for dir in storage bootstrap/cache; do

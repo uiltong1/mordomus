@@ -2,18 +2,29 @@
 # Mordomus — gera segredos do ambiente local
 #   .secrets/rsa_private.pem   chave RS256 privada (assina o JWT de usuário)
 #   .secrets/rsa_public.pem    chave pública
+#   .secrets/vapid_private.pem par EC P-256 privado (assina o JWT VAPID)
+#   .secrets/vapid_public.pem  par público, e o ponto em base64url no .env
 #   gateway/jwks/jwks.json     JWKS servido pelo gateway em /.well-known/jwks.json
-#   .env                       APP_KEY, segredo JWT e credenciais do Postgres
+#   .env                       APP_KEY, segredo JWT, VAPID e credenciais do Postgres
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SECRETS="$ROOT/.secrets"
 JWKS_DIR="$ROOT/gateway/jwks"
+ENV_FILE="$ROOT/.env"
 mkdir -p "$SECRETS" "$JWKS_DIR"
 chmod 700 "$SECRETS"
 
+# grava/atualiza uma chave no .env, sem duplicar a entrada
+set_env() {
+    if grep -q "^$1=" "$ENV_FILE" 2>/dev/null; then
+        sed -i.bak "s|^$1=.*|$1=$2|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
+    else
+        printf '%s=%s\n' "$1" "$2" >> "$ENV_FILE"
+    fi
+}
+
 # ---------------------------------------------------------------- .env --------
-ENV_FILE="$ROOT/.env"
 if [ ! -f "$ENV_FILE" ]; then
     cat > "$ENV_FILE" <<EOF
 # Mordomus — ambiente local (gerado por bin/generate-secrets.sh; NÃO commitar)
@@ -75,10 +86,42 @@ PY
 
 # grava/atualiza JWT_KID no .env (o compose usa para assinar tokens do identity)
 KID="$(tr -d '[:space:]' < "$SECRETS/rsa_kid.txt")"
-if grep -q '^JWT_KID=' "$ENV_FILE" 2>/dev/null; then
-    sed -i.bak "s/^JWT_KID=.*/JWT_KID=$KID/" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
+set_env JWT_KID "$KID"
+
+# ---------------------------------------------------------------- VAPID -------
+# O par VAPID é EC P-256, não RSA: é a curva que o navegador exige para
+# assinar a aplicação do push. A pública entra no .env em base64url porque é
+# exatamente assim que o `pushManager.subscribe()` a consome.
+VAPID_PRIV="$SECRETS/vapid_private.pem"
+VAPID_PUB="$SECRETS/vapid_public.pem"
+if [ ! -f "$VAPID_PRIV" ]; then
+    openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$VAPID_PRIV" 2>/dev/null
+    openssl pkey -in "$VAPID_PRIV" -pubout -out "$VAPID_PUB"
+    chmod 600 "$VAPID_PRIV"
+    chmod 644 "$VAPID_PUB"
+    echo "[secrets] par de chaves VAPID P-256 gerado"
 else
-    printf 'JWT_KID=%s\n' "$KID" >> "$ENV_FILE"
+    echo "[secrets] par de chaves VAPID P-256 já existe — mantido"
 fi
 
-echo "[secrets] OK — JWT RS256 + JWKS locais prontos (kid=$KID)"
+VAPID_POINT="$(python3 - "$VAPID_PUB" <<'PY'
+import base64
+import re
+import sys
+
+pem = open(sys.argv[1]).read()
+der = base64.b64decode(re.sub(r"-----[^-]+-----|\s", "", pem))
+
+# A SubjectPublicKeyInfo de um ponto P-256 não comprimido tem 26 bytes de
+# cabeçalho (SEQUENCE + AlgorithmIdentifier + BIT STRING) e 65 de ponto.
+point = der[-65:]
+
+if len(point) != 65 or point[0] != 0x04:
+    raise SystemExit("A chave pública VAPID não é um ponto P-256 não comprimido.")
+
+print(base64.urlsafe_b64encode(point).rstrip(b"=").decode())
+PY
+)"
+set_env VITE_VAPID_PUBLIC_KEY "$VAPID_POINT"
+
+echo "[secrets] OK — JWT RS256 + JWKS + VAPID P-256 locais prontos (kid=$KID)"

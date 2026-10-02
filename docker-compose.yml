@@ -28,7 +28,7 @@ x-laravel-env: &laravel-env
   QUEUE_CONNECTION: redis
   # filas nomeadas que o api-worker drena (TECHSPEC §2.1); sem esta lista o
   # worker só consumiria `default` e o motor de agendamento ficaria parado
-  QUEUE_WORKER_QUEUES: "default,mordomus:scheduling:occurrences,mordomus:notification:events"
+  QUEUE_WORKER_QUEUES: "default,mordomus:scheduling:occurrences,mordomus:notification:events,mordomus:notification:push,mordomus:notification:emails"
   # janela de materialização do motor, em dias
   SCHEDULING_HORIZON_DAYS: "45"
   SESSION_DRIVER: file
@@ -46,6 +46,10 @@ x-laravel-env: &laravel-env
   # entrypoint copia /run/secrets → /run/mordomus com leitura para www-data
   JWT_RSA_PRIVATE_KEY: /run/mordomus/rsa_private.pem
   JWT_RSA_PUBLIC_KEY: /run/mordomus/rsa_public.pem
+  # par VAPID do ambiente (ADR-001); o mesmo padrão do par do JWT — a config
+  # aceita o caminho do arquivo ou o PEM embutido
+  VAPID_PRIVATE_KEY: /run/mordomus/vapid_private.pem
+  VAPID_PUBLIC_KEY: /run/mordomus/vapid_public.pem
   TZ: America/Sao_Paulo
   WAIT_FOR_DB: "1"
   AUTO_COMPOSER: "1"
@@ -66,6 +70,8 @@ x-app: &app
     - ./api:/var/www/html
     - ./.secrets/rsa_private.pem:/run/secrets/rsa_private.pem:ro
     - ./.secrets/rsa_public.pem:/run/secrets/rsa_public.pem:ro
+    - ./.secrets/vapid_private.pem:/run/secrets/vapid_private.pem:ro
+    - ./.secrets/vapid_public.pem:/run/secrets/vapid_public.pem:ro
     - ./packages:/var/www/packages
   depends_on:
     postgres: { condition: service_healthy }
@@ -192,6 +198,7 @@ services:
     environment:
       NODE_ENV: development
       VITE_API_BASE: http://localhost:8080
+      VITE_VAPID_PUBLIC_KEY: "${VITE_VAPID_PUBLIC_KEY:-}"
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
