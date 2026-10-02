@@ -69,6 +69,19 @@ class NotificationConsumerTest extends FeatureTestCase
         );
     }
 
+    public function test_a_due_bill_reaches_every_active_member_of_the_house(): void
+    {
+        $mate = $this->addMember('moradora@mordomus.test');
+        $this->device($this->ownerId, 'https://push.test/dono');
+        $this->device($mate, 'https://push.test/moradora');
+
+        $this->assertSame(2, $this->consume($this->billDue()));
+        $this->assertEqualsCanonicalizing(
+            [$this->ownerId, $mate],
+            $this->logs()->pluck('user_id')->all(),
+        );
+    }
+
     public function test_a_split_reaches_only_the_share_holders(): void
     {
         $out = $this->addMember('defora@mordomus.test');
@@ -168,12 +181,15 @@ class NotificationConsumerTest extends FeatureTestCase
 
     // ---------------------------------------------------------------- dedupe
 
-    public function test_the_same_envelope_delivered_twice_queues_once(): void
+    public function test_the_same_envelope_delivered_three_times_queues_once(): void
     {
         $this->device($this->ownerId, 'https://push.test/dono');
         $envelope = $this->scheduleDue();
 
+        // A fila é at-least-once e a dedupe é do banco: as três entregas são o
+        // mesmo aviso, e ele não pode virar três cards na tela do morador.
         $this->assertSame(1, $this->consume($envelope));
+        $this->assertSame(0, $this->consume($envelope));
         $this->assertSame(0, $this->consume($envelope));
 
         $this->assertCount(1, $this->logs());
@@ -337,6 +353,27 @@ class NotificationConsumerTest extends FeatureTestCase
                 'title' => 'Trocar o filtro do ar',
                 'due_at' => '2026-03-15T18:00:00+00:00',
                 'dedupe_key' => 'trigger:'.$this->eventId(),
+            ],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function billDue(): array
+    {
+        return [
+            'event' => FinancialEventName::BILL_DUE,
+            'event_id' => $this->eventId(),
+            'occurred_at' => '2026-03-15T12:00:00+00:00',
+            'tenant_id' => $this->tenantId,
+            'payload' => [
+                'tenant_id' => $this->tenantId,
+                'bill_occurrence_id' => $this->eventId(),
+                'bill_id' => $this->eventId(),
+                'due_date' => '2026-03-20',
+                'amount' => '210.00',
+                'kind' => 'advance_notice',
+                'due_at' => '2026-03-20T12:00:00+00:00',
+                'dedupe_key' => 'bill:'.$this->eventId().':advance_notice',
             ],
         ];
     }
