@@ -1,0 +1,26 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - app
+        - database/seeders
+
+    tmpDir: storage/phpstan
+
+    # Entrada do baseline que não casa com nada é erro: uma linha órfã significa
+    # que o problema sumiu por outro caminho e o arquivo está devendo uma
+    # limpeza. Já a regra de posse de tabela nunca entra no baseline — vale a
+    # partir de agora, e empurrar violação para o arquivo de dívida deixaria de
+    # fora justamente o que o build precisa impedir.
+    reportUnmatchedIgnoredErrors: true
+
+    treatPhpDocTypesAsCertain: false
+
+services:
+    - class: Mordomus\Phpstan\Rules\CrossModuleTableRule
+      tags:
+          - phpstan.rules.rule

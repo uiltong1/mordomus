@@ -1,0 +1,367 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Mordomus\\Http\\Controllers\\OpenApiDocsController\:\:spec\(\) should return Illuminate\\Http\\Response but returns Illuminate\\Http\\JsonResponse\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/OpenApiDocsController.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$details$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/Modules/Financial/Exceptions/SplitResultNotFound.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: app/Modules/Financial/Repositories/SplitResultRepository.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Financial/Services/BillOccurrenceService.php
+
+		-
+			message: '#^Parameter \#2 \$expected of method Mordomus\\Financial\\Services\\BillOccurrenceService\:\:amount\(\) expects string\|null, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Financial/Services/BillOccurrenceService.php
+
+		-
+			message: '#^Parameter \#2 \$expected of method Mordomus\\Financial\\Services\\BillOccurrenceService\:\:amount\(\) expects string\|null, float\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Financial/Services/BillOccurrenceService.php
+
+		-
+			message: '#^Call to an undefined method Mordomus\\Scheduling\\Models\\JobSchedule\:\:subjectId\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Financial/Services/BillScheduleConsumerService.php
+
+		-
+			message: '#^Parameter \#1 \$amount of method Mordomus\\Financial\\Contracts\\Services\\MoneyServiceInterface\:\:cents\(\) expects string\|null, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Financial/Services/BillScheduleConsumerService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Financial/Services/BillService.php
+
+		-
+			message: '#^Parameter \#1 \$amounts of method Mordomus\\Financial\\Contracts\\Services\\MoneyServiceInterface\:\:sum\(\) expects iterable\<string\|null\>, list\<float\> given\.$#'
+			identifier: argument.type
+			count: 8
+			path: app/Modules/Financial/Services/BillSummaryService.php
+
+		-
+			message: '#^Parameter \#1 \$amount of method Mordomus\\Financial\\Contracts\\Services\\MoneyServiceInterface\:\:cents\(\) expects string\|null, float\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Financial/Services/SplitCalculator.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Identity/Http/Resources/TenantResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>channels" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Identity/Http/Resources/TenantResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>quiet_hours" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Identity/Http/Resources/TenantResource.php
+
+		-
+			message: '#^Cannot call method isPast\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Identity/Models/Invitation.php
+
+		-
+			message: '#^Cannot call method isFuture\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Identity/Models/RefreshToken.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Identity/Services/InvitationService.php
+
+		-
+			message: '#^Cannot call method isPast\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Identity/Services/RefreshTokenService.php
+
+		-
+			message: '#^Method Mordomus\\Identity\\Services\\RefreshTokenService\:\:issue\(\) should return array\{plain\: string, id\: string, expires_in\: int\} but returns array\{plain\: non\-empty\-string, id\: string, expires_in\: float\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Identity/Services/RefreshTokenService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Identity/Services/TenantService.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Maintenance/Http/Resources/RoomResource.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Maintenance/Services/AssetService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Maintenance/Services/RoomService.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Notification/Http/Resources/DeviceTokenResource.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Modules/Notification/Http/Resources/NotificationPreferenceResource.php
+
+		-
+			message: '#^Parameter \$view of class Illuminate\\Mail\\Mailables\\Content constructor expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Notification/Mail/NotificationMail.php
+
+		-
+			message: '#^Parameter \#1 \$value of method Mordomus\\Notification\\Models\\NotificationPreference\:\:minutesOf\(\) expects DateTimeInterface\|null, string\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Modules/Notification/Models/NotificationPreference.php
+
+		-
+			message: '#^Call to protected method isUniqueConstraintError\(\) of class Illuminate\\Database\\Connection\.$#'
+			identifier: method.protected
+			count: 1
+			path: app/Modules/Notification/Repositories/NotificationPreferenceRepository.php
+
+		-
+			message: '#^Property Mordomus\\Notification\\Services\\NotificationConsumerService\:\:\$preferences is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Modules/Notification/Services/NotificationConsumerService.php
+
+		-
+			message: '#^Parameter \#2 \$content of method Mordomus\\Notification\\Contracts\\Services\\PushChannelInterface\:\:send\(\) expects array\<string, mixed\>, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Notification/Services/NotificationDeliveryService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Notification/Services/NotificationLogService.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Modules/Notification/Services/QuietWindowService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>digest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Notification/Services/QuietWindowService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>preferred_hour" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Notification/Services/QuietWindowService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>quiet_end" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Notification/Services/QuietWindowService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>quiet_start" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Notification/Services/QuietWindowService.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$payload$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/Modules/Scheduling/Events/DomainEvent.php
+
+		-
+			message: '#^Access to an undefined property Mordomus\\Scheduling\\Models\\JobSchedule\:\:\$subject_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Scheduling/Http/Resources/OccurrenceResource.php
+
+		-
+			message: '#^Access to an undefined property Mordomus\\Scheduling\\Models\\JobSchedule\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Scheduling/Http/Resources/OccurrenceResource.php
+
+		-
+			message: '#^Call to an undefined method Mordomus\\Scheduling\\Models\\JobSchedule\:\:subjectId\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Scheduling/Http/Resources/OccurrenceResource.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Scheduling/Http/Resources/OccurrenceResource.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Scheduling/Http/Resources/TriggerConfigResource.php
+
+		-
+			message: '#^Anonymous function with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: app/Modules/Scheduling/Jobs/RecalculateNextOccurrence.php
+
+		-
+			message: '#^Generic type Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<Mordomus\\Scheduling\\Models\\JobSchedule, Mordomus\\Scheduling\\Models\\TriggerConfig, \$this\(Mordomus\\Scheduling\\Models\\JobSchedule\)\> in PHPDoc tag @return specifies 3 template types, but class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo supports only 2\: TRelatedModel, TDeclaringModel$#'
+			identifier: generics.moreTypes
+			count: 1
+			path: app/Modules/Scheduling/Models/JobSchedule.php
+
+		-
+			message: '#^Method Mordomus\\Scheduling\\Models\\JobSchedule\:\:triggerConfig\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<Mordomus\\Scheduling\\Models\\JobSchedule, Mordomus\\Scheduling\\Models\\TriggerConfig, \$this\(Mordomus\\Scheduling\\Models\\JobSchedule\)\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<Mordomus\\Scheduling\\Models\\TriggerConfig, \$this\(Mordomus\\Scheduling\\Models\\JobSchedule\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Scheduling/Models/JobSchedule.php
+
+		-
+			message: '#^Generic type Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<Mordomus\\Scheduling\\Models\\ScheduleEvent, Mordomus\\Scheduling\\Models\\JobSchedule, \$this\(Mordomus\\Scheduling\\Models\\ScheduleEvent\)\> in PHPDoc tag @return specifies 3 template types, but class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo supports only 2\: TRelatedModel, TDeclaringModel$#'
+			identifier: generics.moreTypes
+			count: 1
+			path: app/Modules/Scheduling/Models/ScheduleEvent.php
+
+		-
+			message: '#^Method Mordomus\\Scheduling\\Models\\ScheduleEvent\:\:jobSchedule\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<Mordomus\\Scheduling\\Models\\ScheduleEvent, Mordomus\\Scheduling\\Models\\JobSchedule, \$this\(Mordomus\\Scheduling\\Models\\ScheduleEvent\)\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\<Mordomus\\Scheduling\\Models\\JobSchedule, \$this\(Mordomus\\Scheduling\\Models\\ScheduleEvent\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Scheduling/Models/ScheduleEvent.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Collection\<int, Mordomus\\Scheduling\\Models\\ScheduleEvent\>\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Scheduling/Repositories/ScheduleEventRepository.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, Mordomus\\Scheduling\\Models\\JobSchedule\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Scheduling/Services/DueNoticeService.php
+
+		-
+			message: '#^Call to an undefined method Mordomus\\Scheduling\\Models\\JobSchedule\:\:isActive\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Scheduling/Services/DueNoticeService.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Scheduling/Services/DueNoticeService.php
+
+		-
+			message: '#^Cannot call method utc\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Scheduling/Services/DueNoticeService.php
+
+		-
+			message: '#^Parameter \#3 \$config of method Mordomus\\Scheduling\\Services\\DueNoticeService\:\:publishOccurrence\(\) expects Mordomus\\Scheduling\\Models\\TriggerConfig, Mordomus\\Scheduling\\Models\\JobSchedule given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Scheduling/Services/DueNoticeService.php
+
+		-
+			message: '#^Cannot call method toImmutable\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Scheduling/Services/OccurrenceRecalculatorService.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Scheduling/Services/OccurrenceRecalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Mordomus\\Scheduling\\Models\\JobSchedule\:\:\$subject_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Scheduling/Services/OccurrenceService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Scheduling/Services/OccurrenceService.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Modules/Scheduling/Services/OccurrenceService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Scheduling/Services/TriggerConfigService.php
+
+		-
+			message: '#^Property Mordomus\\Scheduling\\Models\\TriggerConfig\:\:\$next_due_at \(string\|null\) does not accept Carbon\\CarbonImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Scheduling/Services/TriggerConfigService.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Scheduling/Services/TriggerDateService.php

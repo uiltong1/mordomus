@@ -26,12 +26,14 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.0",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "opis/json-schema": "^2.6",
+        "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^12.5.12",
         "zircote/swagger-php": "^6.11"
     },
@@ -49,6 +51,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "Mordomus\\Phpstan\\": "phpstan/",
             "Tests\\": "tests/"
         }
     },
@@ -57,6 +60,11 @@
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
+        "lint": "pint --test",
+        "lint:fix": "pint",
+        "analyse": "phpstan analyse --no-progress",
+        "contracts": "@php artisan contracts:validate",
+        "openapi": "@php vendor/bin/openapi app -o storage/openapi.yaml",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
