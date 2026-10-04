@@ -14,6 +14,7 @@ use Mordomus\Identity\Contracts\Services\RefreshTokenServiceInterface;
 use Mordomus\Identity\Contracts\Services\TenantProvisionerServiceInterface;
 use Mordomus\Identity\Contracts\Services\TokenPackagerServiceInterface;
 use Mordomus\Identity\Exceptions\InvalidCredentials;
+use Mordomus\Identity\Exceptions\InvalidRefreshToken;
 use Mordomus\Identity\Exceptions\MembershipRequired;
 use Mordomus\Identity\Http\Resources\UserResource;
 use Mordomus\Identity\Models\User;
