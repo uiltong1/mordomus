@@ -140,6 +140,13 @@ final class OccurrenceMaterializerService implements OccurrenceMaterializerServi
             $date = $next;
         }
 
+        if ($step === self::MAX_DATES_PER_CONFIG) {
+            Log::warning('scheduling.materialize_limit_reached', [
+                'tenant_id' => $tenantId,
+                'trigger_config_id' => $config->id,
+            ]);
+        }
+
         return $created;
     }
 

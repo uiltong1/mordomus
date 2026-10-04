@@ -29,6 +29,11 @@ Schedule::command('scheduling:publish-due')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
 
+// Pruning de histórico (T8.2).
+Schedule::command('scheduling:prune', ['--days' => 30])
+    ->dailyAt('03:00')
+    ->withoutOverlapping();
+
 // A projeção do financeiro roda no mesmo relógio do aviso: ela refaz os
 // vencimentos a partir da agenda (o evento é o caminho rápido, esta passagem é
 // a que garante que nada se perca) e marca o que já venceu.

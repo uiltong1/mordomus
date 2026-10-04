@@ -54,6 +54,12 @@ class MaterializeTenantOccurrences implements ShouldBeUnique, ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
+        if ($exception instanceof \Illuminate\Queue\UniqueJobLockReleaseException) {
+             Log::warning('scheduling.materialize_unique_collision', [
+                'tenant_id' => $this->tenantId,
+            ]);
+        }
+
         Log::error('scheduling.materialize_failed', [
             'tenant_id' => $this->tenantId,
             'horizon_days' => $this->horizonDays,
