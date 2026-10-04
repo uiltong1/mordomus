@@ -30,10 +30,20 @@ export const resourceKeys = {
   devices: (tenantId: string | null) => tenantKey(tenantId, 'devices'),
   rooms: (tenantId: string | null) => tenantKey(tenantId, 'rooms'),
   room: (tenantId: string | null, roomId: string) => tenantKey(tenantId, 'rooms', roomId),
-  assets: (tenantId: string | null, roomId: string | null = null) =>
-    tenantKey(tenantId, 'assets', roomId),
+  /**
+   * Filtro ausente não entra na chave.
+   *
+   * Com `null` dentro da chave, `assets(residencia)` deixaria de ser prefixo de
+   * `assets(residencia, comodo)` e a invalidação "invalida o inventário inteiro"
+   * pararia de alcançar a tela do cômodo — o filtro é o mesmo dado lido de outro
+   * ângulo, não outra coisa.
+   */
+  assets: (tenantId: string | null, roomId?: string | null) =>
+    roomId ? tenantKey(tenantId, 'assets', roomId) : tenantKey(tenantId, 'assets'),
   occurrences: (tenantId: string | null, ...filters: readonly (string | null)[]) =>
     tenantKey(tenantId, 'occurrences', ...filters),
-  triggerConfigs: (tenantId: string | null, subjectId: string | null = null) =>
-    tenantKey(tenantId, 'trigger-configs', subjectId),
+  triggerConfigs: (tenantId: string | null, subjectId?: string | null) =>
+    subjectId
+      ? tenantKey(tenantId, 'trigger-configs', subjectId)
+      : tenantKey(tenantId, 'trigger-configs'),
 } as const
