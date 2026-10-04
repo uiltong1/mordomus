@@ -1,0 +1,37 @@
+# Contexto de build da imagem do monólito.
+#
+# O contexto é a raiz do repositório, então tudo que não é necessário no build
+# entra na conta — e o que é segredo não pode nem chegar a ser enviado.
+
+.git
+.github
+
+# Segredo do ambiente: nunca vai para o contexto, nem para camada de imagem.
+.env
+.env.*
+!.env.example
+.secrets/
+
+# Documentação e material de trabalho, fora do versionamento.
+docs/
+*.pdf
+
+# Dependências são instaladas dentro da imagem; enviar as da máquina só pesa.
+**/node_modules
+**/vendor
+**/dist
+**/dist-ssr
+**/coverage
+**/*.tsbuildinfo
+**/.vite
+
+# Cache e rastro de ferramentas.
+api/storage/logs
+api/storage/framework
+api/storage/phpstan
+api/.phpunit.cache
+api/.pint.cache
+e2e/node_modules
+e2e/test-results
+e2e/playwright-report
+e2e/blob-report

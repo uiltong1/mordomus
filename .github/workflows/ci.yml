@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — pint, phpstan, contratos, openapi, phpunit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, xml, curl, zip, intl, sqlite3, bcmath
+
+      - name: Segredos de teste
+        run: cp .env.example .env
+
+      - name: Composer install
+        run: composer install --no-interaction --no-progress
+
+      - name: Chave da aplicação
+        run: php artisan key:generate --ansi --force
+
+      - name: Pint
+        run: composer lint
+
+      - name: PHPStan
+        run: composer analyse
+
+      - name: Contratos de evento
+        run: composer contracts
+
+      - name: Especificação OpenAPI em dia
+        run: |
+          composer openapi --quiet
+          git diff --exit-code -- storage/openapi.yaml
+
+      - name: PHPUnit
+        run: composer test
+
+  frontend:
+    name: Frontend — tsc, eslint, prettier, vitest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        run: npm ci --no-audit --no-fund
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier
+        run: npm run format:check
+
+      - name: Vitest
+        run: npm test
+
+  e2e:
+    name: E2E — jornadas Playwright via gateway
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Segredos e imagens
+        run: |
+          make secrets
+          make base
+          docker compose build
+
+      - name: Sobe o ambiente
+        run: docker compose up -d --remove-orphans
+
+      - name: Espera o gateway e o painel
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/health > /dev/null \
+              && curl -fsS http://localhost:5173/ > /dev/null; then
+              echo "ambiente no ar após ${attempt} tentativa(s)"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose ps
+          docker compose logs --tail=200
+          exit 1
+
+      - name: Instala o Playwright
+        working-directory: e2e
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Jornadas
+        working-directory: e2e
+        run: npx playwright test
+
+      - name: Relatório
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
+          if-no-files-found: ignore
