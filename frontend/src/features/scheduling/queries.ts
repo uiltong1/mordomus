@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { resourceKeys } from '@/shared/api/queryKeys'
-import type { OccurrenceStatus, SubjectType } from '@/shared/api/types'
+import type { SchedulingOccurrenceStatus, SubjectType } from '@/shared/api/types'
 import { useTenant } from '@/tenants/TenantProvider'
 import {
   completeAssetOccurrence,
@@ -22,7 +22,7 @@ export interface OccurrenceFilters {
   from?: string | null
   to?: string | null
   subjectType?: SubjectType | null
-  status?: OccurrenceStatus | null
+  status?: SchedulingOccurrenceStatus | null
 }
 
 export function useOccurrences(filters: OccurrenceFilters, enabled = true) {

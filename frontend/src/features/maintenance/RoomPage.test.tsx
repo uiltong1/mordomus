@@ -5,7 +5,13 @@ import type * as MaintenanceApi from '@/features/maintenance/api'
 import type * as SchedulingApi from '@/features/scheduling/api'
 import { ApiError } from '@/shared/api/errors'
 import { saveSession } from '@/shared/api/tokenStore'
-import type { Asset, Occurrence, OccurrenceStatus, Room, TriggerConfig } from '@/shared/api/types'
+import type {
+  Asset,
+  Occurrence,
+  SchedulingOccurrenceStatus,
+  Room,
+  TriggerConfig,
+} from '@/shared/api/types'
 import { renderRoute } from '@/test/utils'
 import { RoomPage } from './RoomPage'
 
@@ -111,7 +117,7 @@ const occurrences: Occurrence[] = (
   title: item.title,
   scheduled_for: item.day,
   due_at: `${item.day}T09:00:00-03:00`,
-  status: item.status as OccurrenceStatus,
+  status: item.status as SchedulingOccurrenceStatus,
   notified_at: null,
   completed_at: null,
   completed_by: null,

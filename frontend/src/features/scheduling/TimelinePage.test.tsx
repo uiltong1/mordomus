@@ -5,7 +5,7 @@ import type * as MaintenanceApi from '@/features/maintenance/api'
 import type * as SchedulingApi from '@/features/scheduling/api'
 import { ApiError } from '@/shared/api/errors'
 import { saveSession } from '@/shared/api/tokenStore'
-import type { Asset, Occurrence, OccurrenceStatus, Room } from '@/shared/api/types'
+import type { Asset, Occurrence, SchedulingOccurrenceStatus, Room } from '@/shared/api/types'
 import { renderWithRouter } from '@/test/utils'
 import { TimelinePage } from './TimelinePage'
 
@@ -89,7 +89,7 @@ const occurrences: Occurrence[] = (
   title: item.title,
   scheduled_for: item.day,
   due_at: `${item.day}T09:00:00-03:00`,
-  status: item.status as OccurrenceStatus,
+  status: item.status as SchedulingOccurrenceStatus,
   notified_at: null,
   completed_at: null,
   completed_by: null,
@@ -189,7 +189,7 @@ describe('TimelinePage', () => {
       vi.mocked(fetchOccurrences).mockResolvedValue(
         page([{ ...occurrences[0]!, status: 'completed' }]),
       )
-      return { ...occurrences[0]!, status: 'completed' as OccurrenceStatus }
+      return { ...occurrences[0]!, status: 'completed' as SchedulingOccurrenceStatus }
     })
 
     renderWithRouter(<TimelinePage />)

@@ -5,7 +5,7 @@ import type * as MaintenanceApi from '@/features/maintenance/api'
 import type * as SchedulingApi from '@/features/scheduling/api'
 import { ApiError } from '@/shared/api/errors'
 import { saveSession } from '@/shared/api/tokenStore'
-import type { Asset, Occurrence, OccurrenceStatus, Room } from '@/shared/api/types'
+import type { Asset, Occurrence, SchedulingOccurrenceStatus, Room } from '@/shared/api/types'
 import { renderWithRouter } from '@/test/utils'
 import { DashboardPage } from './DashboardPage'
 
@@ -211,7 +211,7 @@ describe('DashboardPage', () => {
   it('conclui pelo card e invalida a agenda sem recarregar a página', async () => {
     vi.mocked(completeOccurrence).mockResolvedValue({
       ...occurrences[0]!,
-      status: 'completed' as OccurrenceStatus,
+      status: 'completed' as SchedulingOccurrenceStatus,
     })
     renderWithRouter(<DashboardPage />)
 

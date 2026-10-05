@@ -2,9 +2,9 @@ import { api, unwrap } from '@/shared/api/client'
 import type {
   IntervalUnit,
   Occurrence,
-  OccurrenceStatus,
   Paginated,
   RecalculateBase,
+  SchedulingOccurrenceStatus,
   SubjectType,
   TriggerConfig,
   TriggerPreview,
@@ -26,7 +26,7 @@ export interface OccurrenceFilters {
   from?: string | null
   to?: string | null
   subjectType?: SubjectType | null
-  status?: OccurrenceStatus | null
+  status?: SchedulingOccurrenceStatus | null
 }
 
 export interface TriggerConfigFilters {

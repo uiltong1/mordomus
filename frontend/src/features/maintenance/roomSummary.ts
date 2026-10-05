@@ -1,5 +1,5 @@
 import {
-  OPEN_OCCURRENCE_STATUSES,
+  OPEN_SCHEDULING_OCCURRENCE_STATUSES,
   type Asset,
   type Occurrence,
   type Room,
@@ -34,7 +34,7 @@ export interface RoomSummary {
 }
 
 export function isOpen(occurrence: Occurrence): boolean {
-  return OPEN_OCCURRENCE_STATUSES.includes(occurrence.status)
+  return OPEN_SCHEDULING_OCCURRENCE_STATUSES.includes(occurrence.status)
 }
 
 function overdueDays(occurrence: Occurrence): number {

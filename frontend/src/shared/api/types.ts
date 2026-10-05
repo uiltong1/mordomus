@@ -181,9 +181,15 @@ export interface TriggerConfig {
   updated_at: string | null
 }
 
-export type OccurrenceStatus = 'pending' | 'notified' | 'completed' | 'skipped' | 'overdue'
+/**
+ * Scheduling — status da ocorrência de manutenção. O Financeiro tem o seu
+ * próprio, e os dois vocabularios não podem se misturar: `overdue` existe nos
+ * dois com significados que não se cruzam.
+ */
+export type SchedulingOccurrenceStatus =
+  'pending' | 'notified' | 'completed' | 'skipped' | 'overdue'
 
-export const OCCURRENCE_STATUSES = [
+export const SCHEDULING_OCCURRENCE_STATUSES = [
   'pending',
   'notified',
   'completed',
@@ -192,7 +198,7 @@ export const OCCURRENCE_STATUSES = [
 ] as const
 
 /** Status que ainda aceitam check-in. Concluir uma finalize devolve 409. */
-export const OPEN_OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = [
+export const OPEN_SCHEDULING_OCCURRENCE_STATUSES: readonly SchedulingOccurrenceStatus[] = [
   'pending',
   'notified',
   'overdue',
@@ -207,7 +213,7 @@ export interface Occurrence {
   title: string
   scheduled_for: string | null
   due_at: string | null
-  status: OccurrenceStatus
+  status: SchedulingOccurrenceStatus
   notified_at: string | null
   completed_at: string | null
   completed_by: string | null

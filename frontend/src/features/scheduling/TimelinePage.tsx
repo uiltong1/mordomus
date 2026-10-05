@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '@/shared/api/errors'
 import { resourceKeys } from '@/shared/api/queryKeys'
-import { OCCURRENCE_STATUSES, type Occurrence, type OccurrenceStatus } from '@/shared/api/types'
+import {
+  SCHEDULING_OCCURRENCE_STATUSES,
+  type Occurrence,
+  type SchedulingOccurrenceStatus,
+} from '@/shared/api/types'
 import {
   describeClosedDue,
   describeDue,
@@ -29,7 +33,7 @@ const PERIOD_OPTIONS: readonly { value: Period; label: string; from: number; to:
   { value: 'all', label: 'Tudo', from: -90, to: 90 },
 ]
 
-const STATUS_LABEL: Record<OccurrenceStatus, string> = {
+const STATUS_LABEL: Record<SchedulingOccurrenceStatus, string> = {
   pending: 'Pendente',
   notified: 'Avisada',
   completed: 'Concluída',
@@ -58,7 +62,7 @@ const TONE_CLASS: Record<DueTone, string> = {
 export function TimelinePage() {
   const [period, setPeriod] = useState<Period>('upcoming')
   const [roomId, setRoomId] = useState('')
-  const [status, setStatus] = useState<OccurrenceStatus | ''>('')
+  const [status, setStatus] = useState<SchedulingOccurrenceStatus | ''>('')
 
   const range = PERIOD_OPTIONS.find((option) => option.value === period) ?? PERIOD_OPTIONS[0]!
 
@@ -139,10 +143,12 @@ export function TimelinePage() {
               <Select
                 id={id}
                 value={status}
-                onChange={(event) => setStatus(event.target.value as OccurrenceStatus | '')}
+                onChange={(event) =>
+                  setStatus(event.target.value as SchedulingOccurrenceStatus | '')
+                }
               >
                 <option value="">Todas</option>
-                {OCCURRENCE_STATUSES.map((value) => (
+                {SCHEDULING_OCCURRENCE_STATUSES.map((value) => (
                   <option key={value} value={value}>
                     {STATUS_LABEL[value]}
                   </option>
