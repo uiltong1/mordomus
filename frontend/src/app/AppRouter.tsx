@@ -9,6 +9,7 @@ import { AuthLayout } from '@/features/auth/AuthLayout'
 import { DashboardPage } from '@/features/maintenance/DashboardPage'
 import { RoomPage } from '@/features/maintenance/RoomPage'
 import { TimelinePage } from '@/features/scheduling/TimelinePage'
+import { FinancesPage } from '@/features/financial/FinancesPage'
 import { Button } from '@/shared/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
 
@@ -56,6 +57,7 @@ export function AppRouter() {
               <Route index element={<DashboardPage />} />
               <Route path="comodos/:roomId" element={<RoomPage />} />
               <Route path="agenda" element={<TimelinePage />} />
+              <Route path="financas" element={<FinancesPage />} />
             </Route>
           </Route>
 

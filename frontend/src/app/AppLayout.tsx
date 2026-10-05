@@ -11,6 +11,7 @@ import { UpdateBanner } from './UpdateBanner'
 const NAV_ITEMS = [
   { to: '/', label: 'Painel', end: true },
   { to: '/agenda', label: 'Agenda', end: false },
+  { to: '/financas', label: 'Finanças', end: false },
 ] as const
 
 /**

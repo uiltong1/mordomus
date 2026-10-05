@@ -183,8 +183,9 @@ export interface TriggerConfig {
 
 /**
  * Scheduling — status da ocorrência de manutenção. O Financeiro tem o seu
- * próprio, e os dois vocabularios não podem se misturar: `overdue` existe nos
- * dois com significados que não se cruzam.
+ * próprio (`FinancialOccurrenceStatus`, com `open`/`paid`/`overdue`/`cancelled`),
+ * e os dois vocabularios não podem se misturar: `overdue` existe nos dois com
+ * significados que não se cruzam.
  */
 export type SchedulingOccurrenceStatus =
   'pending' | 'notified' | 'completed' | 'skipped' | 'overdue'
@@ -219,6 +220,141 @@ export interface Occurrence {
   completed_by: string | null
   created_at: string | null
   updated_at: string | null
+}
+
+export type FinancialOccurrenceStatus = 'open' | 'paid' | 'overdue' | 'cancelled'
+export const FINANCIAL_OCCURRENCE_STATUSES = ['open', 'paid', 'overdue', 'cancelled'] as const
+
+export type BillKind = 'fixed' | 'variable'
+export const BILL_KINDS = ['fixed', 'variable'] as const
+
+export type PaymentMethod =
+  'pix' | 'boleto' | 'debit_card' | 'credit_card' | 'cash' | 'transfer' | 'other'
+export const PAYMENT_METHODS = [
+  'pix',
+  'boleto',
+  'debit_card',
+  'credit_card',
+  'cash',
+  'transfer',
+  'other',
+] as const
+
+export type SplitMode = 'EQUAL' | 'WEIGHTED' | 'PERCENT' | 'CUSTOM'
+export const SPLIT_MODES = ['EQUAL', 'WEIGHTED', 'PERCENT', 'CUSTOM'] as const
+
+export interface Bill {
+  id: string
+  tenant_id: string
+  name: string
+  kind: BillKind
+  category: string | null
+  amount: string | null
+  currency: string
+  is_active: boolean
+  schedule: {
+    id: string
+    day_of_month: number | null
+    advance_notice_days: number
+    preferred_hour: string
+    is_active: boolean
+    next_due_at: string | null
+  } | null
+  created_by: string
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface PaymentRecord {
+  id: string
+  bill_occurrence_id: string
+  user_id: string
+  amount: string
+  method: PaymentMethod
+  paid_at: string
+  receipt_url: string | null
+}
+
+export interface BillOccurrence {
+  id: string
+  tenant_id: string
+  bill_id: string
+  bill_name: string
+  bill_kind: BillKind
+  category: string | null
+  schedule_id: string | null
+  due_date: string
+  amount: string
+  status: FinancialOccurrenceStatus
+  paid_at: string | null
+  paid_by: string | null
+  payments: PaymentRecord[]
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface BillSummary {
+  month: string
+  timezone: string
+  totals: {
+    due: string
+    paid: string
+    open: string
+    overdue: string
+    cancelled: string
+  }
+  counts: {
+    occurrences: number
+    paid: number
+    open: number
+    overdue: number
+    cancelled: number
+  }
+  by_status: Record<FinancialOccurrenceStatus, number>
+  by_category: { category: string; amount: string }[]
+}
+
+export interface SplitEntry {
+  id: string
+  user_id: string
+  user_name: string
+  weight: number | null
+  percent: number | null
+  fixed_amount: string | null
+}
+
+export interface SplitRule {
+  id: string
+  tenant_id: string
+  bill_id: string | null
+  bill_name: string | null
+  mode: SplitMode
+  is_active: boolean
+  is_house_default: boolean
+  entries: SplitEntry[]
+}
+
+export interface Share {
+  user_id: string
+  user_name: string
+  share_amount: string
+  settled: boolean
+  settled_at: string | null
+}
+
+export interface OccurrenceSplit {
+  bill_occurrence_id: string
+  bill_id: string
+  bill_name: string
+  due_date: string
+  amount: string
+  status: FinancialOccurrenceStatus
+  split_rule_id: string
+  mode: SplitMode
+  is_house_default: boolean
+  total: string
+  scope: 'all' | 'own'
+  shares: Share[]
 }
 
 /**
