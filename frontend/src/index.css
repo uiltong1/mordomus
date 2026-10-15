@@ -95,6 +95,12 @@
     @apply outline-2 outline-offset-2 outline-brand;
   }
 
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  a[href] {
+    cursor: pointer;
+  }
+
   ::selection {
     @apply bg-brand/30 text-ink;
   }
