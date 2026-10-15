@@ -9,6 +9,7 @@ import { BillFormModal } from './BillFormModal'
 import { SplitRuleModal } from './SplitRuleModal'
 import { Explainer } from './Explainer'
 import { formatAmount } from './money'
+import { formatDayNumeric } from '@/shared/datetime'
 import { BILL_KINDS, type Bill, type BillKind } from '@/shared/api/types'
 
 const KIND_LABEL: Record<BillKind, string> = { fixed: 'Fixa', variable: 'Variável' }
@@ -294,7 +295,7 @@ function describeBill(bill: Bill): string {
     const day = bill.schedule?.day_of_month
     parts.push(day ? `vence todo dia ${day}` : 'sem dia de vencimento definido')
     if (bill.schedule?.next_due_at) {
-      parts.push(`próximo ${bill.schedule.next_due_at.slice(0, 10)}`)
+      parts.push(`próximo ${formatDayNumeric(bill.schedule.next_due_at.slice(0, 10))}`)
     }
   } else {
     parts.push('lance cada fatura em Vencimentos')

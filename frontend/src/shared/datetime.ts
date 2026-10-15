@@ -14,6 +14,12 @@
 
 const DAY_MONTH = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
 
+const DAY_MONTH_YEAR = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
 const DAY_MONTH_LONG = new Intl.DateTimeFormat('pt-BR', {
   day: 'numeric',
   month: 'long',
@@ -73,6 +79,13 @@ export function formatDayShort(iso: string | null): string {
   if (!iso) return '—'
   const { year, month, day } = parts(iso)
   return DAY_MONTH.format(new Date(year, month, day))
+}
+
+/** `15/10/2026` — dia de calendário com ano, o formato que o morador lê. */
+export function formatDayNumeric(iso: string | null): string {
+  if (!iso) return '—'
+  const { year, month, day } = parts(iso)
+  return DAY_MONTH_YEAR.format(new Date(year, month, day))
 }
 
 /** `15 de outubro de 2026` — dia de calendário. */

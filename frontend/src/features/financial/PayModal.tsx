@@ -4,6 +4,7 @@ import { useToast } from '@/shared/ui/Toast'
 import { ApiError } from '@/shared/api/errors'
 import { usePayOccurrence } from './mutations'
 import { PAYMENT_METHODS, type BillOccurrence, type PaymentMethod } from '@/shared/api/types'
+import { formatDayNumeric } from '@/shared/datetime'
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
   pix: 'Pix',
@@ -81,7 +82,7 @@ export function PayModal({
     <Modal
       open
       title="Registrar pagamento"
-      description={`${occurrence.bill_name} · vencimento ${occurrence.due_date}`}
+      description={`${occurrence.bill_name} · vencimento ${formatDayNumeric(occurrence.due_date)}`}
       onClose={onClose}
       footer={
         <>

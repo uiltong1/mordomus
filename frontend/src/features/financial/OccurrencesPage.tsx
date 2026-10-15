@@ -8,6 +8,7 @@ import { PayModal } from './PayModal'
 import { OccurrenceSplitModal } from './OccurrenceSplitModal'
 import { Explainer } from './Explainer'
 import { formatAmount } from './money'
+import { formatDayNumeric } from '@/shared/datetime'
 import {
   FINANCIAL_OCCURRENCE_STATUSES,
   type BillOccurrence,
@@ -213,9 +214,11 @@ export function OccurrencesPage() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-ink">{occurrence.bill_name}</p>
                     <p className="text-xs text-ink-muted">
-                      Vence {occurrence.due_date}
+                      Vence {formatDayNumeric(occurrence.due_date)}
                       {occurrence.category ? ` · ${occurrence.category}` : ''}
-                      {occurrence.paid_at ? ` · pago em ${occurrence.paid_at.slice(0, 10)}` : ''}
+                      {occurrence.paid_at
+                        ? ` · pago em ${formatDayNumeric(occurrence.paid_at.slice(0, 10))}`
+                        : ''}
                     </p>
                   </div>
 

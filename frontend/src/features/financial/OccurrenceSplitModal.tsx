@@ -5,6 +5,7 @@ import { ApiError } from '@/shared/api/errors'
 import { useOccurrenceSplit } from './queries'
 import { useSettleShare } from './mutations'
 import { formatAmount } from './money'
+import { formatDayNumeric } from '@/shared/datetime'
 import type { BillOccurrence } from '@/shared/api/types'
 
 /**
@@ -47,7 +48,7 @@ export function OccurrenceSplitModal({
     <Modal
       open
       title={`Cotas · ${occurrence.bill_name}`}
-      description={`Vencimento de ${occurrence.due_date}`}
+      description={`Vencimento de ${formatDayNumeric(occurrence.due_date)}`}
       onClose={onClose}
       footer={
         <Button variant="ghost" onClick={onClose}>

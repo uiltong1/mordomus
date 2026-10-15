@@ -5,6 +5,7 @@ import { ApiError } from '@/shared/api/errors'
 import { useCreateBill, useUpdateBill } from './mutations'
 import type { BillInput } from './api'
 import { BILL_KINDS, type Bill, type BillKind } from '@/shared/api/types'
+import { formatDayNumeric } from '@/shared/datetime'
 
 const KIND_LABEL: Record<BillKind, string> = {
   fixed: 'Fixa — vence todo mês',
@@ -208,7 +209,7 @@ export function BillFormModal({
 
         {bill?.schedule?.next_due_at ? (
           <p className="text-xs text-ink-muted">
-            Próximo vencimento: {bill.schedule.next_due_at.slice(0, 10)}
+            Próximo vencimento: {formatDayNumeric(bill.schedule.next_due_at.slice(0, 10))}
           </p>
         ) : null}
       </form>

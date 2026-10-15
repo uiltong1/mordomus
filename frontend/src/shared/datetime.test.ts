@@ -3,6 +3,7 @@ import {
   daysBetween,
   describeDue,
   formatDayLong,
+  formatDayNumeric,
   formatDayShort,
   formatInstant,
   instantToInputValue,
@@ -16,11 +17,13 @@ describe('dias de calendário', () => {
     // `new Date('2026-10-15')` é meia-noite UTC e em São Paulo seria 14/10
     expect(formatDayShort('2026-10-15')).toBe('15/10')
     expect(formatDayLong('2026-10-15')).toBe('15 de outubro de 2026')
+    expect(formatDayNumeric('2026-10-15')).toBe('15/10/2026')
   })
 
   it('devolve travessão quando não há data', () => {
     expect(formatDayShort(null)).toBe('—')
     expect(formatDayLong(null)).toBe('—')
+    expect(formatDayNumeric(null)).toBe('—')
   })
 })
 

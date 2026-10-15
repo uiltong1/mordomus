@@ -227,7 +227,7 @@ describe('BillListPage', () => {
   it('mostra a próxima data que o Scheduling calculou, sem calcular na tela', async () => {
     renderWithRouter(<BillListPage />)
 
-    expect(await screen.findByText(/próximo 2026-04-10/)).toBeInTheDocument()
+    expect(await screen.findByText(/próximo 10\/04\/2026/)).toBeInTheDocument()
   })
 })
 
