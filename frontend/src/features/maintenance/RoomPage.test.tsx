@@ -184,6 +184,10 @@ async function signIn(
 
 const open = () => renderRoute(<RoomPage />, '/comodos/:roomId', `/comodos/${COZINHA}`)
 
+async function openTab(label: 'Agenda' | 'Inventário') {
+  await userEvent.click(await screen.findByRole('button', { name: label }))
+}
+
 describe('RoomPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
@@ -194,21 +198,38 @@ describe('RoomPage', () => {
     vi.mocked(fetchTriggerConfigs).mockResolvedValue(page(rules))
   })
 
+  it('separa a agenda do inventário em abas', async () => {
+    open()
+
+    await screen.findByTestId('room-assets')
+    expect(screen.queryByTestId('room-pending')).toBeNull()
+
+    await openTab('Agenda')
+    await screen.findByTestId('room-pending')
+    expect(screen.queryByTestId('room-assets')).toBeNull()
+
+    await openTab('Inventário')
+    await screen.findByTestId('room-assets')
+    expect(screen.queryByTestId('room-pending')).toBeNull()
+  })
+
   it('lista os ativos do cômodo com a regra de cada um', async () => {
     open()
 
     const lista = await screen.findByTestId('room-assets')
-    // só os filhos diretos: dentro de cada item há uma lista de regras
     expect(lista.children).toHaveLength(2)
     expect(within(lista).getByText('Filtro do ar-condicionado')).toBeInTheDocument()
     expect(within(lista).getByText('A cada 30 dias')).toBeInTheDocument()
-    // o item sem regra aparece sem rótulo de repetição, e não com um vazio
     expect(within(lista).getByText('Bocal da torneira')).toBeInTheDocument()
-    expect(within(lista).getAllByText('Regra').length).toBe(2)
+    expect(within(lista).getByText('Regras')).toBeInTheDocument()
+    expect(within(lista).getAllByRole('button', { name: 'Adicionar regra' })).toHaveLength(2)
+    expect(within(lista).getAllByRole('button', { name: 'Editar regra' })).toHaveLength(1)
+    expect(within(lista).getAllByRole('button', { name: 'Editar item' })).toHaveLength(2)
   })
 
   it('mostra a pendência mais próxima com o check-in', async () => {
     open()
+    await openTab('Agenda')
 
     // a atrasada de 2 dias vem antes da que vence amanhã
     const pendencias = await screen.findByTestId('room-pending')
@@ -221,6 +242,7 @@ describe('RoomPage', () => {
   it('dispensa a pendência e explica que o ciclo fica como estava', async () => {
     vi.mocked(skipOccurrence).mockResolvedValue({ ...occurrences[0]!, status: 'skipped' })
     open()
+    await openTab('Agenda')
 
     const pendencias = await screen.findByTestId('room-pending')
     await userEvent.click(within(pendencias).getAllByRole('button', { name: 'Pular' })[0]!)
@@ -241,6 +263,7 @@ describe('RoomPage', () => {
       }),
     )
     open()
+    await openTab('Agenda')
 
     await userEvent.click(await screen.findByRole('button', { name: 'Já fiz' }))
     expect(
@@ -308,7 +331,7 @@ describe('RoomPage', () => {
     open()
 
     const lista = await screen.findByTestId('room-assets')
-    await userEvent.click(within(lista).getByRole('button', { name: 'remover' }))
+    await userEvent.click(within(lista).getByRole('button', { name: 'Remover regra' }))
 
     await waitFor(() => expect(deleteTriggerConfig).toHaveBeenCalledWith('cfg1'))
     expect(await screen.findByText('Regra removida.')).toBeInTheDocument()
@@ -328,10 +351,14 @@ describe('RoomPage', () => {
 
     await screen.findByTestId('room-assets')
     expect(screen.queryByRole('button', { name: 'Adicionar item' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Regra' })).toBeNull()
-    // quem tem occurrences.complete continua vendo o check-in
-    expect(screen.getByRole('button', { name: 'Já fiz' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Editar item' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Adicionar regra' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Editar regra' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Remover regra' })).toBeNull()
+
+    // quem tem occurrences.complete continua vendo o check-in na agenda
+    await openTab('Agenda')
+    expect(await screen.findByRole('button', { name: 'Já fiz' })).toBeInTheDocument()
   })
 
   it('diz que o cômodo não existe em vez de mostrar tela em branco', async () => {

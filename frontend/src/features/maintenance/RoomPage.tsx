@@ -27,10 +27,18 @@ const TONE_CLASS: Record<DueTone, string> = {
   done: 'bg-success/15 text-success',
 }
 
+type RoomTab = 'inventario' | 'agenda'
+
+const ROOM_TABS: readonly { id: RoomTab; label: string }[] = [
+  { id: 'inventario', label: 'Inventário' },
+  { id: 'agenda', label: 'Agenda' },
+]
+
 /**
- * Visão de um cômodo: o que existe dentro dele, o que está para acontecer e o
- * check-in de cada item. É a tela que responde "o que eu preciso fazer na
- * cozinha hoje" sem o morador precisar abrir a agenda e filtrar por cômodo.
+ * Visão de um cômodo, dividida em agenda e inventário: o que está para
+ * acontecer (com o check-in de cada item) e o que existe dentro dele. É a
+ * tela que responde "o que eu preciso fazer na cozinha hoje" sem o morador
+ * precisar abrir a agenda e filtrar por cômodo.
  */
 export function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -39,6 +47,7 @@ export function RoomPage() {
   const queryClient = useQueryClient()
   const overview = usePropertyOverview()
 
+  const [tab, setTab] = useState<RoomTab>('inventario')
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
   const [addingAsset, setAddingAsset] = useState(false)
   const [ruleFor, setRuleFor] = useState<Asset | null>(null)
@@ -133,88 +142,113 @@ export function RoomPage() {
         ) : null}
       </header>
 
-      {next ? (
-        <section aria-labelledby="room-next-heading">
-          <h2 id="room-next-heading" className="mb-2 text-xs font-medium text-ink-muted">
-            Próxima manutenção
-          </h2>
-          <PendingCheckIn item={next} canComplete={can('occurrences.complete')} />
-        </section>
+      <nav aria-label="Seções do cômodo" className="flex gap-1 border-b border-line">
+        {ROOM_TABS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            aria-current={tab === item.id ? 'page' : undefined}
+            className={[
+              'rounded-t-control px-3 py-2 text-sm transition-colors',
+              tab === item.id
+                ? 'border-b-2 border-brand font-medium text-ink'
+                : 'text-ink-muted hover:text-ink',
+            ].join(' ')}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      {tab === 'agenda' ? (
+        <>
+          {next ? (
+            <section aria-labelledby="room-next-heading">
+              <h2 id="room-next-heading" className="mb-2 text-xs font-medium text-ink-muted">
+                Próxima manutenção
+              </h2>
+              <PendingCheckIn item={next} canComplete={can('occurrences.complete')} />
+            </section>
+          ) : null}
+
+          <section aria-labelledby="room-pending-heading" className="space-y-3">
+            <h2 id="room-pending-heading" className="text-xs font-medium text-ink-muted">
+              Manutenções em aberto
+            </h2>
+            {pending.length === 0 ? (
+              <Card>
+                <div className="px-5 py-6 text-center">
+                  <p className="text-sm text-ink-muted">Nada pendente neste cômodo.</p>
+                  {withoutRules > 0 ? (
+                    <p className="mt-1 text-xs text-ink-subtle">
+                      {withoutRules}{' '}
+                      {withoutRules === 1 ? 'item ainda não tem' : 'itens ainda não têm'} regra de
+                      repetição — vale cadastrar para não depender de memória.
+                    </p>
+                  ) : null}
+                </div>
+              </Card>
+            ) : (
+              <ul className="space-y-2" data-testid="room-pending">
+                {pending.map((item) => (
+                  <li key={item.occurrence.id}>
+                    <PendingRow item={item} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
       ) : null}
 
-      <section aria-labelledby="room-pending-heading" className="space-y-3">
-        <h2 id="room-pending-heading" className="text-xs font-medium text-ink-muted">
-          Manutenções em aberto
-        </h2>
-        {pending.length === 0 ? (
-          <Card>
-            <div className="px-5 py-6 text-center">
-              <p className="text-sm text-ink-muted">Nada pendente neste cômodo.</p>
-              {withoutRules > 0 ? (
-                <p className="mt-1 text-xs text-ink-subtle">
-                  {withoutRules} {withoutRules === 1 ? 'item ainda não tem' : 'itens ainda não têm'}{' '}
-                  regra de repetição — vale cadastrar para não depender de memória.
-                </p>
-              ) : null}
-            </div>
-          </Card>
-        ) : (
-          <ul className="space-y-2" data-testid="room-pending">
-            {pending.map((item) => (
-              <li key={item.occurrence.id}>
-                <PendingRow item={item} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="room-assets-heading" className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="room-assets-heading" className="text-xs font-medium text-ink-muted">
-            Inventário
-          </h2>
-          {withoutRules > 0 ? (
-            <p data-testid="room-without-rules" className="text-xs text-ink-subtle">
-              {withoutRules} {withoutRules === 1 ? 'item ainda não tem' : 'itens ainda não têm'}{' '}
-              regra de repetição — vale cadastrar para não depender de memória.
-            </p>
-          ) : null}
-        </div>
-        {assets.length === 0 ? (
-          <EmptyState
-            title="Nenhum item neste cômodo"
-            description="Cadastre o que precisa de manutenção para o painel acompanhar as datas."
-            action={
-              can('assets.manage') ? (
-                <Button size="sm" onClick={() => setAddingAsset(true)}>
-                  Adicionar item
-                </Button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <Card>
-            <ul className="divide-y divide-line" data-testid="room-assets">
-              {assets.map((asset) => (
-                <AssetRow
-                  key={asset.id}
-                  asset={asset}
-                  rules={rulesByAsset.get(asset.id) ?? []}
-                  onEdit={() => setEditingAsset(asset)}
-                  onAddRule={() => setRuleFor(asset)}
-                  onChanged={() => {
-                    void queryClient.invalidateQueries({
-                      queryKey: resourceKeys.assets(activeTenantId),
-                    })
-                  }}
-                />
-              ))}
-            </ul>
-          </Card>
-        )}
-      </section>
-
+      {tab === 'inventario' ? (
+        <section aria-labelledby="room-assets-heading" className="space-y-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="room-assets-heading" className="text-xs font-medium text-ink-muted">
+              Inventário
+            </h2>
+            {withoutRules > 0 ? (
+              <p data-testid="room-without-rules" className="text-xs text-ink-subtle">
+                {withoutRules} {withoutRules === 1 ? 'item ainda não tem' : 'itens ainda não têm'}{' '}
+                regra de repetição — vale cadastrar para não depender de memória.
+              </p>
+            ) : null}
+          </div>
+          {assets.length === 0 ? (
+            <EmptyState
+              title="Nenhum item neste cômodo"
+              description="Cadastre o que precisa de manutenção para o painel acompanhar as datas."
+              action={
+                can('assets.manage') ? (
+                  <Button size="sm" onClick={() => setAddingAsset(true)}>
+                    Adicionar item
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <Card>
+              <ul className="divide-y divide-line" data-testid="room-assets">
+                {assets.map((asset) => (
+                  <AssetRow
+                    key={asset.id}
+                    asset={asset}
+                    rules={rulesByAsset.get(asset.id) ?? []}
+                    onEdit={() => setEditingAsset(asset)}
+                    onAddRule={() => setRuleFor(asset)}
+                    onChanged={() => {
+                      void queryClient.invalidateQueries({
+                        queryKey: resourceKeys.assets(activeTenantId),
+                      })
+                    }}
+                  />
+                ))}
+              </ul>
+            </Card>
+          )}
+        </section>
+      ) : null}
       <AssetFormModal
         open={addingAsset}
         onClose={() => setAddingAsset(false)}
@@ -324,58 +358,63 @@ function AssetRow({
           </p>
         ) : null}
 
-        <ul className="mt-2 space-y-1">
-          {rules.map((rule) => (
-            <li key={rule.id} className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded-control bg-surface-2 px-2 py-0.5 text-ink-muted">
-                {summarizeTrigger(rule)}
-              </span>
-              {rule.next_due_at ? (
-                <span className="text-ink-subtle">
-                  próxima: {formatDayShort(rule.next_due_at.slice(0, 10))}
-                </span>
-              ) : (
-                <span className="text-ink-subtle">sem data até o primeiro check-in</span>
-              )}
-              {!rule.is_active ? (
-                <span className="rounded-control bg-warning/15 px-1.5 py-0.5 text-warning">
-                  pausada
-                </span>
-              ) : null}
-              {can('rules.edit') ? (
-                <>
-                  <button
-                    type="button"
-                    className="text-brand hover:underline"
-                    onClick={() => setEditingRule(rule.id)}
-                  >
-                    editar
-                  </button>
-                  <button
-                    type="button"
-                    className="text-danger hover:underline"
-                    onClick={() => remove.mutate(rule.id)}
-                    disabled={remove.isPending}
-                  >
-                    remover
-                  </button>
-                </>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        {rules.length > 0 ? (
+          <div className="mt-3 border-t border-line pt-2.5">
+            <p className="text-xs font-medium text-ink-subtle">Regras</p>
+            <ul className="mt-1.5 space-y-1.5" data-testid="asset-rules">
+              {rules.map((rule) => (
+                <li key={rule.id} className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-control bg-surface-2 px-2 py-0.5 text-ink-muted">
+                    {summarizeTrigger(rule)}
+                  </span>
+                  {rule.next_due_at ? (
+                    <span className="text-ink-subtle">
+                      próxima: {formatDayShort(rule.next_due_at.slice(0, 10))}
+                    </span>
+                  ) : (
+                    <span className="text-ink-subtle">sem data até o primeiro check-in</span>
+                  )}
+                  {!rule.is_active ? (
+                    <span className="rounded-control bg-warning/15 px-1.5 py-0.5 text-warning">
+                      pausada
+                    </span>
+                  ) : null}
+                  {can('rules.edit') ? (
+                    <>
+                      <button
+                        type="button"
+                        className="text-brand hover:underline"
+                        onClick={() => setEditingRule(rule.id)}
+                      >
+                        Editar regra
+                      </button>
+                      <button
+                        type="button"
+                        className="text-danger hover:underline"
+                        onClick={() => remove.mutate(rule.id)}
+                        disabled={remove.isPending}
+                      >
+                        Remover regra
+                      </button>
+                    </>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
         {can('rules.edit') ? (
           <Button variant="ghost" size="sm" onClick={onAddRule}>
-            Regra
+            Adicionar regra
           </Button>
         ) : null}
         {can('assets.manage') ? (
           <>
             <Button variant="ghost" size="sm" onClick={onEdit}>
-              Editar
+              Editar item
             </Button>
             {asset.archived ? (
               <Button
