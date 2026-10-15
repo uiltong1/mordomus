@@ -5,6 +5,7 @@ import type * as MaintenanceApi from '@/features/maintenance/api'
 import type * as SchedulingApi from '@/features/scheduling/api'
 import { ApiError } from '@/shared/api/errors'
 import { saveSession } from '@/shared/api/tokenStore'
+import type { TriggerConfig } from '@/shared/api/types'
 import { renderWithProviders } from '@/test/utils'
 import { TriggerBuilderModal } from './TriggerBuilderModal'
 
@@ -23,10 +24,33 @@ vi.mock('@/features/scheduling/api', async (importOriginal) => {
   }
 })
 
-const { previewNextDue, saveAssetSchedule } = await import('@/features/scheduling/api')
+const { previewNextDue, saveAssetSchedule, updateTriggerConfig } =
+  await import('@/features/scheduling/api')
 
 const TENANT = '01J8Z0M9W3K6Q2T4R5Y7B8C9D0'
 const ASSET_ID = '01J8Z0M9W3K6Q2T4R5Y7B8C9D1'
+
+const existingConfig: TriggerConfig = {
+  id: 'cfg-edit',
+  tenant_id: TENANT,
+  subject_type: 'asset',
+  subject_id: ASSET_ID,
+  title: 'Limpeza das serpentinas',
+  description: 'Aspirar a serpentina e passar água quente nas aletas.',
+  is_active: true,
+  type: 'INTERVAL',
+  interval_value: 90,
+  interval_unit: 'days',
+  day_of_month: null,
+  advance_notice_days: 7,
+  recalculate_base: null,
+  custom_offsets: null,
+  preferred_hour: '14:30',
+  last_base_date: null,
+  next_due_at: null,
+  created_at: null,
+  updated_at: null,
+}
 
 async function signIn() {
   saveSession({
@@ -97,6 +121,54 @@ describe('TriggerBuilderModal', () => {
       }),
     )
     expect(await screen.findByText('Regra criada.')).toBeInTheDocument()
+  })
+
+  /**
+   * Critério de aceite da edição: abrir a regra do item mostra a regra inteira
+   * na tela. Os quatro cartões de tipo empurravam intervalo, avisos e horário
+   * para fora da área visível — por isso na edição o tipo vira um select
+   * compacto e o cabeçalho passa a dizer o resumo real, não o exemplo do tipo.
+   */
+  it('ao editar, o tipo vira select e todos os campos vêm preenchidos', async () => {
+    open(existingConfig)
+
+    expect(await screen.findByLabelText('Como você quer repetir?')).toHaveValue('INTERVAL')
+    expect(screen.queryByRole('radio')).toBeNull()
+    expect(screen.getByLabelText('Nome da regra')).toHaveValue('Limpeza das serpentinas')
+    expect(screen.getByLabelText('Anotação')).toHaveValue(
+      'Aspirar a serpentina e passar água quente nas aletas.',
+    )
+    expect(screen.getByLabelText('De quantos em quantos')).toHaveValue(90)
+    expect(screen.getByLabelText('Unidade')).toHaveValue('days')
+    expect(screen.getByLabelText('Avisar quantos dias antes')).toHaveValue(7)
+    expect(screen.getByLabelText('Horário do aviso')).toHaveValue('14:30')
+    expect(screen.getByLabelText('Regra ativa')).toBeChecked()
+
+    const dialog = screen.getByRole('dialog', { name: 'Editar regra' })
+    expect(dialog).toHaveTextContent('A cada 90 dias')
+    expect(dialog).not.toHaveTextContent('A cada 30 dias')
+  })
+
+  it('na edição, trocar o tipo pelo select corta o campo proibido do PATCH', async () => {
+    vi.mocked(updateTriggerConfig).mockResolvedValue({ ...existingConfig })
+    open({
+      ...existingConfig,
+      type: 'CALENDAR_MONTHLY',
+      interval_value: null,
+      interval_unit: null,
+      day_of_month: 15,
+    })
+
+    await userEvent.selectOptions(screen.getByLabelText('Como você quer repetir?'), 'INTERVAL')
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+
+    await waitFor(() =>
+      expect(updateTriggerConfig).toHaveBeenCalledWith('cfg-edit', expect.anything()),
+    )
+    const payload = vi.mocked(updateTriggerConfig).mock.calls[0]![1] as Record<string, unknown>
+    expect(payload).not.toHaveProperty('day_of_month')
+    expect(payload).toMatchObject({ type: 'INTERVAL', interval_value: 30, interval_unit: 'days' })
+    expect(await screen.findByText('Regra atualizada.')).toBeInTheDocument()
   })
 
   /**

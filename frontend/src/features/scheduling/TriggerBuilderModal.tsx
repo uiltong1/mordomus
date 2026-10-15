@@ -12,6 +12,7 @@ import {
   buildPreviewPayload,
   emptyTriggerForm,
   fieldsForType,
+  summarizeTrigger,
   triggerFormFrom,
   validateTriggerForm,
   type TriggerFormState,
@@ -215,7 +216,11 @@ function TriggerForm({
     <Modal
       open
       title={config ? 'Editar regra' : 'Nova regra de manutenção'}
-      description={`${subjectName} — ${selected?.example ?? ''}`}
+      description={
+        config
+          ? `${subjectName} — ${summarizeTrigger(config)}`
+          : `${subjectName} — ${selected?.example ?? ''}`
+      }
       onClose={onClose}
       footer={
         <>
@@ -238,35 +243,59 @@ function TriggerForm({
           </p>
         ) : null}
 
-        <fieldset className="space-y-2">
-          <legend className="text-xs font-medium text-ink-muted">Como você quer repetir?</legend>
-          <div className="space-y-2" role="radiogroup" aria-label="Tipo de repetição">
-            {TRIGGER_TYPE_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className={[
-                  'flex cursor-pointer gap-3 rounded-control border px-3 py-2.5 transition-colors',
-                  form.type === option.value
-                    ? 'border-brand bg-brand/10'
-                    : 'border-line hover:bg-surface-2',
-                ].join(' ')}
+        {/* Na edição o tipo vira um select: os quatro cartões empurravam os
+            campos já carregados para fora da área visível do modal. */}
+        {config ? (
+          <Field label="Como você quer repetir?">
+            {({ id, describedBy }) => (
+              <Select
+                id={id}
+                name="trigger-type"
+                value={form.type}
+                aria-describedby={describedBy}
+                onChange={(event) => changeType(event.target.value as TriggerType)}
               >
-                <input
-                  type="radio"
-                  name="trigger-type"
-                  value={option.value}
-                  checked={form.type === option.value}
-                  onChange={() => changeType(option.value)}
-                  className="mt-1 accent-brand"
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-ink">{option.label}</span>
-                  <span className="mt-0.5 block text-xs text-ink-muted">{option.description}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+                {TRIGGER_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        ) : (
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-medium text-ink-muted">Como você quer repetir?</legend>
+            <div className="space-y-2" role="radiogroup" aria-label="Tipo de repetição">
+              {TRIGGER_TYPE_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={[
+                    'flex cursor-pointer gap-3 rounded-control border px-3 py-2.5 transition-colors',
+                    form.type === option.value
+                      ? 'border-brand bg-brand/10'
+                      : 'border-line hover:bg-surface-2',
+                  ].join(' ')}
+                >
+                  <input
+                    type="radio"
+                    name="trigger-type"
+                    value={option.value}
+                    checked={form.type === option.value}
+                    onChange={() => changeType(option.value)}
+                    className="mt-1 accent-brand"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-ink">{option.label}</span>
+                    <span className="mt-0.5 block text-xs text-ink-muted">
+                      {option.description}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <Field label="Nome da regra" errors={fieldError('title')}>
           {({ id, describedBy, invalid }) => (
