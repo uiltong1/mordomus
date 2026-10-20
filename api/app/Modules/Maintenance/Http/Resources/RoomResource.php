@@ -4,14 +4,8 @@ namespace Mordomus\Maintenance\Http\Resources;
 
 use Mordomus\Maintenance\Models\Room;
 
-/**
- * Shape do cômodo.
- */
 final class RoomResource
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function make(Room $room): array
     {
         return [
@@ -27,10 +21,6 @@ final class RoomResource
         ];
     }
 
-    /**
-     * @param  iterable<Room>  $rooms
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $rooms): array
     {
         return collect($rooms)

@@ -1,14 +1,3 @@
-/**
- * Query keys namespaced por residência (T4.1.4, regra R6).
- *
- * Toda chave de dado de domínio começa pelo recurso e carrega o `tenantId` na
- * segunda posição: `['rooms', '01J8...']`. Duas residências nunca disputam a
- * mesma entrada de cache, e a troca de tenant pode invalidar por prefixo
- * (`['rooms', novoTenant]`) sem tocar no que a outra tela leu.
- *
- * O prefixo `['mordomus']` é a raiz: `queryClient.clear()` e a limpeza da
- * sessão usam só ele.
- */
 export const ROOT_KEY = 'mordomus' as const
 
 export function tenantKey(
@@ -19,7 +8,6 @@ export function tenantKey(
   return [ROOT_KEY, resource, tenantId, ...params]
 }
 
-/** Chaves de sessão e perfil: não são dados de residência, logo não levam tenant. */
 export const authKeys = {
   profile: () => [ROOT_KEY, 'profile'] as const,
   tenants: () => [ROOT_KEY, 'tenants'] as const,
@@ -30,14 +18,6 @@ export const resourceKeys = {
   devices: (tenantId: string | null) => tenantKey(tenantId, 'devices'),
   rooms: (tenantId: string | null) => tenantKey(tenantId, 'rooms'),
   room: (tenantId: string | null, roomId: string) => tenantKey(tenantId, 'rooms', roomId),
-  /**
-   * Filtro ausente não entra na chave.
-   *
-   * Com `null` dentro da chave, `assets(residencia)` deixaria de ser prefixo de
-   * `assets(residencia, comodo)` e a invalidação "invalida o inventário inteiro"
-   * pararia de alcançar a tela do cômodo — o filtro é o mesmo dado lido de outro
-   * ângulo, não outra coisa.
-   */
   assets: (tenantId: string | null, roomId?: string | null) =>
     roomId ? tenantKey(tenantId, 'assets', roomId) : tenantKey(tenantId, 'assets'),
   occurrences: (tenantId: string | null, ...filters: readonly (string | null)[]) =>

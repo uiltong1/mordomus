@@ -13,29 +13,6 @@ use Mordomus\Notification\Contracts\Services\WebPushEncryptionServiceInterface;
 use Mordomus\Notification\Models\DeviceToken;
 use RuntimeException;
 
-/**
- * Web Push para navegador (ADR-001).
- *
- * A entrega é um `POST` direto no `endpoint` da assinatura — não existe
- * intermediário nosso, e é o que mantém o módulo sem depender de fornecedor. O
- * corpo vai cifrado (RFC 8291) e a autenticação é o JWT VAPID no cabeçalho.
- *
- * O canal é quem traduz o conteúdo gravado na linha para o formato do service
- * worker, porque o payload da rede é contrato do **worker** e o conteúdo é
- * contrato do módulo. As duas coisas estão na mesma chave `body` do
- * `notification_logs` e em formatos diferentes por um motivo só: a rede fala
- * com o navegador, e não com o banco.
- *
- * O status é o contrato com o serviço de push, e ele tem três respostas que
- * merecem decisões diferentes:
- *
- * - **2xx** entregou;
- * - **404/410** a assinatura não existe mais (o navegador limpou os dados do
- *   site, o Chrome trocou a chave do push) — a linha sai, porque tentar de novo
- *   é tentar para sempre;
- * - **401/403/429/5xx** o serviço não deu resposta utilizável — isso é
- *   exceção, e exceção é retry.
- */
 final class WebPushChannel implements PushChannelInterface
 {
     private const GONE_STATUSES = [404, 410];
@@ -95,16 +72,6 @@ final class WebPushChannel implements PushChannelInterface
         ));
     }
 
-    /**
-     * O payload do service worker (ADR-001).
-     *
-     * As linhas viram uma frase só porque o card do push tem uma linha de
-     * texto, e o `tag` vem junto para que o mesmo aviso substitua o card
-     * anterior em vez de empilhar outro.
-     *
-     * @param  array<string, mixed>  $content
-     * @return array<string, mixed>
-     */
     private function wire(array $content): array
     {
         return [
@@ -121,10 +88,6 @@ final class WebPushChannel implements PushChannelInterface
         ];
     }
 
-    /**
-     * A origem do serviço de push, e não a do endpoint: é a origem que o
-     * serviço valida contra o `aud` do token VAPID.
-     */
     private function audience(DeviceToken $device): string
     {
         $parts = parse_url($device->endpoint);

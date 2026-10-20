@@ -17,21 +17,12 @@ use Mordomus\Scheduling\Jobs\PublishEvent;
 use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Ciclo do vencimento: o que o motor materializa vira linha na conta, a baixa
- * é idempotente e o histórico é filtrável.
- *
- * O relógio é congelado porque o que está em jogo aqui é a fronteira com o
- * Scheduling: o vencimento nasce na data que o motor calculou, e não na que o
- * Financial calcularia.
- */
 class BillOccurrenceFlowTest extends FeatureTestCase
 {
     private const NOW = '2026-04-01 12:00:00';
 
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     private string $ownerId = '';
@@ -50,9 +41,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
             'Accept' => 'application/json',
         ];
 
-        // O token é emitido antes do congelamento: o `firebase/php-jwt` valida
-        // `iat`/`nbf` contra o relógio do sistema, e um token emitido no
-        // "futuro" do relógio congelado seria recusado como inválido.
         CarbonImmutable::setTestNow(CarbonImmutable::parse(self::NOW, 'UTC'));
     }
 
@@ -73,7 +61,7 @@ class BillOccurrenceFlowTest extends FeatureTestCase
             ->getJson('/api/v1/financial/occurrences')
             ->assertOk()
             ->assertJsonCount(2, 'data')
-            // Dia 10 com a janela padrão de 45 dias: abril e maio.
+
             ->assertJsonPath('data.0.due_date', '2026-04-10')
             ->assertJsonPath('data.0.amount', '187.43')
             ->assertJsonPath('data.0.status', BillOccurrence::STATUS_OPEN)
@@ -88,8 +76,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         $this->createBill(['name' => 'Aluguel', 'due_day' => 10]);
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // R7: a data do vencimento é a `scheduled_for` da ocorrência do motor,
-        // e o Financial só a grava.
         $this->withHeaders($this->headers)
             ->getJson('/api/v1/financial/occurrences')
             ->assertOk()
@@ -123,8 +109,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
 
         $occurrenceId = $this->occurrenceId('2026-04-10');
 
-        // Reentrega do mesmo `schedule.occurrence.created`: a linha existe, é
-        // reconciliada, e o índice único fecha qualquer corrida.
         $this->artisan('scheduling:materialize')->assertSuccessful();
         $this->artisan('scheduling:publish-due')->assertSuccessful();
 
@@ -139,8 +123,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         $this->createBill(['name' => 'Condomínio', 'due_day' => 31]);
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // Fevereiro é curto: o dia 31 vira o último dia do mês, e o ciclo não
-        // fica preso nele nem pula para março.
         $this->assertSame(['2026-01-31', '2026-02-28'], $this->dueDates());
     }
 
@@ -170,7 +152,7 @@ class BillOccurrenceFlowTest extends FeatureTestCase
             ->assertJsonPath('data.due_date', '2026-04-18')
             ->assertJsonPath('data.amount', '213.77')
             ->assertJsonPath('data.status', BillOccurrence::STATUS_OPEN)
-            // Lançamento manual não tem agenda por trás dele.
+
             ->assertJsonPath('data.schedule_id', null);
     }
 
@@ -286,9 +268,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
             'status' => Membership::STATUS_ACTIVE,
         ]);
 
-        // O relógio volta ao real para emitir o token do morador: `exp` sai de
-        // `now()`, e um token emitido no congelado já nasceria vencido para o
-        // `firebase/php-jwt`, que compara com o relógio do sistema.
         CarbonImmutable::setTestNow();
         $memberHeaders = $this->authHeadersFor($member, $this->tenantId);
         CarbonImmutable::setTestNow(self::NOW);
@@ -302,7 +281,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
             ->assertForbidden()
             ->assertJsonPath('error.details.required', 'bills.manage');
 
-        // Pagar é tarefa de morador: `bills.pay` existe justamente para isso.
         $this->withHeaders($memberHeaders)
             ->postJson('/api/v1/financial/occurrences/'.$occurrence.'/paid', ['method' => PaymentRecord::METHOD_PIX])
             ->assertOk()
@@ -359,9 +337,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         $this->createBill(['name' => 'Aluguel', 'amount' => '1800.00', 'due_day' => 10]);
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // A outra casa é criada com o relógio real pelo mesmo motivo do
-        // token do morador: `exp` sai de `now()` e nasceria vencido no
-        // congelado.
         CarbonImmutable::setTestNow();
         $outra = $this->registerUser('outra-casa-historico@mordomus.test', 'Outra', 'Casa B');
         CarbonImmutable::setTestNow(self::NOW);
@@ -396,14 +371,11 @@ class BillOccurrenceFlowTest extends FeatureTestCase
 
         $this->artisan('financial:project')->assertSuccessful();
 
-        // Em 12/04 o dia 10 de abril já passou e o motor só materializou o de
-        // maio: o vencido é o lançamento de 02/04, e ele muda de estado.
         $this->assertSame(
             [BillOccurrence::STATUS_OVERDUE, BillOccurrence::STATUS_OPEN],
             $this->occurrenceStatuses(),
         );
 
-        // Repetir a projeção não muda nada: só `open` que já venceu entra.
         $this->artisan('financial:project')->assertSuccessful();
 
         $this->assertSame(
@@ -417,10 +389,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         $this->createBill(['name' => 'Aluguel', 'amount' => '1800.00', 'due_day' => 10]);
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // O consumidor caiu depois de a ocorrência do motor existir: o evento
-        // já foi publicado e não volta, e o motor considera a data
-        // materializada. O vencimento sumiria da lista para sempre sem a
-        // projeção.
         $this->withTenantContext($this->tenantId, function (): void {
             BillOccurrence::query()->delete();
         });
@@ -438,7 +406,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
             ),
         );
 
-        // Repetir a projeção não duplica nada.
         $this->artisan('financial:project')->assertSuccessful();
 
         $this->assertSame(2, $this->occurrenceCount());
@@ -452,8 +419,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
 
         $this->artisan('financial:project')->assertSuccessful();
 
-        // A reconciliação só preenche o que falta: o que foi pago não volta
-        // a ser previsto, e a linha não se abre de novo.
         $this->assertSame(
             BillOccurrence::STATUS_PAID,
             $this->withTenantContext(
@@ -487,8 +452,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         $this->createBill(['name' => 'Conta de luz', 'amount' => '187.43', 'due_day' => 10, 'advance_notice_days' => 3]);
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // Aviso com 3 dias de antecedência vence em 07/04 às 09:00 de São
-        // Paulo (12:00 UTC).
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-07 13:00:00', 'UTC'));
         $this->artisan('scheduling:publish-due')->assertSuccessful();
 
@@ -534,8 +497,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
 
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // A ocorrência do ativo vence em 01/05, e o aviso sai no mesmo dia: o
-        // consumidor do Financial olha o alvo e não faz nada com ele.
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-05-01 13:00:00', 'UTC'));
         $this->artisan('scheduling:publish-due')->assertSuccessful();
 
@@ -573,11 +534,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         $this->assertSame($this->ownerId, $paid[0]['payload']['paid_by']);
     }
 
-    // -------------------------------------------------------------- helpers
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function createBill(array $payload): TestResponse
     {
         $response = $this->withHeaders($this->headers)->postJson(
@@ -599,9 +555,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         ]);
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function pay(string $occurrenceId, array $payload): TestResponse
     {
         return $this->withHeaders($this->headers)
@@ -645,7 +598,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         );
     }
 
-    /** @return list<string> */
     private function dueDates(): array
     {
         return $this->withTenantContext(
@@ -658,7 +610,6 @@ class BillOccurrenceFlowTest extends FeatureTestCase
         );
     }
 
-    /** @return list<string> */
     private function occurrenceStatuses(): array
     {
         return $this->withTenantContext(

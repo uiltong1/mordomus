@@ -77,7 +77,6 @@ describe('api client', () => {
 
     expect(result.data.id).toBe('u1')
     expect(mock).toHaveBeenCalledTimes(3)
-    // a repetição vai com o token novo, não com o velho que deu 401
     const retried = (mock.mock.calls[2]![1] as RequestInit).headers as Record<string, string>
     expect(retried.Authorization).toBe('Bearer access-2')
     expect(getSession()?.accessToken).toBe('access-2')
@@ -102,8 +101,6 @@ describe('api client', () => {
   })
 
   it('renova antes do exp estourar, sem esperar o 401', async () => {
-    // token com 10 s de vida entra na margem de 30 s: a próxima requisição
-    // tem de sair já com o token novo, senão ela paga um 401 à toa
     saveSession(sessionFixture({ expires_in: 10, access_token: 'access-velho' }))
     const mock = fetchMock(
       jsonResponse(sessionFixture({ access_token: 'access-novo', refresh_token: 'refresh-2' })),
@@ -113,7 +110,6 @@ describe('api client', () => {
     await request({ path: '/identity/me' })
 
     expect(mock).toHaveBeenCalledTimes(2)
-    // o refresh vem primeiro: a requisição original nunca levou o token velho
     expect(String(mock.mock.calls[0]![0])).toContain('/identity/auth/refresh')
     const headers = (mock.mock.calls[1]![1] as RequestInit).headers as Record<string, string>
     expect(headers.Authorization).toBe('Bearer access-novo')

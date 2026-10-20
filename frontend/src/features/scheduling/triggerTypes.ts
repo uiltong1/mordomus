@@ -1,19 +1,10 @@
 import type { IntervalUnit, RecalculateBase, TriggerConfig, TriggerType } from '@/shared/api/types'
 import type { TriggerConfigInput, TriggerPreviewInput, TriggerTypeFields } from './api'
 
-/**
- * Os quatro jeitos de repetir uma manutenção, escritos para o morador ler.
- *
- * O backend valida por tipo: cada campo que **não** pertence ao tipo escolhido
- * é `prohibited` e derruba o `POST` com 422. A descrição aqui não é enfeite —
- * é o que permite a tela escolher o tipo certo sem o morador tropeçar num
- * campo recusado.
- */
 export interface TriggerTypeOption {
   value: TriggerType
   label: string
   description: string
-  /** Frase de exemplo do formulário já preenchido com o tipo certo. */
   example: string
 }
 
@@ -48,11 +39,6 @@ export const TRIGGER_TYPE_OPTIONS: readonly TriggerTypeOption[] = [
   },
 ] as const
 
-/**
- * Campos de tipo que cada configuração exige. Espelha `TriggerTypeRules::requiredByType`
- * do monólito — e o espelho é literal de propósito: um campo a mais aqui vira um
- * 422 que o morador lê como "o aplicativo quebrou".
- */
 const FIELDS_BY_TYPE: Record<TriggerType, readonly (keyof TriggerTypeFieldSet)[]> = {
   INTERVAL: ['interval_value', 'interval_unit'],
   CALENDAR_MONTHLY: ['day_of_month'],
@@ -68,7 +54,6 @@ export interface TriggerTypeFieldSet {
   custom_offsets: number[]
 }
 
-/** Estado do formulário. Espelha o payload, mas guarda `null` no que não foi preenchido. */
 export interface TriggerFormState extends TriggerTypeFieldSet {
   title: string
   description: string
@@ -76,7 +61,6 @@ export interface TriggerFormState extends TriggerTypeFieldSet {
   advanceNoticeDays: number
   preferredHour: string
   type: TriggerType
-  /** Âncora do ciclo para o preview ("e se o último foi dia X?"). */
   base: string
 }
 
@@ -114,19 +98,10 @@ export function triggerFormFrom(config: TriggerConfig): TriggerFormState {
   }
 }
 
-/** Campos que o tipo escolhido realmente usa — o resto nem entra no payload. */
 export function fieldsForType(type: TriggerType): readonly (keyof TriggerTypeFieldSet)[] {
   return FIELDS_BY_TYPE[type]
 }
 
-/**
- * Monta o payload de tipo descartando o que o tipo escolhido proíbe.
- *
- * É o ponto onde a maior parte dos 422 desta tela nasce: o formulário guarda o
- * `day_of_month` que o morador digitou num tipo mensal, troca para "a cada 30
- * dias" e o campo continua no estado. Sem o corte aqui, o backend responde
- * "The day of month field is prohibited" para um formulário que está certo.
- */
 export function typeFieldsPayload(form: TriggerFormState): TriggerTypeFields {
   const allowed = FIELDS_BY_TYPE[form.type]
   const payload: TriggerTypeFields = {}
@@ -150,14 +125,6 @@ export function typeFieldsPayload(form: TriggerFormState): TriggerTypeFields {
   return payload
 }
 
-/**
- * Recusa local antes do round-trip, com a mesma severidade do backend.
- *
- * `scope: 'preview'` valida só os campos de tipo: a data que o morador quer ver
- * não depende do nome da regra, e exigir o nome antes de mostrar a data
- * transformaria o botão "ver quando cai" em mais uma etapa. O `scope: 'save'`
- * valida tudo, porque o backend exige o título.
- */
 export function validateTriggerForm(
   form: TriggerFormState,
   scope: 'save' | 'preview' = 'save',
@@ -205,7 +172,6 @@ export function validateTriggerForm(
   return errors
 }
 
-/** Payload de `POST /trigger-configs` e do `PATCH`. */
 export function buildConfigPayload(form: TriggerFormState): TriggerConfigInput {
   return {
     type: form.type,
@@ -218,10 +184,6 @@ export function buildConfigPayload(form: TriggerFormState): TriggerConfigInput {
   }
 }
 
-/**
- * Payload de `POST /preview`. Mesmo corte de campos proibidos do `buildConfigPayload`
- * — a validação de tipo é a mesma trait no backend, e o preview não é exceção.
- */
 export function buildPreviewPayload(form: TriggerFormState): TriggerPreviewInput {
   return {
     type: form.type,
@@ -231,16 +193,10 @@ export function buildPreviewPayload(form: TriggerFormState): TriggerPreviewInput
   }
 }
 
-/** Texto curto da regra, para o card e para o item da agenda. */
 export function describeTriggerType(type: TriggerType): string {
   return TRIGGER_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type
 }
 
-/**
- * "A cada 30 dias" / "Todo dia 10 do mês". O rótulo de 30 dias que o morador
- * digita precisa reaparecer na agenda: sem ele, um `INTERVAL` de 30 e um de 15
- * ficariam idênticos na lista.
- */
 export function summarizeTrigger(config: {
   type: TriggerType
   interval_value: number | null

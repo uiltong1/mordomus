@@ -9,16 +9,12 @@ use Mordomus\Identity\Contracts\Services\RefreshTokenServiceInterface;
 use Mordomus\Identity\Exceptions\InvalidRefreshToken;
 use Mordomus\Identity\Models\User;
 
-/**
- * Refresh token com rotação e detecção de reuso.
- */
 class RefreshTokenService implements RefreshTokenServiceInterface
 {
     public function __construct(
         private readonly RefreshTokenRepositoryInterface $tokens,
     ) {}
 
-    /** @return array{plain: string, id: string, expires_in: int} */
     public function issue(User $user): array
     {
         $plain = bin2hex(random_bytes(32));
@@ -33,12 +29,6 @@ class RefreshTokenService implements RefreshTokenServiceInterface
         ];
     }
 
-    /**
-     * Consome o token atual: revoga-o, emite outro e devolve o usuário.
-     * Reuso de token já rotacionado revoga a família inteira (401).
-     *
-     * @return array{user: User, new: array{plain: string, id: string, expires_in: int}}
-     */
     public function rotate(string $plain): array
     {
         $token = $this->tokens->findByHash(hash('sha256', $plain));
@@ -70,7 +60,6 @@ class RefreshTokenService implements RefreshTokenServiceInterface
         return ['user' => $user, 'new' => $new];
     }
 
-    /** Revoga o token (logout). */
     public function revoke(string $plain): void
     {
         $this->tokens->revokeByHash(hash('sha256', $plain));

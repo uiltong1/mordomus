@@ -9,12 +9,6 @@ import {
   skipOccurrence,
 } from './api'
 
-/**
- * Janela padrão do painel: o passado curto pega o que está atrasado e o futuro
- * médio mostra a fila que vem. Fora dela não há nada acionável — o que já foi
- * concluído há mais de 3 meses é histórico, e o que vence depois de 2 meses
- * ainda dá tempo de cadastrar a regra antes.
- */
 export const DASHBOARD_BACKWARD_DAYS = 90
 export const DASHBOARD_FORWARD_DAYS = 60
 
@@ -37,7 +31,6 @@ export function useOccurrences(filters: OccurrenceFilters, enabled = true) {
 }
 
 export interface OccurrenceActionResult {
-  /** `true` quando a transição aconteceu nesta chamada, `false` quando era repetição. */
   changed: boolean
 }
 
@@ -63,8 +56,6 @@ function useOccurrenceTransition(action: 'complete' | 'skip') {
       return { changed: !settled }
     },
     onSuccess: () => {
-      // a linha muda de status e a regra recalcula o próximo ciclo na fila; sem
-      // invalidar, o card continuaria mostrando o mesmo vencimento
       void queryClient.invalidateQueries({
         queryKey: resourceKeys.occurrences(activeTenantId),
       })
@@ -83,11 +74,6 @@ export function useSkipOccurrence() {
   return useOccurrenceTransition('skip')
 }
 
-/**
- * Check-in pelo card do cômodo. Usa o atalho de `maintenance` — mesmo efeito
- * sobre a mesma linha, e o 404 de escopo (`occurrence_not_found`) é o que
- * impede concluir uma conta por este caminho.
- */
 export function useCompleteAssetOccurrence() {
   const { activeTenantId } = useTenant()
   const queryClient = useQueryClient()

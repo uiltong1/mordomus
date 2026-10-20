@@ -11,14 +11,6 @@ use Mordomus\Common\Support\TenantContext;
 use Mordomus\Financial\Contracts\Services\BillScheduleConsumerServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 
-/**
- * Projeção dos vencimentos da residência: reconcilia o que o motor materializou
- * e marca o que já venceu.
- *
- * Roda no processo do scheduler, sem fila no meio: a passada é uma leitura por
- * residência e uma escrita pequena, e passar pela fila transformaria uma
- * varredura de 15 minutos em N tarefas para reencontrar as mesmas linhas.
- */
 class ProjectBillsCommand extends Command
 {
     use EnumeratesTenants;
@@ -38,8 +30,6 @@ class ProjectBillsCommand extends Command
         foreach ($tenantIds as $tenantId) {
             $today = CarbonImmutable::now($calendar->timezone($tenantId))->format('Y-m-d');
 
-            // O escopo global do Eloquent é fail-closed fora de contexto: sem
-            // esta moldura a varredura leria zero linhas de todo tenant.
             [$createdNow, $overdueNow] = TenantContext::runWith(
                 $tenantId,
                 fn (): array => [

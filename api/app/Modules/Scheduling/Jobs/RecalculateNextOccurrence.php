@@ -16,16 +16,6 @@ use Mordomus\Scheduling\Contracts\Services\OccurrenceRecalculatorServiceInterfac
 use Mordomus\Scheduling\Jobs\Concerns\RunsInsideTenant;
 use Throwable;
 
-/**
- * Refaz o ciclo depois do check-in.
- *
- * `ShouldBeUnique` com a chave `tenant:{residência}:{ocorrência}:{dia}` é a
- * rede de proteção do R3: se dois check-ins quase simultâneos escaparem da
- * atualização condicional, o segundo job nem entra na fila. O backoff é
- * exponencial e curto porque a falha esperada é transitória (banco ocupado,
- * worker reiniciando) — esgotar as tentativas manda para a DLQ, que é onde
- * alguém precisa olhar.
- */
 class RecalculateNextOccurrence implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, RunsInsideTenant, SerializesModels;
@@ -34,7 +24,6 @@ class RecalculateNextOccurrence implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 300;
 
-    /** @var list<int> */
     public array $backoff = [10, 60, 300];
 
     public function __construct(

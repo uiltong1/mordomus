@@ -7,18 +7,8 @@ use Illuminate\Support\Str;
 use Mordomus\Identity\Contracts\Services\JwtIssuerServiceInterface;
 use Mordomus\Identity\Models\User;
 
-/**
- * Emissão do access token de usuário (claims: sub, tid, tenants, iss).
- * O refresh token é emitido/rotacionado por RefreshTokenService.
- */
 class JwtIssuerService implements JwtIssuerServiceInterface
 {
-    /**
-     * Montagem das claims (puro — coberto por teste unitário sem banco).
-     *
-     * @param  list<string>  $tenantIds
-     * @return array<string, mixed>
-     */
     public function claims(string $userId, ?string $activeTenantId, array $tenantIds, int $timestamp): array
     {
         $ttl = (int) config('jwt.ttl', 60);
@@ -34,9 +24,6 @@ class JwtIssuerService implements JwtIssuerServiceInterface
         ];
     }
 
-    /**
-     * @return array{token_type: string, access_token: string, expires_in: int, active_tenant: ?string}
-     */
     public function issue(User $user, ?string $activeTenantId = null): array
     {
         $privateKey = config('jwt.private_key');

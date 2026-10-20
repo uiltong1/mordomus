@@ -18,12 +18,6 @@ abstract class TestCase extends BaseTestCase
         $this->ensureJwtKeys();
     }
 
-    /**
-     * O PHPUnit grava os `<env>` do phpunit.xml em $_ENV/getenv, mas não em
-     * $_SERVER — e o repositório de env do Laravel lê $_SERVER primeiro (onde
-     * seguem as variáveis do compose, ex.: DB_CONNECTION=pgsql). Copia $_ENV
-     * para $_SERVER antes do boot para que os valores de teste valam de fato.
-     */
     private function syncServerEnv(): void
     {
         foreach ($_ENV as $key => $value) {
@@ -33,10 +27,6 @@ abstract class TestCase extends BaseTestCase
         }
     }
 
-    /**
-     * Sem chaves no ambiente (ex.: execução fora do compose) o teste gera um par
-     * efêmero — os testes ficam autocontidos.
-     */
     private function ensureJwtKeys(): void
     {
         if (config('jwt.private_key') && config('jwt.public_key')) {
@@ -58,11 +48,6 @@ abstract class TestCase extends BaseTestCase
         ]);
     }
 
-    /**
-     * Header Authorization com um JWT RS256 real para o usuário/tenant.
-     *
-     * @return array<string, string>
-     */
     protected function authHeadersFor(User $user, ?string $tenantId = null): array
     {
         $tokens = app(JwtIssuerService::class)->issue($user, $tenantId);
@@ -78,7 +63,6 @@ abstract class TestCase extends BaseTestCase
         return $this->withHeaders($this->authHeadersFor($user, $tenantId));
     }
 
-    /** @return array<string, mixed> claims decodificados */
     protected function claimsOf(string $token): array
     {
         return app(JwtVerifierService::class)->verify($token);

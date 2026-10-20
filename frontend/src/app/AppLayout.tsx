@@ -14,10 +14,6 @@ const NAV_ITEMS = [
   { to: '/financas', label: 'Finanças', end: false },
 ] as const
 
-/**
- * Moldura da área logada. A troca de residência fica no cabeçalho porque é uma
- * decisão global: vale para cômodos, agenda, contas e notificações.
- */
 export function AppLayout() {
   const { user, logout } = useAuth()
   const { needsTenant } = useTenant()

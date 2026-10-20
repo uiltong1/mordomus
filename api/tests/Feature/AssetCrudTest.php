@@ -9,16 +9,10 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Maintenance\Models\Asset;
 use Mordomus\Maintenance\Models\Room;
 
-/**
- * Inventário de ativos: CRUD com `room_id`, filtros/paginação,
- * transferência entre cômodos, isolamento por residência (AC 1) e datas no
- * fuso do tenant (AC 2).
- */
 class AssetCrudTest extends FeatureTestCase
 {
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     protected function setUp(): void
@@ -68,7 +62,6 @@ class AssetCrudTest extends FeatureTestCase
             ->assertJsonPath('data.id', $assetId);
     }
 
-    /** AC 1 — o ativo só existe dentro de cômodo da mesma residência. */
     public function test_asset_only_exists_inside_a_room_of_the_same_tenant(): void
     {
         $other = $this->registerUser('outra-casa-ativos@mordomus.test', 'Outra', 'Casa B');
@@ -78,7 +71,6 @@ class AssetCrudTest extends FeatureTestCase
             'sort_order' => 1,
         ]);
 
-        // ativo não nasce em cômodo de outra residência
         $denied = $this->withHeaders($this->headers)->postJson('/api/v1/maintenance/assets', [
             'room_id' => $foreignRoom->id,
             'name' => 'Invasão',
@@ -87,7 +79,6 @@ class AssetCrudTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'room_not_found');
         $this->assertDatabaseCount('assets', 0);
 
-        // ativo já existente em outra residência fica inacessível
         $foreign = Asset::create([
             'tenant_id' => $other['active_tenant'],
             'room_id' => $foreignRoom->id,
@@ -139,7 +130,6 @@ class AssetCrudTest extends FeatureTestCase
             ->patchJson('/api/v1/maintenance/assets/'.$assetId, ['room_id' => $bedroom]);
         $moved->assertOk()->assertJsonPath('data.room_id', $bedroom);
 
-        // cômodo de outra residência
         $other = $this->registerUser('outra-transferencia@mordomus.test', 'Outra', 'Casa B');
         $foreignRoom = Room::create([
             'tenant_id' => $other['active_tenant'],
@@ -187,10 +177,9 @@ class AssetCrudTest extends FeatureTestCase
         $this->assertSame(2, $page->json('meta.per_page'));
     }
 
-    /** AC 2 — a mesma data vira outro offset conforme o fuso da residência. */
     public function test_dates_are_formatted_in_the_tenants_timezone(): void
     {
-        // residência A: fuso padrão America/Sao_Paulo
+
         $roomA = $this->createRoom('Sala');
         $saoPaulo = $this->withHeaders($this->headers)->postJson('/api/v1/maintenance/assets', [
             'room_id' => $roomA,
@@ -200,7 +189,6 @@ class AssetCrudTest extends FeatureTestCase
 
         $this->assertSame('2027-03-15T00:00:00-03:00', $saoPaulo);
 
-        // residência B: explicitamente em UTC
         $authB = $this->registerUser('utc@casa-mordomus.test', 'UTC', 'Casa UTC');
         $headersB = ['Authorization' => 'Bearer '.$authB['access_token'], 'Accept' => 'application/json'];
 
@@ -227,8 +215,6 @@ class AssetCrudTest extends FeatureTestCase
 
         $this->assertSame('2027-03-15T00:00:00+00:00', $utc);
 
-        // "meia-noite de 15/03" é um instante diferente em cada fuso — e a
-        // leitura de volta devolve o mesmo calendário de cada residência.
         $this->withHeaders($this->headers)
             ->getJson('/api/v1/maintenance/assets?room_id='.$roomA)
             ->assertOk()
@@ -240,7 +226,6 @@ class AssetCrudTest extends FeatureTestCase
             ->assertJsonPath('data.0.warranty_until', '2027-03-15T00:00:00+00:00');
     }
 
-    /** member não tem `assets.manage`; leitura segue liberada. */
     public function test_member_without_assets_manage_cannot_write(): void
     {
         $roomId = $this->createRoom('Sala');

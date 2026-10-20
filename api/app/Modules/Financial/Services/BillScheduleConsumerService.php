@@ -18,19 +18,8 @@ use Mordomus\Scheduling\Contracts\Repositories\JobScheduleRepositoryInterface;
 use Mordomus\Scheduling\Contracts\Services\EventPublisherServiceInterface;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Reação aos eventos do Scheduling: o vencimento que a casa vai pagar.
- *
- * A fila entrega o mesmo evento mais de uma vez (at-least-once), então tudo
- * aqui é escrito para a segunda entrega não virar segunda linha: a chave é
- * `unique(bill_id, due_date)` e a reconciliação só preenche o que falta.
- *
- * Nenhuma data é calculada neste módulo (regra R7): `scheduled_for` chega
- * pronto do motor e vai para a coluna como veio.
- */
 final class BillScheduleConsumerService implements BillScheduleConsumerServiceInterface
 {
-    /** Valor previsto quando a conta ainda não tem valor conhecido. */
     private const AMOUNT_UNKNOWN = '0.00';
 
     public function __construct(
@@ -47,9 +36,7 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
         $bill = $this->bills->find($this->string($payload, 'subject_id'), $tenantId);
 
         if ($bill === null) {
-            // A regra aponta para uma conta que não existe na residência: é
-            // dado inconsistente, e perder o vencimento em silêncio seria a
-            // única forma de a conta sumir do histórico sem ninguém perceber.
+
             Log::warning('financial.bill_not_found_for_occurrence', [
                 'tenant_id' => $tenantId,
                 'bill_id' => $this->string($payload, 'subject_id'),
@@ -85,11 +72,6 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
         return $created;
     }
 
-    /**
-     * Vencimento a partir da data que o motor calculou.
-     *
-     * @param  array{schedule_id: string, due_date: string}  $payload
-     */
     private function materialize(string $tenantId, Bill $bill, array $payload): bool
     {
         $existing = $this->occurrences->findByDueDate($bill->id, $payload['due_date']);
@@ -108,9 +90,6 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
             'amount' => $this->amount($bill),
         ]);
 
-        // A cota é do mesmo instante em que o vencimento passa a existir: é o
-        // dia em que a casa pode dizer a cada morador quanto é a parte dele, e
-        // esperar a tela abrir para isso deixaria a conta sem dono.
         $this->splits->compute($occurrence);
 
         return true;
@@ -130,11 +109,6 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
             return;
         }
 
-        // Republicação no vocabulário da conta: quem notifica recebe
-        // `bill_occurrence_id`, valor e dia de vencimento, e não precisa saber
-        // que o alvo da regra era uma conta. O `dedupe_key` viaja junto para
-        // que a deduplicação do Notification (R6) reconheça o aviso repetido
-        // do mesmo vencimento.
         $this->publisher->publish(EventName::BILL_DUE, $tenantId, [
             'tenant_id' => $tenantId,
             'bill_occurrence_id' => $occurrence->id,
@@ -162,13 +136,6 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
         return $marked;
     }
 
-    /**
-     * Segunda entrega do mesmo vencimento.
-     *
-     * Preenche o que falta e só mexe no valor enquanto a conta está em aberto:
-     * depois de paga, o valor gravado é o que foi quitado e trocar de novo
-     * reescreveria o histórico.
-     */
     private function reconcile(BillOccurrence $occurrence, string $scheduleId, string $amount): void
     {
         $attributes = array_filter([
@@ -182,13 +149,9 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
 
         $occurrence = $this->occurrences->change($occurrence, $attributes);
 
-        // O valor previsto da conta é a base da divisão, então mudá-lo muda a
-        // cota de todo mundo. Sem isto, a casa ficaria com a cota do valor
-        // antigo e o total da fatura nova.
         $this->splits->compute($occurrence);
     }
 
-    /** Conta variável não tem valor previsto: o lançamento começa em zero. */
     private function amount(Bill $bill): string
     {
         return $bill->amount === null
@@ -196,7 +159,6 @@ final class BillScheduleConsumerService implements BillScheduleConsumerServiceIn
             : $this->money->fromCents($this->money->cents($bill->amount));
     }
 
-    /** @param array<string, mixed> $payload */
     private function string(array $payload, string $key): string
     {
         $value = $payload[$key] ?? null;

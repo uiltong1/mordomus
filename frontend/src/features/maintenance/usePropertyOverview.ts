@@ -8,11 +8,6 @@ import {
 import { useAssets, useRooms } from './queries'
 import { buildRoomSummaries, propertyTotals, type RoomSummary } from './roomSummary'
 
-/**
- * O painel, a tela do cômodo e a agenda leem as mesmas três listas. Reunir as
- * três aqui evita que cada tela escolha sua própria janela de datas — e a
- * janela é justamente o que faz o contador de pendências concordar entre elas.
- */
 export interface PropertyOverview {
   summaries: RoomSummary[]
   totals: ReturnType<typeof propertyTotals>
@@ -51,8 +46,6 @@ export function usePropertyOverview(): PropertyOverview {
       void assetsQuery.refetch()
       void occurrencesQuery.refetch()
     },
-    // acima de 100 itens o `meta` diz que existe outra página; o painel diz isso
-    // em vez de mostrar um total silenciosamente errado
     hasMoreAssets: (assetsQuery.data?.meta.total ?? 0) > (assetsQuery.data?.data.length ?? 0),
   }
 }

@@ -2,10 +2,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Spinner } from '@/shared/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
 
-/**
- * Porta de entrada das rotas privadas. Guarda a URL pretendida para devolver o
- * morador aonde ele ia depois de entrar, em vez de sempre cair no painel.
- */
 export function RequireAuth() {
   const { isAuthenticated, isLoadingProfile } = useAuth()
   const location = useLocation()

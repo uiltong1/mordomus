@@ -7,16 +7,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 
-/**
- * Regra de recorrência de um alvo (ativo ou conta) — a única fonte de datas
- * futuras do produto.
- *
- * O alvo é polimórfico: como o PostgreSQL não aceita FK condicional, há uma
- * coluna por alvo (`asset_id`/`bill_id`) e um CHECK de exclusão mútua
- * garante que exatamente uma esteja preenchida, de acordo com
- * `subject_type`. Por isso `subjectId()` é quem devolve o alvo, e não uma
- * coluna só.
- */
 #[Fillable([
     'tenant_id',
     'subject_type',
@@ -52,7 +42,6 @@ class TriggerConfig extends Model
 
     public const TYPE_ESCALATED = 'ESCALATED';
 
-    /** @var list<string> */
     public const TYPES = [
         self::TYPE_INTERVAL,
         self::TYPE_CALENDAR_MONTHLY,
@@ -60,10 +49,8 @@ class TriggerConfig extends Model
         self::TYPE_ESCALATED,
     ];
 
-    /** @var list<string> */
     public const SUBJECT_TYPES = [self::SUBJECT_ASSET, self::SUBJECT_BILL];
 
-    /** @var list<string> */
     public const INTERVAL_UNITS = ['days', 'weeks', 'months'];
 
     public const RECALCULATE_DUE_DATE = 'DUE_DATE';
@@ -88,7 +75,6 @@ class TriggerConfig extends Model
         ];
     }
 
-    /** Alvo da regra — a coluna que `subject_type` diz que está preenchida. */
     public function subjectId(): ?string
     {
         return $this->subject_type === self::SUBJECT_BILL ? $this->bill_id : $this->asset_id;
@@ -99,16 +85,6 @@ class TriggerConfig extends Model
         return $this->is_active;
     }
 
-    /**
-     * Deslocamentos, em dias, que geram aviso desta ocorrência.
-     *
-     * Um deslocamento `o` avisa em `scheduled_for + o` na `preferred_hour`, e
-     * é a mesma fórmula para os três casos: `ESCALATED` tem um aviso por
-     * offset cadastrado, `advance_notice_days` produz um aviso único antes do
-     * vencimento, e quem não tem antecedência avisa no dia.
-     *
-     * @return list<int>
-     */
     public function noticeOffsets(): array
     {
         if ($this->type === self::TYPE_ESCALATED) {
@@ -123,12 +99,6 @@ class TriggerConfig extends Model
         return $notice > 0 ? [-$notice] : [0];
     }
 
-    /**
-     * Quantos dias antes do vencimento o primeiro aviso dispara.
-     *
-     * A janela de materialização da regra não pode ser menor que isto: uma
-     * ocorrência que ainda não existe não tem como gerar aviso na data certa.
-     */
     public function noticeLeadDays(): int
     {
         $offsets = $this->noticeOffsets();
@@ -136,13 +106,6 @@ class TriggerConfig extends Model
         return $offsets === [] ? 0 : max(0, -min($offsets));
     }
 
-    /**
-     * Quantos dias depois do vencimento o último aviso dispara.
-     *
-     * O offset positivo de um `ESCALATED` é o alerta de atraso: ele vive
-     * depois de `due_at`, e é o que impede o varrimento de descartar a
-     * ocorrência como vencida antes de avisar.
-     */
     public function noticeTailDays(): int
     {
         $offsets = $this->noticeOffsets();
@@ -150,7 +113,6 @@ class TriggerConfig extends Model
         return $offsets === [] ? 0 : max(0, max($offsets));
     }
 
-    /** `time` no PostgreSQL devolve `HH:MM:SS`; a regra trabalha em `HH:MM`. */
     public function getPreferredHourAttribute(?string $value): ?string
     {
         return $value === null ? null : substr($value, 0, 5);

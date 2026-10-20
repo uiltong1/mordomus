@@ -8,7 +8,3 @@ createRoot(document.getElementById('root')!).render(
     <AppRouter />
   </StrictMode>,
 )
-
-// O registro do service worker mora no `<UpdateBanner>` (dentro da área logada),
-// e não aqui: a troca de versão precisa do consentimento do morador, e recarregar
-// a página por baixo apagaria o formulário de regra que ele estiver preenchendo.

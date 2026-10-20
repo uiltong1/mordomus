@@ -12,24 +12,6 @@ use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 use Mordomus\Scheduling\Events\EventName as ScheduleEventName;
 use Throwable;
 
-/**
- * O texto de cada evento, na língua do morador e no fuso da casa.
- *
- * O que entra no aviso é o que o morador precisa para agir, e nada mais: o
- * título da tarefa, o dia e a hora em que ela vence. O resto do payload é
- * endereçado ao serviço, não à pessoa.
- *
- * `url` aponta para a tela onde a decisão acontece — é o que o service worker
- * abre no toque, e um aviso que não leva a lugar nenhum é um aviso que o
- * morador aprende a ignorar.
- *
- * `tag` é a chave que substitui a notificação anterior em vez de acumular: o
- * mesmo aviso da mesma tarefa é um card só, atualizado quando muda.
- *
- * O corpo sai em `lines` e não em texto corrido porque o e-mail as mostra uma
- * por linha e o push as junta: as duas leituras do mesmo aviso saem da mesma
- * lista, e é isso que impede "R$ 62,48" no push e "R$ 62,5" no e-mail.
- */
 final class NotificationMessageService implements NotificationMessageServiceInterface
 {
     public function __construct(
@@ -47,10 +29,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         };
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array{template: string, subject: string, body: array<string, mixed>}
-     */
     private function scheduleDue(array $payload, string $tenantId): array
     {
         $title = $this->string($payload, 'title') ?: 'Tarefa da casa';
@@ -69,10 +47,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array{template: string, subject: string, body: array<string, mixed>}
-     */
     private function billDue(array $payload): array
     {
         $dueDate = $this->string($payload, 'due_date');
@@ -95,16 +69,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         ];
     }
 
-    /**
-     * A cota vai no plural de quem recebeu, e não no da conta.
-     *
-     * O aviso é sobre a parte de uma pessoa: a conta inteira já está no card
-     * de vencimentos, e o que o morador precisa saber aqui é quanto saiu do
-     * bolso dele.
-     *
-     * @param  array<string, mixed>  $payload
-     * @return array{template: string, subject: string, body: array<string, mixed>}
-     */
     private function splitComputed(array $payload, ?string $recipientId): array
     {
         $share = $this->shareOf($payload, $recipientId);
@@ -126,10 +90,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array{template: string, subject: string, body: array<string, mixed>}
-     */
     private function memberAdded(array $payload): array
     {
         $home = $this->string($payload, 'home_name') ?: 'sua nova residência';
@@ -147,11 +107,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         ];
     }
 
-    /**
-     * A cota de um morador no payload de split.
-     *
-     * @param  array<string, mixed>  $payload
-     */
     private function shareOf(array $payload, ?string $recipientId): string
     {
         foreach ((array) ($payload['shares'] ?? []) as $share) {
@@ -163,11 +118,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         return '0.00';
     }
 
-    /**
-     * Chave que substitui o card anterior em vez de acumular outro.
-     *
-     * @param  array<string, mixed>  $payload
-     */
     private function tag(array $payload): string
     {
         $subject = $this->string($payload, 'bill_occurrence_id')
@@ -177,7 +127,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         return 'mordomus:'.($subject !== '' ? $subject : 'geral');
     }
 
-    /** @param array<string, mixed> $payload */
     private function string(array $payload, string $key): string
     {
         $value = $payload[$key] ?? null;
@@ -200,7 +149,6 @@ final class NotificationMessageService implements NotificationMessageServiceInte
         }
     }
 
-    /** Dia de calendário, sem fuso: `2026-04-10` é o dia que o morador lê. */
     private function shortDate(string $day): string
     {
         if ($day === '') {

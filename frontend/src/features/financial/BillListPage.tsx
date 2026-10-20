@@ -16,13 +16,6 @@ const KIND_LABEL: Record<BillKind, string> = { fixed: 'Fixa', variable: 'Variáv
 
 const PER_PAGE = 50
 
-/**
- * A tela se explica porque o modelo tem duas metades e o nome das duas não
- * denuncia isso: "conta" é o combinado que se repete, "vencimento" é o dia
- * concreto que aquele combinado tem em cada mês. Sem essa frase, o morador
- * cadastra o aluguel aqui e depois procura o boleto em Vencimentos sem saber
- * que ele já estava escrito.
- */
 const EXPLAINER_ITEMS = [
   {
     title: 'Conta e vencimento são coisas diferentes',
@@ -38,16 +31,6 @@ const EXPLAINER_ITEMS = [
   },
 ] as const
 
-/**
- * Lista de contas.
- *
- * Não existe `DELETE /bills`: a ação destrutiva é **Pausar** (`PATCH` com
- * `is_active: false`), e o par é Reativar. Um item pausado continua na lista
- * porque o morador procura a conta para reativá-la, não para descobrir que ela
- * sumiu.
- *
- * A escrita fica escondida sem `bills.manage`; a leitura é de qualquer morador.
- */
 export function BillListPage() {
   const { can } = useAuth()
   const toast = useToast()
@@ -72,8 +55,6 @@ export function BillListPage() {
   const bills = query.data?.data ?? []
   const meta = query.data?.meta
 
-  // o backend recusa `per_page` fora de 1..100; o clamp evita a tela pedir o que
-  // a API não devolve
   const perPage = Math.min(Math.max(meta?.per_page ?? PER_PAGE, 1), 100)
   const lastPage = Math.max(meta?.last_page ?? 1, 1)
 
@@ -279,13 +260,6 @@ export function BillListPage() {
   )
 }
 
-/**
- * A linha diz por que a conta se comporta como se comporta.
- *
- * Sem isso, a conta variável fica parecendo quebrada: ela não tem próxima data
- * justamente porque não tem dia, e o que falta — o lançamento da fatura —
- * acontece em outra tela.
- */
 function describeBill(bill: Bill): string {
   const parts = [KIND_LABEL[bill.kind]]
 

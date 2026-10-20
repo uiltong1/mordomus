@@ -8,16 +8,6 @@ import {
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import type { PushPayload } from './features/notifications/pushPayload'
 
-/**
- * Service worker do PWA (ADR-001). É `injectManifest` — e não `generateSW` —
- * porque o Web Push precisa do handler de `push` ao lado do precache do shell.
- *
- * Só o shell da aplicação tem rota. A navegação responde o `index.html`
- * precacheado, que é o que faz o app abrir offline e o que faz `/convite/abc`
- * funcionar sem passar pelo servidor. Não há rota para `/api/`, então nenhum
- * dado de residência sobrevive no cache do worker — o mesmo cuidado da R6, que
- * é o mesmo motivo pelo qual as query keys levam o tenant.
- */
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Parameters<typeof precacheAndRoute>[0]
 }
@@ -49,11 +39,9 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
 })
 
 self.addEventListener('message', (event: ExtendableMessageEvent) => {
-  // o registro é `prompt`: quem troca a versão é o app, com o morador avisado
   if (event.data === 'SKIP_WAITING') void self.skipWaiting()
 })
 
-/** Reaproveita a aba que já está na rota pedida; senão abre uma nova. */
 async function openWindow(path: string): Promise<void> {
   const url = new URL(path, self.location.origin)
   const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -71,7 +59,6 @@ function readPayload(data: PushMessageData | null): PushPayload {
   try {
     return data.json() as PushPayload
   } catch {
-    // payload em texto puro: a mensagem vira o corpo da notificação
     return { body: data.text() }
   }
 }

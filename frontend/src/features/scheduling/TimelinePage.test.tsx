@@ -97,7 +97,6 @@ const occurrences: Occurrence[] = (
   updated_at: null,
 }))
 
-/** Isola a linha pelo título — "Concluir" aparece em todas as tarefas abertas. */
 function rowFor(title: string) {
   return within(screen.getByText(title).closest('[data-testid="occurrence-row"]') as HTMLElement)
 }
@@ -148,7 +147,6 @@ describe('TimelinePage', () => {
     const timeline = await screen.findByTestId('timeline')
     const rows = within(timeline).getAllByTestId('occurrence-row')
     expect(rows).toHaveLength(3)
-    // o mais antigo primeiro, mesmo vindo fora de ordem do backend
     expect(rows[0]).toHaveTextContent('Conferir o medidor')
     expect(rows[0]).toHaveTextContent('Cozinha')
     expect(rows[0]).toHaveAttribute('data-status', 'overdue')
@@ -163,7 +161,6 @@ describe('TimelinePage', () => {
     await userEvent.selectOptions(screen.getByLabelText('Cômodo'), BANHEIRO)
 
     await waitFor(() => expect(screen.getAllByTestId('occurrence-row')).toHaveLength(1))
-    // o "de 3" existe para a lista nunca parecer completa quando o filtro cortou
     expect(screen.getByTestId('timeline-summary')).toHaveTextContent('1 tarefa neste cômodo de 3')
   })
 
@@ -179,13 +176,8 @@ describe('TimelinePage', () => {
     })
   })
 
-  /**
-   * Critério de aceite: concluir atualiza a timeline sem reload. A linha vira
-   * `completed` no retorno e a query é invalidada — não há navegação fora da tela.
-   */
   it('conclui a tarefa e a linha reflete o novo estado, sem sair da tela', async () => {
     vi.mocked(completeOccurrence).mockImplementation(async () => {
-      // o backend responde com a ocorrência já concluída
       vi.mocked(fetchOccurrences).mockResolvedValue(
         page([{ ...occurrences[0]!, status: 'completed' }]),
       )
@@ -199,7 +191,6 @@ describe('TimelinePage', () => {
 
     await waitFor(() => expect(completeOccurrence).toHaveBeenCalledWith('o1'))
     expect(await screen.findByText('Tarefa concluída.')).toBeInTheDocument()
-    // a tela continua montada: a única linha agora está concluída e sem botão
     await waitFor(() => expect(screen.getAllByTestId('occurrence-row')).toHaveLength(1))
     expect(screen.getByTestId('occurrence-row')).toHaveAttribute('data-status', 'completed')
     expect(screen.queryByRole('button', { name: 'Concluir' })).toBeNull()
@@ -220,7 +211,6 @@ describe('TimelinePage', () => {
     vi.mocked(completeOccurrence).mockRejectedValue(
       new ApiError(409, {
         code: 'occurrence_already_finalized',
-        // texto exato do `OccurrenceAlreadyFinalized` do monólito
         message: 'A ocorrência já foi encerrada e não aceita esta operação.',
       }),
     )

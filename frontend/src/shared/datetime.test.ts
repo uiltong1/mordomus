@@ -14,7 +14,6 @@ import {
 
 describe('dias de calendário', () => {
   it('formata sem passar por UTC — o bug do dia volando um', () => {
-    // `new Date('2026-10-15')` é meia-noite UTC e em São Paulo seria 14/10
     expect(formatDayShort('2026-10-15')).toBe('15/10')
     expect(formatDayLong('2026-10-15')).toBe('15 de outubro de 2026')
     expect(formatDayNumeric('2026-10-15')).toBe('15/10/2026')

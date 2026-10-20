@@ -10,10 +10,6 @@ use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\TenantPreference;
 use Mordomus\Identity\Models\User;
 
-/**
- * Criação de residência: preferências padrão e a membership `owner` nascem
- * juntas — residência sem dono não existiria nem por um instante.
- */
 final class TenantProvisionerService implements TenantProvisionerServiceInterface
 {
     public const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
@@ -22,10 +18,6 @@ final class TenantProvisionerService implements TenantProvisionerServiceInterfac
 
     public const DEFAULT_PREFERRED_HOUR = '09:00';
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     * @return array{tenant: Tenant, membership: Membership}
-     */
     public function create(User $user, array $attributes): array
     {
         return DB::transaction(function () use ($user, $attributes): array {

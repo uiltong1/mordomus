@@ -4,9 +4,6 @@ namespace Tests\Feature;
 
 use Mordomus\Identity\Models\Tenant;
 
-/**
- * CRUD de residências (tenants): lista paginada, criação, edição e arquivamento.
- */
 class TenantCrudTest extends FeatureTestCase
 {
     public function test_tenant_can_be_created_renamed_and_listed(): void
@@ -18,7 +15,6 @@ class TenantCrudTest extends FeatureTestCase
         $created->assertCreated()->assertJsonPath('data.name', 'Casa Dois');
         $secondId = $created->json('data.id');
 
-        // editar exige a residência ativa no token (tid) → trocar antes
         $this->withHeaders($headers)
             ->patchJson("/api/v1/identity/tenants/{$secondId}", ['name' => 'Chácara'])
             ->assertStatus(403)
@@ -70,7 +66,6 @@ class TenantCrudTest extends FeatureTestCase
             ->assertOk()
             ->assertJsonPath('meta.total', 0);
 
-        // memberships são arquivados junto → middleware tenant bloqueia
         $this->withHeaders($headers)
             ->getJson("/api/v1/identity/tenants/{$tenantId}")
             ->assertStatus(403)

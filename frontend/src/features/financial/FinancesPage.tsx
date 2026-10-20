@@ -15,13 +15,6 @@ const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'vencimentos', label: 'Vencimentos' },
 ]
 
-/**
- * Tela de finanças.
- *
- * A regra padrão da casa vive aqui, e não em "Contas": ela não pertence a uma
- * conta nenhuma — é o que vale para o que não tem regra própria. Quem só tem
- * `splits.view_own` não vê o botão, porque não abriria o builder.
- */
 export function FinancesPage() {
   const { can } = useAuth()
   const [tab, setTab] = useState<Tab>('resumo')

@@ -5,9 +5,6 @@ namespace Tests\Unit;
 use Mordomus\Identity\Services\JwtIssuerService;
 use Tests\TestCase;
 
-/**
- * Contrato das claims do JWT de usuário.
- */
 class JwtClaimsTest extends TestCase
 {
     public function test_claims_follow_api_contract(): void
@@ -30,7 +27,7 @@ class JwtClaimsTest extends TestCase
             $claims['tenants'],
         );
         $this->assertSame($timestamp, $claims['iat']);
-        $this->assertSame($timestamp + 3600, $claims['exp']); // JWT_TTL padrão = 60 min
+        $this->assertSame($timestamp + 3600, $claims['exp']);
         $this->assertNotEmpty($claims['jti']);
         $this->assertSame(26, strlen($claims['jti']));
     }

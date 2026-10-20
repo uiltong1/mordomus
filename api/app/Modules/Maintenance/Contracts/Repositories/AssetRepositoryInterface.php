@@ -19,14 +19,8 @@ interface AssetRepositoryInterface
 
     public function findOrFail(string $assetId, ?string $tenantId): Asset;
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     public function create(array $attributes): Asset;
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     public function change(Asset $asset, array $attributes): Asset;
 
     public function archive(Asset $asset): Asset;

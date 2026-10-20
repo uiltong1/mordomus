@@ -8,12 +8,6 @@ import {
   saveSplitRule,
 } from './api'
 
-/**
- * Fiação com a API: o que a tela manda e o que ela pede.
- *
- * O foco é o contrato, não o pixel — o campo certo na requisição errada é o que
- * o backend recusa com 422 (`prohibited`, `required`) ou 409.
- */
 function lastCall(): [string, RequestInit | undefined] {
   const call = fetchMock.mock.calls.at(-1)
   if (!call) throw new Error('nenhuma requisição foi feita')

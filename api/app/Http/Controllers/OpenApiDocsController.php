@@ -11,10 +11,6 @@ use Mordomus\Http\Responses\ErrorEnvelope;
 use Mordomus\OpenApi\Schemas\Error;
 use OpenApi\Attributes as OA;
 
-/**
- * Publica a especificação gerada por `make openapi` e a interface de leitura.
- * O YAML versionado é a fonte de verdade; nada é gerado em tempo de execução.
- */
 final class OpenApiDocsController
 {
     private const SPEC_URL = '/api/v1/openapi.yaml';

@@ -3,10 +3,6 @@ import { Button } from '@/shared/ui'
 import { clearInbox, readInbox, type InboxMessage } from './registerServiceWorker'
 import { usePushSubscription } from './usePushSubscription'
 
-/**
- * Sino in-app (T4.1.8). O push do sistema cobre o app fechado; o sino cobre o
- * app aberto e a mensagem que chegou enquanto ninguém olhava.
- */
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<InboxMessage[]>(() => readInbox())

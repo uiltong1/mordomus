@@ -8,6 +8,5 @@ use Illuminate\Http\Request;
 
 interface ProfileServiceInterface
 {
-    /** @return array{data: array<string, mixed>} */
     public function show(Request $request): array;
 }

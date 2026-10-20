@@ -9,17 +9,6 @@ use Mordomus\Financial\Services\MoneyService;
 use Mordomus\Financial\Services\SplitCalculator;
 use Tests\TestCase;
 
-/**
- * A matemática da divisão nos quatro regimes (T5.2.2, T5.2.3).
- *
- * O que se prova aqui não é só o número de cada cota, é a invariante da regra
- * R5: a soma das cotas é o valor do lançamento, com centavo, em todos os
- * cenários. Por isso todo cenário termina com a soma conferida — é a resposta
- * ao risco apontado no plano, "split com arredondamento quebrando soma".
- *
- * O morador é um id, e não um model: o cálculo não conhece banco, e o teste
- * não precisa de um para provar a parte que é só aritmética.
- */
 class SplitCalculatorTest extends TestCase
 {
     private SplitCalculator $calculator;
@@ -34,8 +23,6 @@ class SplitCalculatorTest extends TestCase
         $this->calculator = new SplitCalculator($this->money);
     }
 
-    // ----------------------------------------------------------------- EQUAL
-
     public function test_equal_gives_the_same_share_to_everyone(): void
     {
         $this->assertShares(
@@ -46,7 +33,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /** 2 moradores: o centavo de sobra vai inteiro para a última cota. */
     public function test_equal_with_two_residents_puts_the_remainder_on_the_last_one(): void
     {
         $this->assertShares(
@@ -57,11 +43,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /**
-     * 187,43 por três: cada um leva 62,47 e a última leva a sobra das duas
-     * primeiras. É a regra R5 — a diferença de centavo fica na última cota, e
-     * não espalhada pelas três.
-     */
     public function test_equal_with_three_residents_closes_on_the_cents(): void
     {
         $this->assertShares(
@@ -82,7 +63,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /** Cinco moradores e um total que não é múltiplo de cinco. */
     public function test_equal_with_five_residents_keeps_the_cents(): void
     {
         $this->assertShares(
@@ -113,8 +93,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------- WEIGHTED
-
     public function test_weighted_follows_the_weight_of_each_resident(): void
     {
         $this->assertShares(
@@ -125,7 +103,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /** Pesos fracionários são o motivo de o cálculo ser em centésimos. */
     public function test_weighted_accepts_fractional_weights(): void
     {
         $this->assertShares(
@@ -156,8 +133,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    // --------------------------------------------------------------- PERCENT
-
     public function test_percent_follows_the_percentage_of_each_resident(): void
     {
         $this->assertShares(
@@ -168,11 +143,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /**
-     * Percentuais que não fecham em 100 são a proporção que o morador quis
-     * dizer: 30/30/30 é um terço para cada, e tratá-lo como erro devolveria um
-     * problema que ele não tem.
-     */
     public function test_percent_normalizes_a_sum_that_is_not_a_hundred(): void
     {
         $this->assertShares(
@@ -213,8 +183,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    // ---------------------------------------------------------------- CUSTOM
-
     public function test_custom_uses_the_amount_written_for_each_resident(): void
     {
         $this->assertShares(
@@ -229,10 +197,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /**
-     * Cota fechada que não fecha o total: a diferença cai na última, que é o
-     * que a R5 descreve.
-     */
     public function test_custom_closes_the_difference_on_the_last_share(): void
     {
         $this->assertShares(
@@ -243,7 +207,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /** Sobra que a última cota absorve sem ficar negativa é um combinado válido. */
     public function test_custom_can_cover_a_sum_below_the_total(): void
     {
         $this->assertShares(
@@ -254,10 +217,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /**
-     * Cota negativa é dívida invertida, e a regra que a produziria está
-     * errada — por isso a recusa vem explícita em vez de a linha ser gravada.
-     */
     public function test_custom_that_would_leave_a_negative_share_is_refused(): void
     {
         $this->expectException(SplitNotComputable::class);
@@ -268,8 +227,6 @@ class SplitCalculatorTest extends TestCase
             '100.00',
         );
     }
-
-    // -------------------------------------------------------------- recusas
 
     public function test_a_rule_without_residents_cannot_divide(): void
     {
@@ -307,12 +264,6 @@ class SplitCalculatorTest extends TestCase
         $this->calculator->shares($this->rule('LOTERIA'), $this->residents(2), '100.00');
     }
 
-    // -------------------------------------------------------------- helpers
-
-    /**
-     * @param  list<string>  $expected
-     * @param  list<SplitEntry>  $entries
-     */
     private function assertShares(array $expected, string $total, string $mode, array $entries): void
     {
         $shares = $this->calculator->shares($this->rule($mode), $entries, $total);
@@ -320,8 +271,6 @@ class SplitCalculatorTest extends TestCase
         $this->assertSame($expected, array_column($shares, 'amount'));
         $this->assertCount(count($entries), $shares);
 
-        // A invariante da R5, conferida em todos os cenários: é ela que o plano
-        // aponta como o risco a não perder de vista.
         $this->assertSame(
             $total,
             $this->money->sum(array_column($shares, 'amount')),
@@ -334,9 +283,6 @@ class SplitCalculatorTest extends TestCase
         return new SplitRule(['mode' => $mode]);
     }
 
-    /**
-     * @return list<SplitEntry>
-     */
     private function residents(int $count): array
     {
         return array_map(
@@ -345,10 +291,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /**
-     * @param  list<array<string, string>>  $fields
-     * @return list<SplitEntry>
-     */
     private function entries(array $fields): array
     {
         return array_map(
@@ -358,7 +300,6 @@ class SplitCalculatorTest extends TestCase
         );
     }
 
-    /** @param array<string, string> $field */
     private function entry(int $index, array $field): SplitEntry
     {
         return new SplitEntry(['user_id' => 'user-'.$index] + $field);

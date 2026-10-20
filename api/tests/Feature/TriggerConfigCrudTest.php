@@ -11,15 +11,10 @@ use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Regras de recorrência: CRUD, filtro por alvo, validação condicional por
- * tipo, fuso da residência e escrita restrita a `rules.edit`.
- */
 class TriggerConfigCrudTest extends FeatureTestCase
 {
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     private string $assetId;
@@ -53,7 +48,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertJsonPath('data.tenant_id', $this->tenantId)
             ->assertJsonPath('data.bill_id', null);
 
-        // R2: a próxima data não vem do pedido, e sim da regra calculada.
         $this->assertNotNull($created->json('data.next_due_at'));
 
         $id = $created->json('data.id');
@@ -69,7 +63,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertJsonPath('data.title', 'Trocar o filtro do ar');
     }
 
-    /** AC 1 — a regra só existe dentro da residência que a criou. */
     public function test_rule_of_another_tenant_is_not_reachable(): void
     {
         $ruleId = $this->createRule()->json('data.id');
@@ -130,7 +123,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
         $this->assertSame(2, $this->ruleCount());
     }
 
-    /** AC 2 — o erro aponta o campo que falta. */
     public function test_interval_without_its_fields_points_at_them(): void
     {
         $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', [
@@ -146,8 +138,7 @@ class TriggerConfigCrudTest extends FeatureTestCase
 
     public function test_field_from_another_type_is_rejected(): void
     {
-        // `day_of_month` não pertence a uma regra INTERVAL: guardar seria lixo
-        // silencioso que ninguém encontraria depois.
+
         $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', [
             'subject_type' => 'asset',
             'subject_id' => $this->assetId,
@@ -184,7 +175,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertStatus(422)
             ->assertJsonStructure(['error' => ['details' => ['interval_value', 'interval_unit', 'custom_offsets']]]);
 
-        // Só `custom_offsets` não fecha: sem intervalo o ciclo não voltaria.
         $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', [
             'subject_type' => 'asset',
             'subject_id' => $this->assetId,
@@ -234,7 +224,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertJsonPath('data.title', 'Nome novo')
             ->assertJsonPath('data.interval_value', 90);
 
-        // Renomear não mexe na matemática: a data não pode andar sozinha.
         $this->assertSame($nextDueAt, $patched->json('data.next_due_at'));
     }
 
@@ -317,7 +306,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertJsonPath('data.id', $id);
     }
 
-    /** T3.1.4 — sem `preferred_hour` na regra, vale o da residência. */
     public function test_preferred_hour_falls_back_to_the_tenant(): void
     {
         $created = $this->createRule();
@@ -336,8 +324,7 @@ class TriggerConfigCrudTest extends FeatureTestCase
 
     public function test_next_date_follows_the_tenants_timezone(): void
     {
-        // Mesma regra, mesma âncora: o horário do disparo muda com o fuso da
-        // residência, e o dia do calendário continua o mesmo.
+
         $saoPaulo = $this->createRule();
 
         Tenant::query()->whereKey($this->tenantId)->update(['timezone' => 'UTC']);
@@ -384,9 +371,7 @@ class TriggerConfigCrudTest extends FeatureTestCase
 
     public function test_writes_require_a_token(): void
     {
-        // O setUp monta os ativos com `withHeaders`, que deixa o token nos
-        // headers padrão do teste; sem limpá-lo esta requisição não seria
-        // anônima.
+
         $this->flushHeaders();
 
         $this->postJson('/api/v1/scheduling/trigger-configs', [])
@@ -394,11 +379,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'unauthenticated');
     }
 
-    /**
-     * O caminho de `bill` grava a coluna certa — e a coluna tem FK de verdade
-     * desde `50_financial_links`, o que o esquema do Financial verifica no
-     * nível do banco.
-     */
     public function test_bill_rule_records_the_bill_column(): void
     {
         $billId = $this->createBill('Conta de luz');
@@ -414,11 +394,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
             ->assertJsonPath('data.asset_id', null);
     }
 
-    // ------------------------------------------------------------------ helpers
-
-    /**
-     * @param  array<string, mixed>  $overrides
-     */
     private function createRule(array $overrides = []): TestResponse
     {
         return $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', $overrides + [
@@ -476,7 +451,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
         return $member;
     }
 
-    /** Um novo JWT depois de mexer na residência, para o `tid` continuar válido. */
     private function refreshTokens(): void
     {
         $user = User::query()
@@ -496,7 +470,6 @@ class TriggerConfigCrudTest extends FeatureTestCase
         return $this->withTenantContext($this->tenantId, fn (): int => TriggerConfig::query()->count());
     }
 
-    /** Só a hora do instante, já em UTC — o dia é o mesmo para todos os fusos testados. */
     private function utcTimeOf(?string $isoInstant): string
     {
         return CarbonImmutable::parse((string) $isoInstant)->utc()->format('H:i:s\Z');

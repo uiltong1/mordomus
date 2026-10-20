@@ -18,20 +18,6 @@ use Mordomus\Notification\Exceptions\PushNotConfigured;
 use Mordomus\Notification\Http\Resources\DeviceTokenResource;
 use Throwable;
 
-/**
- * Assinaturas de Web Push do morador (ADR-001).
- *
- * Registrar de novo a mesma assinatura **atualiza** a linha em vez de criar
- * outra: o clique no sino pode acontecer quantas vezes o morador quiser, e
- * duplicar a assinatura faria o mesmo aviso sair duas vezes para o mesmo
- * navegador. O `last_seen_at` é o que a atualização grava, e é ele que a
- * limpeza usa para decidir o que já está parado faz tempo.
- *
- * O envio de teste é síncrono e responde o que o serviço de push respondeu.
- * Ele não passa pela fila de propósito: a tela precisa saber agora se a
- * assinatura funciona, e um teste que chega em 30 segundos não responde a
- * pergunta que o morador fez ("isto está funcionando?").
- */
 final class DeviceTokenService implements DeviceTokenServiceInterface
 {
     public function __construct(
@@ -144,8 +130,7 @@ final class DeviceTokenService implements DeviceTokenServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 }

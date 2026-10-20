@@ -8,18 +8,10 @@ use Illuminate\Validation\Validator;
 use Mordomus\Scheduling\Http\Requests\Concerns\TriggerTypeRules;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Patch da regra.
- *
- * O tipo efetivo vem do payload quando presente e da linha gravada quando
- * omitido — sem isso, validar as condições de `INTERVAL` contra um
- * `CALENDAR_MONTHLY` já gravado reprovaria um patch que só muda o título.
- */
 class UpdateTriggerConfigRequest extends FormRequest
 {
     use TriggerTypeRules;
 
-    /** Campos que o patch aceita; ao menos um precisa vir. */
     private const PATCHABLE = [
         'type', 'title', 'description', 'is_active', 'advance_notice_days', 'preferred_hour',
         'interval_value', 'interval_unit', 'day_of_month', 'recalculate_base', 'custom_offsets',
@@ -30,7 +22,6 @@ class UpdateTriggerConfigRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         $payloadType = $this->filled('type') ? $this->string('type')->toString() : null;
@@ -57,7 +48,6 @@ class UpdateTriggerConfigRequest extends FormRequest
         ];
     }
 
-    /** Tipo já gravado, lido dentro da residência ativa. */
     private function storedType(): ?string
     {
         $id = $this->route('triggerConfig');
@@ -66,8 +56,6 @@ class UpdateTriggerConfigRequest extends FormRequest
             return null;
         }
 
-        // Já dentro da residência ativa: o escopo global está ativo neste
-        // ponto do ciclo, então a leitura é a mesma que o service fará.
         return TriggerConfig::query()->whereKey($id)->value('type');
     }
 }

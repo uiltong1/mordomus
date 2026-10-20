@@ -72,8 +72,6 @@ function today(offsetDays: number): string {
 
 describe('toPendingItems', () => {
   it('some o que já foi concluído ou dispensado, preservando a ordem recebida', () => {
-    // a ordenação por vencimento é de `buildRoomSummaries`; aqui o contrato é
-    // só filtrar e juntar, sem mexer na ordem que o backend entregou
     const items = toPendingItems(
       [
         occurrence('o1', 'a1', 'pending', today(1)),

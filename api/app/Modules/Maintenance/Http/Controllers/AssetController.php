@@ -15,14 +15,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\PageMeta;
 use OpenApi\Attributes as OA;
 
-/**
- * Inventário do tenant: CRUD, transferência entre cômodos, filtros por
- * cômodo/categoria e paginação offset.
- *
- * Datas entram e saem no fuso da residência; o `room_id` é resolvido sempre
- * dentro do escopo de residência, então um cômodo de outra residência não
- * existe aqui — vira `404 room_not_found`.
- */
 class AssetController extends Controller
 {
     public function __construct(private readonly AssetServiceInterface $assets) {}

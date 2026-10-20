@@ -63,9 +63,7 @@ final class BillOccurrenceRepository implements BillOccurrenceRepositoryInterfac
 
     public function create(array $attributes): BillOccurrence
     {
-        // `refresh()` porque os padrões do banco (`status = open`) não voltam
-        // no model que o `create` devolve, e a resposta da API é montada
-        // direto desse model.
+
         return BillOccurrence::create($attributes)->refresh();
     }
 
@@ -99,12 +97,6 @@ final class BillOccurrenceRepository implements BillOccurrenceRepositoryInterfac
             ->update(['status' => BillOccurrence::STATUS_OVERDUE]);
     }
 
-    /**
-     * Vencimentos que ainda nem vencer e que a conta deixou de dever.
-     *
-     * O corte em `due_date >= $from` é o que separa "deixou de ser dívida" de
-     * "apagado": o que já venceu continua em aberto até ser pago.
-     */
     public function cancelUpcoming(string $billId, string $from): int
     {
         return BillOccurrence::query()
@@ -133,14 +125,6 @@ final class BillOccurrenceRepository implements BillOccurrenceRepositoryInterfac
             ->get();
     }
 
-    /**
-     * Base das leituras, com a conta e as baixas já anexadas.
-     *
-     * O histórico de pagamento faz parte do vencimento: quem abre a lista de
-     * contas precisa saber o que foi pago sem uma segunda chamada por linha.
-     *
-     * @return Builder<BillOccurrence>
-     */
     private function query(): Builder
     {
         return BillOccurrence::query()->with(['bill', 'payments']);

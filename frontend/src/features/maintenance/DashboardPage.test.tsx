@@ -189,7 +189,6 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(within(cards).getAllByRole('listitem')).toHaveLength(2))
 
     const cozinha = within(cards).getByText('Cozinha').closest('div[class*="rounded-card"]')!
-    // o que está atrasado e o que vem depois não podem virar o mesmo número
     expect(within(cozinha as HTMLElement).getByText('1 atrasada')).toBeInTheDocument()
     expect(within(cozinha as HTMLElement).getByText('1 a caminho')).toBeInTheDocument()
     expect(within(cozinha as HTMLElement).getByText(/2 itens/)).toBeInTheDocument()
@@ -202,7 +201,6 @@ describe('DashboardPage', () => {
   it('aponta o vencimento mais próximo da casa no topo', async () => {
     renderWithRouter(<DashboardPage />)
 
-    // o atrasado de 4 dias vem antes do que vence em 3
     const banner = await screen.findByTestId('next-up')
     expect(within(banner).getByText('Limpar o filtro')).toBeInTheDocument()
     expect(within(banner).getByRole('button', { name: 'Já fiz' })).toBeInTheDocument()

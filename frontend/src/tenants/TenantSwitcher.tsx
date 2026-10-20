@@ -4,14 +4,6 @@ import { Spinner } from '@/shared/ui'
 import { useToast } from '@/shared/ui'
 import { useTenant } from './TenantProvider'
 
-/**
- * Seletor global de residência ativa (T4.1.3).
- *
- * Trocar de casa é uma operação de token, não de filtro local: o backend emite
- * um JWT com o `tid` novo e o `TenantProvider` limpa o cache (R6). Enquanto o
- * token não volta, o seletor trava — mostrar dados do lar anterior durante a
- * troca seria exatamente o que a regra proíbe.
- */
 export function TenantSwitcher() {
   const { activeTenant, tenants, isSwitching, switchTenant } = useTenant()
   const [open, setOpen] = useState(false)

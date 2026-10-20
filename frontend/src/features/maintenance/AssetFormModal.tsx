@@ -12,21 +12,11 @@ export interface AssetFormModalProps {
   open: boolean
   onClose: () => void
   rooms: Room[]
-  /** Cômodo já escolhido ao abrir pela tela do cômodo. */
   defaultRoomId?: string | null
   asset?: Asset | null
   onSaved?: (asset: Asset) => void
 }
 
-/**
- * Cadastro de ativo. `category` é texto livre no contrato (`varchar(40)`, sem
- * enum), e é isso que aparece aqui: uma lista fechada obrigaria o morador a
- * guardar em "Outros" o filtro de ar, e o inventário perderia o nome que ele usa
- * em casa.
- *
- * O corpo só existe enquanto o modal está aberto: o `key` remonta na troca de
- * item, então editar A e depois B não deixa nenhum valor de A para trás.
- */
 export function AssetFormModal({
   open,
   onClose,
@@ -244,7 +234,6 @@ function AssetFormBody({
   )
 }
 
-/** O recurso devolve instante com fuso; o campo do formulário quer dia. */
 function dateOnly(iso: string | null | undefined): string {
   return iso ? iso.slice(0, 10) : ''
 }

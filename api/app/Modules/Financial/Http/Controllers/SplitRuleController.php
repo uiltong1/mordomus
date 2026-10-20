@@ -11,13 +11,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\SplitRule as SplitRuleSchema;
 use OpenApi\Attributes as OA;
 
-/**
- * Regras de divisão de cota-parte.
- *
- * A regra é identificada pela conta, e não por id: quem salva é a tela de uma
- * conta e ela sabe de qual conta está falando. `bill_id` ausente grava a regra
- * padrão da casa, que vale para tudo que não tem regra própria.
- */
 class SplitRuleController extends Controller
 {
     public function __construct(private readonly SplitRuleServiceInterface $rules) {}

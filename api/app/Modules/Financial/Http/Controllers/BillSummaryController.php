@@ -10,9 +10,6 @@ use Mordomus\OpenApi\Schemas\BillSummary as BillSummarySchema;
 use Mordomus\OpenApi\Schemas\Error;
 use OpenApi\Attributes as OA;
 
-/**
- * Consolidação mensal: a conta da casa fecha em uma tela só.
- */
 class BillSummaryController extends Controller
 {
     public function __construct(private readonly BillSummaryServiceInterface $summary) {}

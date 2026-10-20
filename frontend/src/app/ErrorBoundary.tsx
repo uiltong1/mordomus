@@ -4,11 +4,6 @@ interface State {
   error: Error | null
 }
 
-/**
- * Rede de segurança da árvore de render. Um `catch` em volta do app é melhor
- * que tela branca: o morador precisa de um caminho de volta, e o erro precisa
- * de uma referência para virar issue.
- */
 export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   state: State = { error: null }
 

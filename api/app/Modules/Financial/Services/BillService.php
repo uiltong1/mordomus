@@ -18,14 +18,6 @@ use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Cadastro das contas e a cadência que cada uma pede ao Scheduling.
- *
- * `due_day` e `advance_notice_days` não viram colunas aqui: viram uma regra
- * `CALENDAR_MONTHLY` no módulo dono do motor de tempo, que calcula a primeira
- * data e materializa os vencimentos (regra R7). A conta guarda o que a casa
- * paga; o Scheduling guarda de quando em quando.
- */
 final class BillService implements BillServiceInterface
 {
     public function __construct(
@@ -97,13 +89,6 @@ final class BillService implements BillServiceInterface
         return ['data' => $this->resource->make($this->reload($bill, $tenantId), $timezone)];
     }
 
-    /**
-     * Cadência da conta, escrita pelo módulo Scheduling.
-     *
-     * A conta tem uma única cadência, e ela acompanha o nome: o título da
-     * regra é o nome da conta (é ele que aparece na agenda), e a escrita
-     * reaproveita a regra existente em vez de nascer outra a cada renomeação.
-     */
     private function syncSchedule(Request $request, Bill $bill, string $tenantId): void
     {
         $cadence = $request->has('due_day');
@@ -113,17 +98,12 @@ final class BillService implements BillServiceInterface
             return;
         }
 
-        // Cadência fora ou conta desativada: a regra pausa e o histórico fica.
-        // Pausar — e não apagar — é o que mantém as ocorrências já
-        // materializadas legíveis depois que a casa cancela o serviço.
         if (! $bill->isActive() || ($cadence && $request->input('due_day') === null)) {
             $this->triggers->pauseForSubject($tenantId, TriggerConfig::SUBJECT_BILL, $bill->id);
 
             return;
         }
 
-        // Reativar devolve a cadência que a conta já tinha, dia e antecedência
-        // inclusive, em vez de exigir que o morador digite tudo de novo.
         if (! $cadence) {
             $this->triggers->resumeForSubject($tenantId, TriggerConfig::SUBJECT_BILL, $bill->id);
 
@@ -137,7 +117,6 @@ final class BillService implements BillServiceInterface
             'is_active' => true,
         ];
 
-        // Ausente no payload, a antecedência que já valia continua valendo.
         if ($request->has('advance_notice_days')) {
             $attributes['advance_notice_days'] = $request->integer('advance_notice_days');
         }
@@ -145,10 +124,6 @@ final class BillService implements BillServiceInterface
         $this->triggers->storeExclusiveForSubject($tenantId, TriggerConfig::SUBJECT_BILL, $bill->id, $attributes);
     }
 
-    /**
-     * Desativar a conta não apaga histórico: o que ainda nem venceu deixa de
-     * ser dívida, e o que já venceu continua constando até ser pago.
-     */
     private function dropUpcomingWhenDeactivated(Request $request, Bill $bill, string $tenantId): void
     {
         if (! $request->has('is_active') || $request->boolean('is_active') || $bill->isActive()) {
@@ -160,19 +135,6 @@ final class BillService implements BillServiceInterface
         $this->occurrences->cancelUpcoming($bill->id, $today);
     }
 
-    /**
-     * Campos que o pedido traz.
-     *
-     * Só o que veio no corpo entra: no patch, campo omitido é campo que não
-     * muda, e escrever vazio nele apagaria o que já estava gravado. Já
-     * `amount` e `category` limpos de propósito chegam como `null`, e aí a
-     * limpeza é o que se quer.
-     *
-     * `amount` é normalizado para duas casas antes de gravar: o que entra no
-     * banco é o texto canônico, e não o que o cliente digitou.
-     *
-     * @return array<string, mixed>
-     */
     private function attributes(Request $request): array
     {
         $attributes = $request->only(['name', 'kind', 'category', 'is_active']);
@@ -188,7 +150,6 @@ final class BillService implements BillServiceInterface
         return $attributes;
     }
 
-    /** A casa paga em real; a chave ISO entra em maiúscula para não duplicar. */
     private function currency(Request $request): string
     {
         return strtoupper($request->string('currency')->toString() ?: 'BRL');
@@ -205,10 +166,6 @@ final class BillService implements BillServiceInterface
         return $this->money->fromCents($this->money->cents($request->string('amount')->toString()));
     }
 
-    /**
-     * Relê a conta com a cadência recém-escrita: a regra vive em outra tabela
-     * e a resposta precisa mostrá-la sem uma segunda chamada do cliente.
-     */
     private function reload(Bill $bill, string $tenantId): Bill
     {
         return $this->bills->find($bill->id, $tenantId) ?? $bill;
@@ -221,8 +178,7 @@ final class BillService implements BillServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 

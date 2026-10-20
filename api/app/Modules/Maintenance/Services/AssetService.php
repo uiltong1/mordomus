@@ -115,12 +115,6 @@ final class AssetService implements AssetServiceInterface
         ];
     }
 
-    /**
-     * Atalho proxied: a regra de manutenção é do módulo Scheduling, dono do
-     * cálculo de data. O Maintenance só resolve o ativo dentro da residência —
-     * assim um id de ativo alheio é `404` antes de qualquer escrita — e
-     * repassa o payload.
-     */
     public function schedule(Request $request, string $assetId): array
     {
         $asset = $this->assets->findOrFail($assetId, ActiveTenant::id($request));
@@ -128,11 +122,6 @@ final class AssetService implements AssetServiceInterface
         return $this->triggers->storeForAsset($request, $asset->id);
     }
 
-    /**
-     * Check-in do card: a ocorrência mora no Scheduling (dono do ciclo), e o
-     * `subject_type` travado em `asset` é o que impede que o check-in de um
-     * ativo conclua a ocorrência de uma conta.
-     */
     public function completeOccurrence(Request $request, string $occurrenceId): array
     {
         return $this->occurrences->complete($request, $occurrenceId, TriggerConfig::SUBJECT_ASSET);
@@ -143,10 +132,6 @@ final class AssetService implements AssetServiceInterface
         return $this->occurrences->skip($request, $occurrenceId, TriggerConfig::SUBJECT_ASSET);
     }
 
-    /**
-     * O TenantGlobalScope já esconde cômodos de outra residência; o filtro
-     * de arquivados impede ativo em cômodo morto.
-     */
     private function activeRoom(Request $request): Room
     {
         $room = $this->rooms->findActive((string) $request->input('room_id'));

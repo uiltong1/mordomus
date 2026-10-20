@@ -8,16 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 
-/**
- * Trilha imutável do que aconteceu com uma ocorrência.
- *
- * A linha é append-only: não há `created_at`/`updated_at` porque `occurred_at`
- * é o único relógio, e nada reescreve o registro depois de inserido. O mesmo
- * vale para `archived_at` — apagar a trilha seria falsificar histórico.
- *
- * `actor` é nulo quando o evento veio da fila, e `nullOnDelete` no banco
- * mantém a trilha legível depois que a conta some.
- */
 #[Fillable([
     'tenant_id',
     'job_schedule_id',
@@ -52,7 +42,6 @@ class ScheduleEvent extends Model
         ];
     }
 
-    /** @return BelongsTo<ScheduleEvent, JobSchedule, $this> */
     public function jobSchedule(): BelongsTo
     {
         return $this->belongsTo(JobSchedule::class, 'job_schedule_id');

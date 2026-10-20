@@ -5,12 +5,6 @@ import { Button, Spinner } from '@/shared/ui'
 import { useAuth } from './AuthProvider'
 import { AuthLayout } from './AuthLayout'
 
-/**
- * Aceite de convite (T4.1.6). O token vem na URL do convite e vale uma vez só:
- * o backend responde 409 quando já foi usado e 410 quando expirou, então cada
- * caso merece uma frase diferente — um erro genérico deixaria o morador achando
- * que o convite foi recusado.
- */
 const MESSAGES: Record<string, string> = {
   not_found: 'Este convite não existe. Confira o link que você recebeu.',
   invitation_already_used: 'Este convite já foi usado. Entre com a sua conta.',
@@ -28,8 +22,6 @@ export function AcceptInvitationPage() {
   const attempted = useRef(false)
 
   useEffect(() => {
-    // o StrictMode monta duas vezes em dev; aceitar duas vezes derrubaria a
-    // sessão no 409 de "convite já usado"
     if (attempted.current || !token) return
     attempted.current = true
 

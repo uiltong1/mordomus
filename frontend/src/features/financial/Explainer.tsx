@@ -6,24 +6,11 @@ export interface ExplainerItem {
 }
 
 export interface ExplainerProps {
-  /** A frase que fica sempre à vista: o morador que já entendeu não lê o resto. */
   summary: ReactNode
   items: readonly ExplainerItem[]
   label?: string
 }
 
-/**
- * Explicação do funcionamento da tela.
- *
- * A frase curta fica sempre visível e o detalhe vem num `<details>` nativo: quem
- * já usa a tela há meses paga só uma linha, e quem chegou agora tem o "por quê"
- * a um clique. A alternativa — texto expandido — empurrava a lista de contas
- * para baixo da dobra em toda visita; esconder tudo atrás de um "Saiba mais"
- * deixaria o moradorympouco sem resposta para a dúvida que ele teve.
- *
- * O texto é explicação, não legenda de componente: nada aqui repete o rótulo
- * de um botão que está logo abaixo.
- */
 export function Explainer({ summary, items, label = 'Como isto funciona' }: ExplainerProps) {
   return (
     <aside className="rounded-card border border-line bg-surface-2/50 px-4 py-3">

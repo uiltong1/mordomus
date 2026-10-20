@@ -11,18 +11,10 @@ use Mordomus\Identity\Services\CapabilityResolverService;
 use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Contrato HTTP das ocorrências e do atalho do Maintenance.
- *
- * O que importa aqui é o que a API **não** deixa fazer: vazar ocorrência de
- * outra residência, concluir sem a capability, e devolver `next_due_at` que
- * ainda não existe.
- */
 class OccurrenceCrudTest extends FeatureTestCase
 {
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     private string $assetId;
@@ -57,9 +49,6 @@ class OccurrenceCrudTest extends FeatureTestCase
             'interval_unit' => 'days',
         ])->assertCreated();
 
-        // O relógio é congelado só depois do token: o `firebase/php-jwt` valida
-        // `iat`/`nbf` contra o relógio do sistema, e um token emitido no
-        // "futuro" do relógio congelado seria recusado como inválido.
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-03-15 12:00:00', 'UTC'));
 
         $this->artisan('scheduling:materialize')->assertSuccessful();
@@ -137,8 +126,7 @@ class OccurrenceCrudTest extends FeatureTestCase
             ->assertJsonPath('data.status', JobSchedule::STATUS_COMPLETED)
             ->assertJsonPath('data.completed_by', $this->userId())
             ->assertJsonStructure(['data' => ['completed_at']])
-            // A próxima data vive na fila e chega pelo evento; devolvê-la aqui
-            // seria um valor velho, e o contrato não pode mentir sobre o futuro.
+
             ->assertJsonMissingPath('next_due_at');
     }
 
@@ -150,7 +138,6 @@ class OccurrenceCrudTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'occurrence_not_found');
     }
 
-    /** O `member` recebe `occurrences.*` por padrão; a revogação explícita é que barra. */
     public function test_each_transition_has_its_own_capability(): void
     {
         $this->revokeCapability('occurrences.skip');
@@ -160,7 +147,6 @@ class OccurrenceCrudTest extends FeatureTestCase
             ->assertStatus(403)
             ->assertJsonPath('error.code', 'forbidden');
 
-        // Concluir continua liberado: a revogação é da capability, não da pessoa.
         $this->withHeaders($this->headers)
             ->postJson('/api/v1/scheduling/occurrences/'.$this->occurrenceId('2026-04-04').'/complete')
             ->assertOk();
@@ -168,8 +154,7 @@ class OccurrenceCrudTest extends FeatureTestCase
 
     public function test_another_home_cannot_see_or_close_the_occurrence(): void
     {
-        // O registro acontece no relógio real e só depois o relógio volta a
-        // congelar: o token da segunda morada precisa de `iat` válido.
+
         CarbonImmutable::setTestNow();
         $other = $this->registerUser('vizinha@mordomus.test', 'Vizinha', 'Casa Vizinha');
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-03-15 12:00:00', 'UTC'));
@@ -195,8 +180,6 @@ class OccurrenceCrudTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'unauthenticated');
     }
 
-    // ------------------------------------------------ atalho do Maintenance
-
     public function test_asset_shortcut_completes_the_occurrence_from_the_card(): void
     {
         $this->withHeaders($this->headers)
@@ -205,8 +188,6 @@ class OccurrenceCrudTest extends FeatureTestCase
             ->assertJsonPath('data.status', JobSchedule::STATUS_COMPLETED)
             ->assertJsonPath('data.subject_type', TriggerConfig::SUBJECT_ASSET);
 
-        // A janela já continha o ciclo seguinte: o check-in recalcula, mas não
-        // duplica a data que o materializador tinha adiantado.
         $this->assertSame(
             ['2026-03-25', '2026-04-04', '2026-04-14', '2026-04-24'],
             $this->withTenantContext($this->tenantId, fn (): array => JobSchedule::query()
@@ -227,8 +208,7 @@ class OccurrenceCrudTest extends FeatureTestCase
 
     public function test_asset_shortcut_does_not_touch_a_bill_occurrence(): void
     {
-        // A conta existe de verdade: `trigger_configs.bill_id` tem FK desde
-        // `50_financial_links`.
+
         $billId = $this->withTenantContext($this->tenantId, fn (): string => Bill::create([
             'tenant_id' => $this->tenantId,
             'name' => 'Conta de energia',
@@ -256,8 +236,6 @@ class OccurrenceCrudTest extends FeatureTestCase
                 ->value('id'),
         );
 
-        // O card do ativo não é o lugar de concluir uma conta: a resposta é 404
-        // e nenhum status muda.
         $this->withHeaders($this->headers)
             ->postJson('/api/v1/maintenance/occurrences/'.$billOccurrence.'/complete')
             ->assertStatus(404)
@@ -271,8 +249,6 @@ class OccurrenceCrudTest extends FeatureTestCase
             ),
         );
     }
-
-    // -------------------------------------------------------------- helpers
 
     private function complete(string $scheduledFor): void
     {
@@ -294,12 +270,6 @@ class OccurrenceCrudTest extends FeatureTestCase
         return $this->withTenantContext($this->tenantId, fn (): string => (string) User::query()->value('id'));
     }
 
-    /**
-     * Revoga uma capability da membership do usuário autenticado.
-     *
-     * O grant do membro tem precedência sobre o papel, e é o caminho que a
-     * residência usa para tirar de alguém a permissão de fechar o ciclo alheio.
-     */
     private function revokeCapability(string $capability): void
     {
         $membership = $this->withTenantContext($this->tenantId, function () use ($capability): Membership {
@@ -313,8 +283,6 @@ class OccurrenceCrudTest extends FeatureTestCase
             return $membership;
         });
 
-        // A resolução é cacheada por 60 s; sem isto o teste leria a capability
-        // antiga e o 403 não viria.
         app(CapabilityResolverService::class)->forget($membership);
     }
 }

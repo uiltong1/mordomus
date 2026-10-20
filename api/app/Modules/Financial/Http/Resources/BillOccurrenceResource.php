@@ -5,21 +5,10 @@ namespace Mordomus\Financial\Http\Resources;
 use Illuminate\Support\Carbon;
 use Mordomus\Financial\Models\BillOccurrence;
 
-/**
- * Shape do vencimento, com as baixas que o quitam.
- *
- * `due_date` é dia de calendário e sai no fuso da residência: ele é o dia que
- * o morador lê na fatura, não um instante. O histórico de pagamento vai
- * embutido porque é a resposta natural da pergunta que a lista de vencimentos
- * faz — "isso já foi pago, por quem e como".
- */
 final class BillOccurrenceResource
 {
     public function __construct(private readonly PaymentRecordResource $payments) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function make(BillOccurrence $occurrence, string $timezone): array
     {
         return [
@@ -41,10 +30,6 @@ final class BillOccurrenceResource
         ];
     }
 
-    /**
-     * @param  iterable<BillOccurrence>  $occurrences
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $occurrences, string $timezone): array
     {
         return collect($occurrences)

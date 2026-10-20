@@ -1,8 +1,3 @@
-/**
- * Tipos do contrato da API, derivados dos schemas do OpenAPI do monólito
- * (`make openapi`). Mudou o schema, muda o tipo.
- */
-
 export interface User {
   id: string
   name: string
@@ -65,7 +60,6 @@ export interface Profile {
   capabilities: string[]
 }
 
-/** `POST /auth/login`, `/auth/register`, `/auth/refresh`, `/auth/switch-tenant`. */
 export interface Session {
   token_type: string
   access_token: string
@@ -77,10 +71,6 @@ export interface Session {
   tenants: TenantSummary[]
 }
 
-/**
- * `POST /invitations/{token}/accept` devolve um terceiro formato de sessão:
- * sem `refresh_expires_in` e com o `tenant` convidado à parte.
- */
 export interface AcceptedInvitation {
   token_type: string
   access_token: string
@@ -92,7 +82,6 @@ export interface AcceptedInvitation {
   tenants: TenantSummary[]
 }
 
-/** `POST /tenants` devolve sessão + o tenant criado, mas sem `user`/`tenants`. */
 export interface TenantCreatedSession {
   token_type: string
   access_token: string
@@ -102,9 +91,6 @@ export interface TenantCreatedSession {
   active_tenant: string
   data: Tenant
 }
-
-/* Maintenance — cômodos e inventário. `archived` chega materializado: o recurso
- * traduz `archived_at !== null`, então a UI filtra por ele em vez de adivinhar. */
 
 export interface Room {
   id: string
@@ -135,9 +121,6 @@ export interface Asset {
   updated_at: string | null
 }
 
-/* Scheduling — motor de regras e agenda. */
-
-/** Alvo do ciclo. O monólito só agenda `asset` aqui; `bill` pertence à Fase 5. */
 export type SubjectType = 'asset' | 'bill'
 
 export const SUBJECT_TYPES = ['asset', 'bill'] as const
@@ -181,12 +164,6 @@ export interface TriggerConfig {
   updated_at: string | null
 }
 
-/**
- * Scheduling — status da ocorrência de manutenção. O Financeiro tem o seu
- * próprio (`FinancialOccurrenceStatus`, com `open`/`paid`/`overdue`/`cancelled`),
- * e os dois vocabularios não podem se misturar: `overdue` existe nos dois com
- * significados que não se cruzam.
- */
 export type SchedulingOccurrenceStatus =
   'pending' | 'notified' | 'completed' | 'skipped' | 'overdue'
 
@@ -198,7 +175,6 @@ export const SCHEDULING_OCCURRENCE_STATUSES = [
   'overdue',
 ] as const
 
-/** Status que ainda aceitam check-in. Concluir uma finalize devolve 409. */
 export const OPEN_SCHEDULING_OCCURRENCE_STATUSES: readonly SchedulingOccurrenceStatus[] = [
   'pending',
   'notified',
@@ -357,11 +333,6 @@ export interface OccurrenceSplit {
   shares: Share[]
 }
 
-/**
- * `POST /scheduling/preview`. `next_due_at` sai em UTC enquanto o recurso da
- * regra devolve o mesmo instante no fuso da residência — a comparação da tela
- * passa pelo `scheduled_for`, que é dia de calendário nos dois caminhos.
- */
 export interface TriggerPreview {
   type: TriggerType
   scheduled_for: string | null
@@ -370,7 +341,6 @@ export interface TriggerPreview {
   timezone: string
 }
 
-/** Capacidades do RBAC (ADR-007); `role_permissions` no monólito. */
 export const CAPABILITIES = [
   'tenant.manage',
   'members.manage',

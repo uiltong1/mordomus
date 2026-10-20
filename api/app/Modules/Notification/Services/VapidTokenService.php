@@ -10,21 +10,8 @@ use Mordomus\Notification\Contracts\Services\VapidTokenServiceInterface;
 use Mordomus\Notification\Support\PublicKeyPoint;
 use RuntimeException;
 
-/**
- * Credencial VAPID: o par EC P-256 do ambiente e o JWT que autentica o envio.
- *
- * O `aud` é a **origem** do serviço de push que vai receber a mensagem, e não
- * a do endpoint: é a origem que o serviço valida, e mandá-la diferente é o que
- * faz o serviço recusar a mensagem com 401.
- *
- * A validade é curta de propósito. O token viaja em toda requisição de push e
- * qualquer um que o intercepte consegue mandar mensagem para as assinaturas
- * daquele par; 12 h é o teto do protocolo e um aviso de casa não justifica
- * mais do que isso.
- */
 final class VapidTokenService implements VapidTokenServiceInterface
 {
-    /** Teto do protocolo para a validade do token de autenticação. */
     private const MAX_TTL_HOURS = 12;
 
     public function isConfigured(): bool
@@ -52,7 +39,6 @@ final class VapidTokenService implements VapidTokenServiceInterface
             throw new RuntimeException('VAPID_PUBLIC_KEY não é uma chave EC P-256 válida.');
         }
 
-        // O `k` do cabeçalho é o ponto não comprimido (RFC 8292): 0x04 || X || Y.
         return $this->base64Url(PublicKeyPoint::fromCoordinates($details['ec']['x'], $details['ec']['y']));
     }
 
@@ -83,10 +69,6 @@ final class VapidTokenService implements VapidTokenServiceInterface
         return $this->pem(config('notification.vapid.public_key'));
     }
 
-    /**
-     * O compose injeta o **caminho** do arquivo, como faz com o par do JWT; o
-     * que vier com `BEGIN` já é o PEM em si.
-     */
     private function pem(mixed $value): ?string
     {
         if (! is_string($value) || trim($value) === '') {

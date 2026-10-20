@@ -5,14 +5,10 @@ namespace Tests\Feature;
 use Mordomus\Identity\Models\Invitation;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Role;
-use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 use Mordomus\Identity\Services\CapabilityResolverService;
 use Mordomus\Identity\Services\InvitationTokenService;
 
-/**
- * Convites e gestão de membros (role e grants).
- */
 class MemberManagementTest extends FeatureTestCase
 {
     public function test_owner_invites_and_invitee_accepts(): void
@@ -30,7 +26,6 @@ class MemberManagementTest extends FeatureTestCase
         $token = $invite->json('token');
         $this->assertNotEmpty($token);
 
-        // apenas o hash persiste
         $invitation = $this->withTenantContext($tenantId, fn () => Invitation::query()
             ->where('tenant_id', $tenantId)
             ->firstOrFail());
@@ -38,14 +33,12 @@ class MemberManagementTest extends FeatureTestCase
         $this->assertNotSame($token, $invitation->token_hash);
         $this->assertTrue($invitation->expires_at->isFuture());
 
-        // convite pertence a outro e-mail → 403
         $intruso = User::factory()->create(['email' => 'intruso@mordomus.test']);
         $this->asUser($intruso)
             ->postJson("/api/v1/identity/invitations/{$token}/accept")
             ->assertStatus(403)
             ->assertJsonPath('error.code', 'invitation_email_mismatch');
 
-        // aceite cria membership ativo com role member e troca o tenant ativo
         $invitee = User::factory()->create(['email' => 'moradora@mordomus.test']);
         $accept = $this->asUser($invitee)->postJson("/api/v1/identity/invitations/{$token}/accept");
 
@@ -60,7 +53,6 @@ class MemberManagementTest extends FeatureTestCase
         $this->assertSame(Membership::STATUS_ACTIVE, $membership->status);
         $this->assertSame(Role::MEMBER, $membership->role->key);
 
-        // token não reutilizável
         $this->asUser($invitee, $tenantId)
             ->postJson("/api/v1/identity/invitations/{$token}/accept")
             ->assertStatus(409)
@@ -121,7 +113,6 @@ class MemberManagementTest extends FeatureTestCase
         $memberId = collect($members->json('data'))
             ->firstWhere('user.email', 'nova@mordomus.test')['id'];
 
-        // member não pode alterar roles (capability members.manage)
         $memberMembership = $this->withTenantContext($tenantId, fn () => Membership::query()
             ->where('user_id', $invitee->id)
             ->where('tenant_id', $tenantId)
@@ -134,7 +125,6 @@ class MemberManagementTest extends FeatureTestCase
             ->assertStatus(403)
             ->assertJsonPath('error.code', 'forbidden');
 
-        // dono troca a role → membro passa a ter todas as capabilities
         $ownerMembership = $this->withTenantContext($tenantId, fn () => Membership::query()
             ->where('user_id', $auth['user']['id'])
             ->where('tenant_id', $tenantId)
@@ -147,7 +137,6 @@ class MemberManagementTest extends FeatureTestCase
             ->assertOk()
             ->assertJsonPath('data.role.key', 'member');
 
-        // dono não pode alterar a própria role
         $this->withHeaders($headers)
             ->patchJson("/api/v1/identity/tenants/{$tenantId}/members/{$ownerMembership->id}", [
                 'role_id' => Role::systemByKey(Role::MEMBER)->id,
@@ -181,12 +170,10 @@ class MemberManagementTest extends FeatureTestCase
         $grant->assertOk();
         $this->assertContains('rules.edit', $grant->json('data.capabilities'));
 
-        // capability efetiva do membro no tenant
         $me = $this->asUser($member, $tenantId)->getJson('/api/v1/identity/me');
         $me->assertOk();
         $this->assertContains('rules.edit', $me->json('data.capabilities'));
 
-        // revoga
         $this->withHeaders($headers)->putJson(
             "/api/v1/identity/tenants/{$tenantId}/members/{$membership->id}/grants",
             ['capability' => 'rules.edit', 'granted' => false],

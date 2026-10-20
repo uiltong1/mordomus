@@ -25,13 +25,11 @@ class RefreshToken extends Model
         ];
     }
 
-    /** Tokens ainda válidos (não revogados, não expirados). */
     public function scopeUsable(Builder $query): Builder
     {
         return $query->whereNull('revoked_at')->where('expires_at', '>', now());
     }
 
-    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

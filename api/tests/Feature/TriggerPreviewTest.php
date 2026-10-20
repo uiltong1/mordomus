@@ -6,18 +6,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Testing\TestResponse;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * `POST /preview`: a mesma matemática do CRUD, sem gravar nada.
- *
- * O preview é o que o formulário do front usa para mostrar a próxima data
- * enquanto a regra está sendo montada — por isso o AC de R2 importa ainda
- * mais aqui: a resposta vem da regra, nunca de um cálculo solto no front.
- */
 class TriggerPreviewTest extends FeatureTestCase
 {
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     protected function setUp(): void
@@ -55,7 +47,7 @@ class TriggerPreviewTest extends FeatureTestCase
 
     public function test_preview_answers_with_an_instant_in_the_tenant_timezone(): void
     {
-        // 09:00 em São Paulo (UTC-3) é 12:00 UTC do mesmo dia.
+
         $this->preview(['type' => TriggerConfig::TYPE_INTERVAL, 'interval_value' => 1, 'interval_unit' => 'days'])
             ->assertOk()
             ->assertJsonPath('data.next_due_at', '2026-03-16T12:00:00+00:00');
@@ -97,8 +89,7 @@ class TriggerPreviewTest extends FeatureTestCase
 
     public function test_preview_of_escalated_counts_from_today(): void
     {
-        // `ESCALATED` repete pelo intervalo como o `INTERVAL`; os offsets só
-        // multiplicam os avisos, e nenhum deles desloca a data.
+
         $this->preview([
             'type' => TriggerConfig::TYPE_ESCALATED,
             'interval_value' => 30,
@@ -153,8 +144,7 @@ class TriggerPreviewTest extends FeatureTestCase
 
     public function test_preview_does_not_need_a_target(): void
     {
-        // O front chama o preview antes de o ativo existir em alguns fluxos; a
-        // matemática da data não depende do alvo.
+
         $this->preview(['type' => TriggerConfig::TYPE_CALENDAR_MONTHLY, 'day_of_month' => 20])
             ->assertOk()
             ->assertJsonPath('data.scheduled_for', '2026-03-20');
@@ -162,8 +152,7 @@ class TriggerPreviewTest extends FeatureTestCase
 
     public function test_preview_requires_a_resident_tenant(): void
     {
-        // O setUp monta a sessão com `withHeaders`, que deixa o token nos
-        // headers padrão do teste; sem limpá-lo esta chamada não seria anônima.
+
         $this->flushHeaders();
 
         $this->postJson('/api/v1/scheduling/preview', [
@@ -175,9 +164,6 @@ class TriggerPreviewTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'unauthenticated');
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function preview(array $payload): TestResponse
     {
         return $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/preview', $payload);

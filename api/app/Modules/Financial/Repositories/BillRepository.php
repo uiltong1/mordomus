@@ -49,7 +49,7 @@ final class BillRepository implements BillRepositoryInterface
 
     public function create(array $attributes): Bill
     {
-        // `refresh()` para a resposta já sair com os padrões do banco.
+
         return Bill::create($attributes)->refresh();
     }
 

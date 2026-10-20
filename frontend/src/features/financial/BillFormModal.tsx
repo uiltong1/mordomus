@@ -12,13 +12,6 @@ const KIND_LABEL: Record<BillKind, string> = {
   variable: 'Variável — você lança cada fatura',
 }
 
-/**
- * Cadastro e edição da conta.
- *
- * `kind=fixed` abre a cadência (`due_day` + `advance_notice_days`), que o
- * Scheduling materializa; a tela **não** calcula a próxima data (R7) — exibe o
- * `schedule.next_due_at` que veio do servidor.
- */
 export function BillFormModal({
   bill = null,
   onClose,
@@ -41,10 +34,6 @@ export function BillFormModal({
   )
   const [errors, setErrors] = useState<Record<string, string[]>>({})
 
-  /**
-   * A cadência só entra para conta fixa: mandá-la na variável é o tipo de campo
-   * sobrando que o `prohibited` do backend recusa.
-   */
   function buildInput(): BillInput {
     const payload: BillInput = {
       name: name.trim(),

@@ -12,9 +12,6 @@ use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 use Mordomus\Identity\Services\CapabilityResolverService;
 
-/**
- * Resolução de capabilities no Gate e member sem rules.edit → 403.
- */
 class RbacTest extends FeatureTestCase
 {
     private User $owner;

@@ -2,24 +2,14 @@
 
 namespace Mordomus\Common\Support;
 
-/**
- * Contexto de tenant da requisição corrente.
- *
- * Alimentado pelo middleware TenantScope a partir do JWT de serviço — nunca
- * do corpo da requisição — e lido pelo escopo global do Eloquent.
- */
 final class TenantContext
 {
     private static ?string $tenantId = null;
 
     private static ?string $userId = null;
 
-    /** @var array<string, mixed>|null */
     private static ?array $claims = null;
 
-    /**
-     * @param  array<string, mixed>|null  $claims
-     */
     public static function set(string $tenantId, ?string $userId = null, ?array $claims = null): void
     {
         self::$tenantId = $tenantId;
@@ -44,9 +34,6 @@ final class TenantContext
         return self::$userId;
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
     public static function claims(): ?array
     {
         return self::$claims;
@@ -57,14 +44,6 @@ final class TenantContext
         return self::$tenantId !== null;
     }
 
-    /**
-     * Executa um callback com o tenant informado e restaura o anterior.
-     *
-     * @template TRet
-     *
-     * @param  callable(): TRet  $callback
-     * @return TRet
-     */
     public static function runWith(string $tenantId, callable $callback): mixed
     {
         $previous = [self::$tenantId, self::$userId, self::$claims];

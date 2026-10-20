@@ -8,14 +8,10 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // ADR-001: PWA instalável. `injectManifest` (e não generateSW) porque o
-    // worker precisa do handler de `push` do Web Push ao lado do precache.
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      // o registro é feito em src/pwa/registerServiceWorker.ts para poder
-      // reportar o estado da instalação à interface
       injectRegister: null,
       registerType: 'prompt',
       injectManifest: {
@@ -71,11 +67,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     restoreMocks: true,
-    // as chaves VAPID reais são da T6.1.4; o teste só precisa de uma chave
-    // plausível para percorrer a assinatura
     env: { VITE_VAPID_PUBLIC_KEY: 'BEl62iUYgUivxIvc69QViQHuiYs8Ma8V0glpDHVJ5Y' },
     alias: {
-      // módulo virtual do plugin: só existe no build, não no Vitest
       'virtual:pwa-register': fileURLToPath(
         new URL('./src/test/stubs/pwaRegister.ts', import.meta.url),
       ),

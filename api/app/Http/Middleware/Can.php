@@ -10,15 +10,6 @@ use Mordomus\Http\Responses\ErrorEnvelope;
 use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Checagem de capability declarativa em rota.
- *
- * Uso: ->middleware('capability:rules.edit')
- *
- * Resolve pelo Gate já registrado no AppServiceProvider
- * (membership_grants → role_permissions → cache 60 s). O alias `capability`
- * existe porque `can` já é reservado pelo Laravel (Authorize).
- */
 class Can
 {
     public function handle(Request $request, Closure $next, string ...$capabilities): Response
@@ -40,9 +31,6 @@ class Can
         return $next($request);
     }
 
-    /**
-     * @param  array<string, mixed>  $details
-     */
     private function deny(Request $request, int $status, string $code, string $message, array $details = []): Response
     {
         Log::warning($status === 401 ? 'auth.unauthenticated' : 'capability.denied', [

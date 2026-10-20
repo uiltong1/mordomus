@@ -4,16 +4,6 @@ use Illuminate\Support\Facades\Route;
 use Mordomus\Scheduling\Http\Controllers\OccurrenceController;
 use Mordomus\Scheduling\Http\Controllers\TriggerConfigController;
 
-/*
-|--------------------------------------------------------------------------
-| Módulo Scheduling — /api/v1/scheduling/*
-|--------------------------------------------------------------------------
-| Leitura é livre para qualquer morador ativo da residência; criar e alterar
-| regras exige `rules.edit`, e as duas transições da agenda exigem a capability
-| própria — concluir não é editar regra, e um morador que só registra o que
-| fez não precisa poder reconfigurar a casa.
-*/
-
 Route::middleware('auth:jwt')->group(function () {
     Route::middleware('tenant')->group(function () {
         Route::get('/trigger-configs', [TriggerConfigController::class, 'index']);

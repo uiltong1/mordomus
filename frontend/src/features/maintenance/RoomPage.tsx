@@ -34,12 +34,6 @@ const ROOM_TABS: readonly { id: RoomTab; label: string }[] = [
   { id: 'agenda', label: 'Agenda' },
 ]
 
-/**
- * Visão de um cômodo, dividida em agenda e inventário: o que está para
- * acontecer (com o check-in de cada item) e o que existe dentro dele. É a
- * tela que responde "o que eu preciso fazer na cozinha hoje" sem o morador
- * precisar abrir a agenda e filtrar por cômodo.
- */
 export function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>()
   const { can } = useAuth()

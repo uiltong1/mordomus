@@ -7,19 +7,10 @@ use Illuminate\Support\Facades\DB;
 use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 use Mordomus\Identity\Models\Membership;
 
-/**
- * Resolução de capabilities:
- *   membership_grants (override pontual) → role_permissions[role_id] → cache 60 s.
- */
 class CapabilityResolverService implements CapabilityResolverServiceInterface
 {
     private const TTL_SECONDS = 60;
 
-    /**
-     * Capability keys efetivas do membership.
-     *
-     * @return list<string>
-     */
     public function keys(Membership $membership): array
     {
         return Cache::remember(
@@ -34,18 +25,15 @@ class CapabilityResolverService implements CapabilityResolverServiceInterface
         return in_array($capability, $this->keys($membership), true);
     }
 
-    /** Invalida o cache do membership (usado ao alterar grants). */
     public function forget(Membership $membership): void
     {
         Cache::forget($this->cacheKey($membership));
     }
 
-    /** @return list<string> */
     private function resolve(Membership $membership): array
     {
         $capabilities = [];
 
-        // 1) papel: capabilities da role via role_permissions
         $roleKeys = DB::table('role_permissions')
             ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
             ->where('role_permissions.role_id', $membership->role_id)
@@ -57,7 +45,6 @@ class CapabilityResolverService implements CapabilityResolverServiceInterface
             $capabilities[$key] = true;
         }
 
-        // 2) override pontual por membership (grant/deny explícito)
         $grants = DB::table('membership_grants')
             ->join('permissions', 'permissions.id', '=', 'membership_grants.permission_id')
             ->where('membership_grants.membership_id', $membership->id)

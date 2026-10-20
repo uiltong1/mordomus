@@ -231,7 +231,6 @@ describe('RoomPage', () => {
     open()
     await openTab('Agenda')
 
-    // a atrasada de 2 dias vem antes da que vence amanhã
     const pendencias = await screen.findByTestId('room-pending')
     const linhas = within(pendencias).getAllByRole('listitem')
     expect(linhas[0]).toHaveTextContent('Atrasado há 2 dias')
@@ -258,7 +257,6 @@ describe('RoomPage', () => {
     vi.mocked(completeOccurrence).mockRejectedValue(
       new ApiError(409, {
         code: 'occurrence_already_finalized',
-        // texto exato do `OccurrenceAlreadyFinalized` do monólito
         message: 'A ocorrência já foi encerrada e não aceita esta operação.',
       }),
     )
@@ -310,7 +308,6 @@ describe('RoomPage', () => {
     expect(screen.getByRole('dialog', { name: 'Novo item' })).toBeInTheDocument()
     expect(screen.getByLabelText('Nome do item')).toHaveValue('Lâmpada do corredor')
 
-    // o Cancelar é a saída declarada, e aí o que foi digitado vai mesmo
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -356,7 +353,6 @@ describe('RoomPage', () => {
     expect(screen.queryByRole('button', { name: 'Editar regra' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Remover regra' })).toBeNull()
 
-    // quem tem occurrences.complete continua vendo o check-in na agenda
     await openTab('Agenda')
     expect(await screen.findByRole('button', { name: 'Já fiz' })).toBeInTheDocument()
   })

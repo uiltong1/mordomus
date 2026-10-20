@@ -11,13 +11,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\Occurrence;
 use OpenApi\Attributes as OA;
 
-/**
- * Check-in e dispensa pelo card do ativo.
- *
- * Mesmo contrato de `/scheduling/occurrences/{id}/complete` e `/skip`, com o
- * alvo travado em `asset`: o card do ativo não conclui a ocorrência de uma
- * conta. A ocorrência e o recálculo do ciclo são do módulo Scheduling.
- */
 class AssetOccurrenceController extends Controller
 {
     public function __construct(private readonly AssetServiceInterface $assets) {}

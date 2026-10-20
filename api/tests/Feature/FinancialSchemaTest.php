@@ -12,18 +12,6 @@ use Mordomus\Financial\Models\PaymentRecord;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 
-/**
- * Esquema do módulo Financeiro.
- *
- * O que se verifica são as garantias que o banco precisa dar sozinho: um
- * vencimento por conta e data (é o que torna o consumidor idempotente),
- * referência real para a conta e para a ocorrência do Scheduling, e o destino
- * das linhas filhas quando o pai é removido — para a conta ser Levada junto
- * e o histórico de pagamento sobreviver à conta de quem pagou.
- *
- * As inserções são feitas por `DB::table` porque este teste é sobre o esquema,
- * não sobre a camada de acesso.
- */
 class FinancialSchemaTest extends FeatureTestCase
 {
     private string $tenantId;
@@ -56,7 +44,6 @@ class FinancialSchemaTest extends FeatureTestCase
         ]));
     }
 
-    /** A baixa de pagamento é histórico: `paid_at` é o único relógio da linha. */
     public function test_payment_records_has_no_update_clock(): void
     {
         $this->assertTrue(Schema::hasColumn('payment_records', 'paid_at'));
@@ -64,7 +51,6 @@ class FinancialSchemaTest extends FeatureTestCase
         $this->assertFalse(Schema::hasColumn('payment_records', 'updated_at'));
     }
 
-    /** `unique(bill_id, due_date)` é o que impede o evento duplicado de virar linha duplicada. */
     public function test_a_bill_has_at_most_one_due_date_per_day(): void
     {
         $occurrenceId = $this->insertOccurrence($this->billId, '2026-04-10');
@@ -89,7 +75,6 @@ class FinancialSchemaTest extends FeatureTestCase
         $this->assertSame(1, DB::table('payment_records')->count());
     }
 
-    /** A FK do Scheduling é real: o vencimento aponta para a ocorrência que o motor criou. */
     public function test_the_due_date_refers_to_the_schedule_that_generated_it(): void
     {
         $scheduleId = $this->insertJobSchedule('2026-04-10');
@@ -100,8 +85,6 @@ class FinancialSchemaTest extends FeatureTestCase
 
         $this->assertSame($scheduleId, DB::table('bill_occurrences')->where('id', $occurrenceId)->value('schedule_id'));
 
-        // `nullOnDelete`: apagar a regra de recorrência tira a ligação da
-        // agenda, e não o vencimento que a casa ainda deve pagar.
         DB::table('job_schedules')->where('id', $scheduleId)->delete();
 
         $this->assertNull(DB::table('bill_occurrences')->where('id', $occurrenceId)->value('schedule_id'));
@@ -168,8 +151,6 @@ class FinancialSchemaTest extends FeatureTestCase
         $this->assertNull(DB::table('payment_records')->value('user_id'));
         $this->assertSame(1, DB::table('payment_records')->count());
     }
-
-    // -------------------------------------------------------------- helpers
 
     private function insertBill(string $name, string $kind = Bill::KIND_FIXED): string
     {

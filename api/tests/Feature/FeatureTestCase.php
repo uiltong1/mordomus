@@ -18,7 +18,6 @@ abstract class FeatureTestCase extends TestCase
         $this->seed(RbacSeeder::class);
     }
 
-    /** Tenant criado junto com a rota de registro. */
     protected function registerUser(
         string $email,
         string $name = 'Usuário Teste',
@@ -37,13 +36,6 @@ abstract class FeatureTestCase extends TestCase
         return $response->json();
     }
 
-    /**
-     * Leitura direta de um model com TenantGlobalScope.
-     *
-     * Em requisição HTTP o middleware `tenant` popula o TenantContext; aqui
-     * fora (teste/CLI) a residência precisa ser dada explicitamente — é o
-     * fail-closed do escopo global.
-     */
     protected function withTenantContext(string $tenantId, callable $callback): mixed
     {
         return TenantContext::runWith($tenantId, $callback);

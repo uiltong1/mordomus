@@ -25,42 +25,18 @@ use Mordomus\Scheduling\Contracts\Services\TriggerConfigServiceInterface;
 use Mordomus\Scheduling\Models\TriggerConfig;
 use Throwable;
 
-/**
- * Cenário de demonstração: duas casas com moradores, cômodos, inventário, regras
- * de manutenção, contas e divisão de custos — o estado que o painel mostra
- * quando está cheio.
- *
- * Nada é escrito direto no banco com SQL: cada linha entra pelo service que a
- * aplicação usa em produção, porque é o mesmo caminho que valida o dado, calcula
- * a próxima data e publica o evento. Um seeder que.models->insert()` produziria
- * uma casa que o painel abre e a agenda não reconhece.
- *
- * A reaplicação não duplica: tenancy, morador, cômodo, item e conta entram por
- * chave natural, e a regra de manutenção é reescrita pelo título, que é o mesmo
- * mecanismo do "salvar" do formulário.
- */
 final class DemoScenario
 {
     private const PASSWORD = 'senha-demo-123';
 
-    /** Janela em que os avisos chegam; a casa acorda cedo. */
     private const HORIZON_DAYS = 45;
 
-    /** Tabelas do cenário e o model que a guarda, para a busca por chave natural. */
     private const MODELS = [
         'rooms' => Room::class,
         'assets' => Asset::class,
         'bills' => Bill::class,
     ];
 
-    /**
-     * As duas casas do cenário.
-     *
-     * A segunda existe para o seletor de residência ter o que mostrar: troca de
-     * casa tem que revelar outra agenda, não a mesma com outro nome.
-     *
-     * @var list<array<string, mixed>>
-     */
     private const HOUSES = [
         [
             'name' => 'Residência Vila Madalena',
@@ -199,9 +175,6 @@ final class DemoScenario
         private readonly SplitRuleServiceInterface $splits,
     ) {}
 
-    /**
-     * @return array<string, int> contagem do que o cenário deixou no banco
-     */
     public function run(): array
     {
         $summary = [
@@ -217,17 +190,11 @@ final class DemoScenario
             $this->house($house, $summary);
         }
 
-        // Uma passada só, depois das duas casas: o comando enfileira uma tarefa
-        // por residência e o worker faz o material de cada uma.
         Artisan::call('scheduling:materialize', ['--days' => self::HORIZON_DAYS]);
 
         return $summary;
     }
 
-    /**
-     * @param  array<string, mixed>  $house
-     * @param  array<string, int>  $summary
-     */
     private function house(array $house, array &$summary): void
     {
         $tenant = $this->tenant($house);
@@ -262,9 +229,6 @@ final class DemoScenario
         );
     }
 
-    /**
-     * @param  array<string, mixed>  $house
-     */
     private function tenant(array $house): Tenant
     {
         $existing = Tenant::query()
@@ -290,10 +254,6 @@ final class DemoScenario
         ])['tenant'];
     }
 
-    /**
-     * @param  array{name: string, email: string}  $person
-     * @param  array<string, int>  $summary
-     */
     private function resident(array $person, array &$summary): User
     {
         $user = $this->users->findByEmail($person['email']);
@@ -312,11 +272,6 @@ final class DemoScenario
         return $user;
     }
 
-    /**
-     * @param  list<array<string, string>>  $definitions
-     * @param  array<string, int>  $summary
-     * @return array<string, string> nome do cômodo => id
-     */
     private function rooms(array $definitions, Tenant $tenant, User $owner, array &$summary): array
     {
         $ids = [];
@@ -331,12 +286,6 @@ final class DemoScenario
         return $ids;
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $definitions
-     * @param  array<string, string>  $rooms
-     * @param  array<string, int>  $summary
-     * @return array<string, string> nome do item => id
-     */
     private function assets(array $definitions, Tenant $tenant, User $owner, array $rooms, array &$summary): array
     {
         $ids = [];
@@ -368,11 +317,6 @@ final class DemoScenario
         return $ids;
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $definitions
-     * @param  array<string, string>  $assets
-     * @param  array<string, int>  $summary
-     */
     private function rules(array $definitions, Tenant $tenant, array $assets, array &$summary): void
     {
         foreach ($definitions as $rule) {
@@ -397,11 +341,6 @@ final class DemoScenario
         }
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $definitions
-     * @param  array<string, int>  $summary
-     * @return array<string, string> nome da conta => id
-     */
     private function bills(array $definitions, Tenant $tenant, User $owner, array &$summary): array
     {
         $ids = [];
@@ -424,14 +363,6 @@ final class DemoScenario
         return $ids;
     }
 
-    /**
-     * Divisão por peso: quem mora sozinho paga o dobro da cota de quem divide,
-     * e a regra reescreve as cotas dos vencimentos que ainda estão em aberto.
-     *
-     * @param  array{bill: string, mode: string, weights: array<string, int|string>}  $definition
-     * @param  array<string, string>  $bills
-     * @param  array<string, User>  $residents
-     */
     private function split(array $definition, Tenant $tenant, User $owner, array $bills, array $residents): void
     {
         $entries = [];
@@ -455,12 +386,6 @@ final class DemoScenario
         ]));
     }
 
-    /**
-     * Requisição com o mesmo formato que o middleware entrega ao service: o
-     * escopo vem do token (`tid`) e o autor vem do usuário resolvido.
-     *
-     * @param  array<string, mixed>  $payload
-     */
     private function as(User $user, Tenant $tenant, array $payload): Request
     {
         $request = Request::create('/demo', 'POST', $payload);
@@ -472,12 +397,6 @@ final class DemoScenario
         return $request;
     }
 
-    /**
-     * Natural key do cenário: o nome dentro da residência.
-     *
-     * O filtro de residência é o escopo global, então o chamador precisa estar
-     * dentro de `TenantContext` — como todo o resto deste seeder.
-     */
     private function findByName(string $table, string $name): ?string
     {
         $model = self::MODELS[$table];
@@ -486,7 +405,6 @@ final class DemoScenario
         return $id === null ? null : (string) $id;
     }
 
-    /** `-2 years`, `+8 months` — datas de garantia não podem ser literais fixos. */
     private function relativeDate(mixed $value): ?string
     {
         if (! is_string($value) || $value === '') {
@@ -500,7 +418,6 @@ final class DemoScenario
         }
     }
 
-    /** `bruno@mordomus.test` → `bruno`: chave curta dentro do cenário. */
     private function handleOf(string $email): string
     {
         return strstr($email, '@', true) ?: $email;

@@ -20,13 +20,6 @@ use Mordomus\Notification\Models\NotificationLog;
 use Mordomus\Notification\Models\NotificationPreference;
 use Mordomus\Scheduling\Events\EventName as ScheduleEventName;
 
-/**
- * Consumo do envelope: destinatário, canal, dedupe e adiamento.
- *
- * O consumidor é chamado com o envelope direto em vez de pela fila: o que
- * importa aqui é a linha que ele grava, e o despacho da entrega é conferido com
- * `Queue::fake`, que é onde o atraso do adiamento aparece.
- */
 class NotificationConsumerTest extends FeatureTestCase
 {
     private string $tenantId;
@@ -51,8 +44,6 @@ class NotificationConsumerTest extends FeatureTestCase
 
         parent::tearDown();
     }
-
-    // ------------------------------------------------------------ destinatário
 
     public function test_a_due_task_reaches_every_active_member_of_the_house(): void
     {
@@ -146,12 +137,9 @@ class NotificationConsumerTest extends FeatureTestCase
         $this->assertCount(0, $this->logs());
     }
 
-    // ------------------------------------------------------------------ canal
-
     public function test_instant_without_a_signature_queues_nothing(): void
     {
-        // Sem assinatura de push não há para quem mandar: inventar a linha
-        // seria um aviso que nunca existiu.
+
         $this->assertSame(0, $this->consume($this->scheduleDue()));
         $this->assertCount(0, $this->logs());
     }
@@ -179,15 +167,11 @@ class NotificationConsumerTest extends FeatureTestCase
         $this->assertSame(config('notification.queues.emails'), $this->pushedJob()->queue);
     }
 
-    // ---------------------------------------------------------------- dedupe
-
     public function test_the_same_envelope_delivered_three_times_queues_once(): void
     {
         $this->device($this->ownerId, 'https://push.test/dono');
         $envelope = $this->scheduleDue();
 
-        // A fila é at-least-once e a dedupe é do banco: as três entregas são o
-        // mesmo aviso, e ele não pode virar três cards na tela do morador.
         $this->assertSame(1, $this->consume($envelope));
         $this->assertSame(0, $this->consume($envelope));
         $this->assertSame(0, $this->consume($envelope));
@@ -219,14 +203,11 @@ class NotificationConsumerTest extends FeatureTestCase
         $this->assertCount(2, $this->logs());
     }
 
-    // ------------------------------------------------------------ quiet hours
-
     public function test_a_notice_that_arrives_at_night_is_deferred_and_not_cancelled(): void
     {
         $this->device($this->ownerId, 'https://push.test/dono');
         $this->preference(['quiet_start' => '22:00', 'quiet_end' => '07:00']);
 
-        // 23:00 em São Paulo são 02:00 UTC do dia 16.
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-03-16 02:00:00', 'UTC'));
 
         $this->assertSame(1, $this->consume($this->scheduleDue()));
@@ -270,15 +251,11 @@ class NotificationConsumerTest extends FeatureTestCase
         );
     }
 
-    // ---------------------------------------------------------------- helpers
-
-    /** @return array<string, mixed> */
     private function consume(array $envelope): int
     {
         return app(NotificationConsumerServiceInterface::class)->consume($envelope);
     }
 
-    /** @return Collection<int, NotificationLog> */
     private function logs(): Collection
     {
         return $this->withTenantContext(
@@ -309,7 +286,6 @@ class NotificationConsumerTest extends FeatureTestCase
         ]));
     }
 
-    /** @param array<string, mixed> $attributes */
     private function preference(array $attributes): NotificationPreference
     {
         return $this->withTenantContext($this->tenantId, fn (): NotificationPreference => NotificationPreference::create([
@@ -338,7 +314,6 @@ class NotificationConsumerTest extends FeatureTestCase
         return $this->registerUser('outra@mordomus.test', 'Outra', 'Casa Outra')['active_tenant'];
     }
 
-    /** @return array<string, mixed> */
     private function scheduleDue(): array
     {
         return [
@@ -357,7 +332,6 @@ class NotificationConsumerTest extends FeatureTestCase
         ];
     }
 
-    /** @return array<string, mixed> */
     private function billDue(): array
     {
         return [
@@ -378,7 +352,6 @@ class NotificationConsumerTest extends FeatureTestCase
         ];
     }
 
-    /** @return array<string, mixed> */
     private function splitComputed(string $userId): array
     {
         return [

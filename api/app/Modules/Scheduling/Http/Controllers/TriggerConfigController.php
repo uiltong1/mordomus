@@ -16,14 +16,6 @@ use Mordomus\Scheduling\Http\Requests\StoreTriggerConfigRequest;
 use Mordomus\Scheduling\Http\Requests\UpdateTriggerConfigRequest;
 use OpenApi\Attributes as OA;
 
-/**
- * Regras de recorrência da residência: CRUD, filtro por alvo e o cálculo de
- * preview.
- *
- * O alvo vem como `subject_type` + `subject_id` na URL/payload e vira a coluna
- * (`asset_id`/`bill_id`) que o banco restringe com FK — a existência do alvo é
- * garantida pela restrição, não por chamada a outro módulo.
- */
 class TriggerConfigController extends Controller
 {
     public function __construct(private readonly TriggerConfigServiceInterface $configs) {}

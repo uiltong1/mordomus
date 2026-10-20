@@ -3,15 +3,10 @@ import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttri
 export interface FieldProps {
   label: string
   hint?: ReactNode
-  /** Mensagens do `error.details` do backend (422 `validation_failed`). */
   errors?: string[]
   children: (props: { id: string; describedBy: string | undefined; invalid: boolean }) => ReactNode
 }
 
-/**
- * Casca de campo: liga label, dica e erro ao controle por id, para que leitor
- * de tela anuncie o motivo da recusa e não só "campo inválido".
- */
 export function Field({ label, hint, errors, children }: FieldProps) {
   const id = useId()
   const hintId = `${id}-hint`

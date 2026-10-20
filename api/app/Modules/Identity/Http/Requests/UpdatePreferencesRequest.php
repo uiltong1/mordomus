@@ -9,7 +9,6 @@ class UpdatePreferencesRequest extends TenantScopedRequest
         return 'tenant.manage';
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

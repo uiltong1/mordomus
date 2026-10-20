@@ -13,16 +13,6 @@ use Mordomus\Notification\Contracts\Services\NotificationLogServiceInterface;
 use Mordomus\Notification\Http\Resources\NotificationLogResource;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 
-/**
- * Histórico do que o morador recebeu.
- *
- * É a resposta à pergunta "por que não recebi?" — e por isso mostra também o
- * que **falhou** e o motivo. Um histórico que só lista o que deu certo deixa o
- * morador sem resposta exatamente quando ele mais precisa dela.
- *
- * O recorte é o do chamador: a lista é dele, e o de mais ninguém. Sem
- * capability porque não há nada de outro morador no escopo.
- */
 final class NotificationLogService implements NotificationLogServiceInterface
 {
     public function __construct(
@@ -54,8 +44,7 @@ final class NotificationLogService implements NotificationLogServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 }

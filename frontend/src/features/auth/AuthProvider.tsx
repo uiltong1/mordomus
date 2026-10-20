@@ -24,7 +24,6 @@ export interface AuthContextValue {
   session: StoredSession | null
   profile: Profile | null
   isAuthenticated: boolean
-  /** `true` só enquanto o perfil da sessão ainda não chegou do `/identity/me`. */
   isLoadingProfile: boolean
   tenants: TenantSummary[]
   capabilities: string[]
@@ -33,14 +32,12 @@ export interface AuthContextValue {
   register: (input: Parameters<typeof identity.register>[0]) => Promise<void>
   acceptInvitation: (token: string) => Promise<void>
   logout: () => Promise<void>
-  /** Persiste um par de tokens novo: troca de residência, aceite, criação. */
   adoptSession: (grant: TokenGrant) => void
   can: (capability: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-/** Reconstrói o perfil a partir da sessão, sem round-trip: a sessão já traz tudo. */
 function profileFromGrant(grant: TokenGrant, user: StoredUser): Profile {
   const tenants = grant.tenants ?? []
   const active = tenants.find((tenant) => tenant.id === grant.active_tenant)
@@ -56,8 +53,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [session, setSession] = useState<StoredSession | null>(() => getSession())
 
-  // o client central avisa quando o refresh rotativo troca o par de tokens ou
-  // quando a sessão morre; sem isso a UI ficaria com o token velho em mãos
   useEffect(() => onSessionChange(setSession), [])
 
   const profileQuery = useQuery({
@@ -69,12 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const adoptSession = useCallback(
     (grant: TokenGrant) => {
-      // passar pelo client central é o que publica a mudança: o
-      // TenantProvider lê a residência daqui, e sem o aviso quem entra pelo
-      // login ou pelo registro cairia no painel sem residência até recarregar
       const stored = persistSession(grant)
-      // semeia o perfil quando a rota entrega o usuário, para a tela não
-      // depender de um segundo round-trip; o refetch reconcilia em seguida
       if (stored.user) {
         queryClient.setQueryData(authKeys.profile(), profileFromGrant(grant, stored.user))
       }
@@ -88,9 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (refreshToken) {
       try {
         await identity.logout(refreshToken)
-      } catch {
-        // revogar no servidor é melhor-esforço: a sessão local cai de todo modo
-      }
+      } catch {}
     }
     expireSession()
     queryClient.clear()

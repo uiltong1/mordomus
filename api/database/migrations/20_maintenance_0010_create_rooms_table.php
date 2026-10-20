@@ -4,12 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Ambientes do imóvel (cômodos) do módulo Maintenance.
- *
- * Soft delete via `archived_at`, ordenação persistida em `sort_order` e
- * FK real de `tenant_id` para `tenants`.
- */
 return new class extends Migration
 {
     public function up(): void

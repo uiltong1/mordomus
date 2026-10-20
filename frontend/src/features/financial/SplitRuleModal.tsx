@@ -15,13 +15,6 @@ import {
   type SplitRuleForm,
 } from './splitTypes'
 
-/**
- * Builder da regra de divisão.
- *
- * `billId` nulo = regra padrão da casa, que vale para o que não tem regra
- * própria; aberto a partir de uma conta, o `bill_id` vai preenchido e a regra
- * vale só para ela.
- */
 export function SplitRuleModal({
   billId = null,
   rule = null,
@@ -44,8 +37,6 @@ export function SplitRuleModal({
     setForm({
       ...(base ?? emptySplitRule(participants.map((member) => member.user.id))),
       mode,
-      // o campo do regime anterior é zerado aqui: ele não pode sobreviver no
-      // estado, ou entra no payload e o backend recusa com 422
       entries: (base?.entries ?? []).map((entry) => ({
         ...entry,
         weight: null,

@@ -11,13 +11,6 @@ use Mordomus\OpenApi\Schemas\NotificationLog;
 use Mordomus\OpenApi\Schemas\PageMeta;
 use OpenApi\Attributes as OA;
 
-/**
- * Histórico do que o morador recebeu.
- *
- * Mostra também o que **falhou** e o motivo: é a resposta à pergunta "por que
- * não recebi?", e um histórico que só lista o que deu certo não responde nada
- * quando a pergunta existe.
- */
 class NotificationLogController extends Controller
 {
     public function __construct(private readonly NotificationLogServiceInterface $logs) {}

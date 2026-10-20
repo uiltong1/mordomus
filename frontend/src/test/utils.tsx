@@ -7,7 +7,6 @@ import { ThemeProvider } from '@/shared/theme'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { TenantProvider } from '@/tenants/TenantProvider'
 
-/** Cliente limpo por teste: cache compartilhado farão vazar estado entre casos. */
 export function createTestQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -17,7 +16,6 @@ export function createTestQueryClient(): QueryClient {
   })
 }
 
-/** Espelha o `AppProviders` real, sem BrowserRouter nem ErrorBoundary. */
 export function TestProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
@@ -39,10 +37,6 @@ export function renderWithProviders(ui: ReactElement, options?: Omit<RenderOptio
   })
 }
 
-/**
- * Para telas que usam `Link` ou `useNavigate`: sem um router por cima, o
- * `Link` do React Router estoura ao tentar ler o contexto de navegação.
- */
 export function renderWithRouter(ui: ReactElement, route = '/') {
   return renderWithProviders(
     <MemoryRouter initialEntries={[route]}>
@@ -53,10 +47,6 @@ export function renderWithRouter(ui: ReactElement, route = '/') {
   )
 }
 
-/**
- * Declara a rota para o `useParams` resolver o id. O `path` da tela real é o
- * que importa aqui: o parâmetro só existe se a rota estiver declarada.
- */
 export function renderRoute(ui: ReactElement, path: string, route: string) {
   return renderWithProviders(
     <MemoryRouter initialEntries={[route]}>
@@ -67,7 +57,6 @@ export function renderRoute(ui: ReactElement, path: string, route: string) {
   )
 }
 
-/** `Response` mínimo com o envelope de erro do monólito. */
 export function errorResponse(
   status: number,
   body: { code: string; message: string; details?: unknown; request_id?: string },

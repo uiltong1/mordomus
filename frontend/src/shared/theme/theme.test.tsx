@@ -22,10 +22,6 @@ import {
 
 type MediaListener = (event: MediaQueryListEvent) => void
 
-/**
- * jsdom não implementa `matchMedia`, então o dublê também é o meio de provoke a
- * mudança de preferência do sistema: o provider só reage ao evento `change`.
- */
 function stubMatchMedia(initialDark: boolean) {
   const listeners = new Set<MediaListener>()
   const query = {
@@ -254,16 +250,7 @@ describe('ThemeToggle', () => {
   })
 })
 
-/**
- * O snippet inline do `index.html` é a única parte do tema que roda antes do
- * React — e não dá para importar um arquivo dele. O teste abaixo executa o
- * snippet de verdade e compara com `resolveTheme`: se alguém renomear a chave,
- * esquecer de normalizar o valor lido ou trocar a consulta de sistema, a
- * primeira pintura deixa de bater com o resto do app e este teste quebra.
- */
 describe('snippet de primeira pintura', () => {
-  // ler o arquivo do repo é o que faz este teste valer: `?raw` não resolve em
-  // HTML no Vite, e o projeto de TS dos testes é o que tem tipos de Node
   const readIndexHtml = () => readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
 
   const bootScript = (() => {

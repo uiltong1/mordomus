@@ -20,28 +20,14 @@ use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\User;
 use Mordomus\Scheduling\Jobs\PublishEvent;
 
-/**
- * Divisão de cota-parte: a regra, a cota de cada morador, a baixa e o
- * recalcular (T5.2.4, T5.2.5).
- *
- * O relógio é congelado porque o que está em jogo aqui é a fronteira com o
- * Scheduling: o vencimento nasce na data que o motor calculou, e a cota é
- * sobre o valor que a casa registrou nele.
- *
- * Cada cenário é uma casa de três moradores — dono e dois membros — porque a
- * divisão só existe com mais de uma parte, e é a casa com membros que prova o
- * escopo de leitura.
- */
 class SplitFlowTest extends FeatureTestCase
 {
     private const NOW = '2026-04-01 12:00:00';
 
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
-    /** @var array<string, string> */
     private array $memberHeaders;
 
     private string $ownerId = '';
@@ -64,15 +50,10 @@ class SplitFlowTest extends FeatureTestCase
             'Accept' => 'application/json',
         ];
 
-        // Dono e dois moradores: a divisão só existe com mais de uma parte, e a
-        // casa com membros é o que prova o recorte de leitura.
         $this->memberId = $this->addResident('bruno@mordomus.test', 'Bruno');
         $this->otherId = $this->addResident('carla@mordomus.test', 'Carla');
         $this->memberHeaders = $this->authHeadersFor(User::query()->findOrFail($this->memberId), $this->tenantId);
 
-        // O token é emitido antes do congelamento: o `firebase/php-jwt` valida
-        // `iat`/`nbf` contra o relógio do sistema, e um token emitido no
-        // "futuro" do relógio congelado seria recusado como inválido.
         CarbonImmutable::setTestNow(CarbonImmutable::parse(self::NOW, 'UTC'));
     }
 
@@ -82,8 +63,6 @@ class SplitFlowTest extends FeatureTestCase
 
         parent::tearDown();
     }
-
-    // ------------------------------------------------------------ regra
 
     public function test_the_rule_of_the_house_is_saved_and_listed(): void
     {
@@ -95,8 +74,7 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('data.is_house_default', true)
             ->assertJsonCount(3, 'data.entries')
             ->assertJsonPath('data.entries.0.user_id', $this->ownerId)
-            // `EQUAL` não usa peso: o campo fora do regime é proibido, e a
-            // resposta volta com ele nulo para a tela não tentar ler.
+
             ->assertJsonPath('data.entries.0.weight', null)
             ->assertJsonPath('data.entries.0.percent', null);
 
@@ -129,8 +107,7 @@ class SplitFlowTest extends FeatureTestCase
 
     public function test_a_rule_of_a_bill_of_another_home_is_not_found(): void
     {
-        // A conta nasce na outra casa, direto no banco: o token desta
-        // residência não abriria a conta de lá para criá-la.
+
         $otherTenant = $this->registerUser('outra@mordomus.test', 'Casa', 'Outra Casa')['active_tenant'];
         $foreign = $this->withTenantContext($otherTenant, fn (): string => (string) Bill::create([
             'tenant_id' => $otherTenant,
@@ -153,8 +130,6 @@ class SplitFlowTest extends FeatureTestCase
             'entries' => [['user_id' => $this->ownerId, 'percent' => '50'], ['user_id' => $this->memberId, 'percent' => '50']],
         ])->assertOk();
 
-        // `PERCENT` exige percentual: peso no lugar dele é a regra que o
-        // cálculo não consegue ler.
         $this->saveRule([
             'mode' => SplitRule::MODE_PERCENT,
             'entries' => [['user_id' => $this->ownerId, 'weight' => '1'], ['user_id' => $this->memberId, 'weight' => '1']],
@@ -163,8 +138,6 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'validation_failed')
             ->assertJsonStructure(['error' => ['details' => ['entries.0.percent']]]);
 
-        // E o campo de outro regime é lixo que voltaria como puzzling na linha
-        // do banco, então ele é recusado.
         $this->saveRule([
             'mode' => SplitRule::MODE_EQUAL,
             'entries' => [['user_id' => $this->ownerId, 'weight' => '1'], ['user_id' => $this->memberId]],
@@ -197,8 +170,6 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'forbidden');
     }
 
-    // -------------------------------------------------------------- cota
-
     public function test_the_share_of_a_due_date_is_split_when_it_is_born(): void
     {
         $this->createBill('Conta de luz', '187.43');
@@ -218,7 +189,6 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('data.shares.0.settled', false);
     }
 
-    /** Critério de aceite: a soma das cotas é o valor da conta. */
     public function test_the_shares_add_up_to_the_amount_of_the_due_date(): void
     {
         $this->createBill('Conta de luz', '187.43');
@@ -274,8 +244,6 @@ class SplitFlowTest extends FeatureTestCase
 
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // Regra pausada não divide: a conta volta ao padrão da casa, que
-        // divide entre os três moradores dela.
         $this->split($this->occurrenceId('2026-04-10'))
             ->assertOk()
             ->assertJsonPath('data.is_house_default', true)
@@ -312,7 +280,6 @@ class SplitFlowTest extends FeatureTestCase
         $this->split($foreignId)->assertStatus(404);
     }
 
-    /** Critério de aceite: cada morador vê apenas a própria cota. */
     public function test_a_resident_sees_only_their_own_share(): void
     {
         $this->createBill('Conta de luz', '187.43');
@@ -346,8 +313,6 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'forbidden');
     }
 
-    // ------------------------------------------------------ recalcular (AC)
-
     public function test_changing_the_rule_recalculates_the_open_due_dates(): void
     {
         $this->createBill('Conta de luz', '187.43');
@@ -357,10 +322,6 @@ class SplitFlowTest extends FeatureTestCase
 
         $this->assertSame(['62.47', '62.47', '62.49'], $this->shareAmounts($this->occurrenceId('2026-04-10')));
 
-        // A casa mudou o combinado: a cota de quem está em aberto passa a ser
-        // a do novo regime, sem ninguém precisar reabrir a tela.
-        // 40/40/60 não fecha em 100 de propósito: a regra normaliza pela soma
-        // dos percentuais, e 187,43 sai em 2/7, 2/7 e 3/7.
         $this->saveHouseRule(['mode' => SplitRule::MODE_PERCENT, 'entries' => [
             ['user_id' => $this->ownerId, 'percent' => '40'],
             ['user_id' => $this->memberId, 'percent' => '40'],
@@ -386,8 +347,6 @@ class SplitFlowTest extends FeatureTestCase
             ['user_id' => $this->otherId, 'percent' => '60'],
         ]])->assertOk();
 
-        // Conta quitada tem o valor congelado no que foi pago: reescrever a
-        // divisão dela trocaria o histórico de quem pagou o quê.
         $this->assertSame(['62.47', '62.47', '62.49'], $this->shareAmounts($occurrenceId));
         $this->assertSame(['53.55', '53.55', '80.33'], $this->shareAmounts($this->occurrenceId('2026-05-10')));
     }
@@ -420,8 +379,6 @@ class SplitFlowTest extends FeatureTestCase
         $occurrenceId = $this->occurrenceId('2026-04-10');
         $this->assertSame(1, $this->resultCount($occurrenceId));
 
-        // Sem regra padrão e com a da conta pausada, a conta deixa de ser
-        // dividida — e cota zerada não é o que a casa veria.
         $this->saveRule([
             'bill_id' => $billId,
             'mode' => SplitRule::MODE_CUSTOM,
@@ -432,8 +389,6 @@ class SplitFlowTest extends FeatureTestCase
         $this->assertSame(0, $this->resultCount($occurrenceId));
         $this->split($occurrenceId)->assertStatus(404);
     }
-
-    // ------------------------------------------------- baixa e evento (AC)
 
     public function test_the_share_is_settled_and_the_event_carries_the_shares(): void
     {
@@ -456,8 +411,6 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('data.shares.1.settled_at', '2026-04-01T09:00:00-03:00')
             ->assertJsonPath('data.shares.0.settled', false);
 
-        // Um aviso por vencimento, e só quando o número muda: a baixa não
-        // publica, e o motor materializou abril e maio numa passada só.
         $events = Queue::pushed(PublishEvent::class)
             ->map(fn (PublishEvent $job): array => $job->envelope)
             ->filter(fn (array $envelope): bool => $envelope['event'] === EventName::EXPENSE_SPLIT_COMPUTED)
@@ -533,11 +486,6 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'forbidden');
     }
 
-    /**
-     * A cota é do valor que a casa quitou: em conta variável o valor real só
-     * aparece na baixa, e a divisão feita sobre o valor previsto seria a
-     * divisão de um valor que ninguém pagou.
-     */
     public function test_paying_with_the_real_amount_redivides_the_share(): void
     {
         $billId = $this->createBill('Gás', null, Bill::KIND_VARIABLE);
@@ -557,10 +505,6 @@ class SplitFlowTest extends FeatureTestCase
         $this->assertSame(['71.25', '71.25', '71.27'], $this->shareAmounts($occurrenceId));
     }
 
-    /**
-     * A baixa vale para o número com que o morador concordou: cota que muda de
-     * valor volta a ficar em aberto, e a que não muda continua quitada.
-     */
     public function test_a_share_that_changes_value_goes_back_to_open(): void
     {
         $this->createBill('Conta de luz', '100.00');
@@ -575,8 +519,6 @@ class SplitFlowTest extends FeatureTestCase
         $this->settle($occurrenceId, ['user_id' => $this->ownerId])->assertOk();
         $this->settle($occurrenceId, ['user_id' => $this->memberId])->assertOk();
 
-        // Regra salva de novo sem mudar o número: o que foi quitado continua
-        // valendo, porque a baixa era para estes valores.
         $this->saveHouseRule(['entries' => [
             ['user_id' => $this->ownerId],
             ['user_id' => $this->memberId],
@@ -605,8 +547,6 @@ class SplitFlowTest extends FeatureTestCase
     {
         $this->createBill('Conta de luz', '100.00');
 
-        // Cota fechada que passa do total: a última ficaria negativa, e dívida
-        // invertida não é resposta para o morador.
         $this->saveRule([
             'bill_id' => $this->billId,
             'mode' => SplitRule::MODE_CUSTOM,
@@ -621,8 +561,6 @@ class SplitFlowTest extends FeatureTestCase
             ->assertJsonPath('error.details.reason', 'exceeds_total')
             ->assertJsonPath('error.details.total', '100.00');
     }
-
-    // -------------------------------------------------------------- helpers
 
     private function createBill(string $name, ?string $amount, string $kind = Bill::KIND_FIXED): string
     {
@@ -639,7 +577,6 @@ class SplitFlowTest extends FeatureTestCase
         return $this->billId;
     }
 
-    /** @param array<string, mixed> $payload */
     private function saveHouseRule(array $payload = []): TestResponse
     {
         return $this->saveRule($payload + [
@@ -652,7 +589,6 @@ class SplitFlowTest extends FeatureTestCase
         ]);
     }
 
-    /** @param array<string, mixed> $payload */
     private function saveRule(array $payload): TestResponse
     {
         return $this->withHeaders($this->headers)->putJson('/api/v1/financial/split-rules', $payload);
@@ -664,14 +600,12 @@ class SplitFlowTest extends FeatureTestCase
             ->getJson("/api/v1/financial/occurrences/{$occurrenceId}/split");
     }
 
-    /** @param array<string, mixed> $payload */
     private function settle(string $occurrenceId, array $payload): TestResponse
     {
         return $this->withHeaders($this->headers)
             ->patchJson("/api/v1/financial/occurrences/{$occurrenceId}/split", $payload);
     }
 
-    /** @param array<string, mixed> $payload */
     private function pay(string $occurrenceId, array $payload = []): TestResponse
     {
         return $this->withHeaders($this->headers)->postJson(
@@ -694,13 +628,6 @@ class SplitFlowTest extends FeatureTestCase
         return (string) $user->id;
     }
 
-    /**
-     * Tira as duas capabilities de split do morador.
-     *
-     * Grant negativo no pivot, e não sync vazio: pivot vazio é "sem
-     * grant", e quem resolve a capability cai no papel — que continua dando
-     * as duas.
-     */
     private function revokeSplitCapabilities(string $userId): void
     {
         $membership = $this->withTenantContext($this->tenantId, fn () => Membership::query()
@@ -722,7 +649,6 @@ class SplitFlowTest extends FeatureTestCase
         app(CapabilityResolverServiceInterface::class)->forget($membership);
     }
 
-    /** @return list<string> */
     private function shareAmounts(string $occurrenceId): array
     {
         $shares = $this->split($occurrenceId)->assertOk()->json('data.shares');

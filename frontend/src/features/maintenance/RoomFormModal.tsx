@@ -14,15 +14,6 @@ export interface RoomFormModalProps {
   room?: Room | null
 }
 
-/**
- * Cadastro de cômodo. O mesmo formulário cria e edita — a diferença está em
- * quais campos o `PATCH` leva: renomear um cômodo não precisa reenviar `icon`
- * e `sort_order`, e o backend recusa corpo vazio.
- *
- * Abrir de novo desmonta e remonta o corpo em vez de reescrever cada campo por
- * efeito: o estado inicial nasce uma vez, e reaproveitar o componente com o
- * `key` da regra garante que editando A e depois B nenhum valor de A reste.
- */
 export function RoomFormModal({ open, onClose, room = null }: RoomFormModalProps) {
   if (!open) return null
   return <RoomFormBody key={room?.id ?? 'novo'} onClose={onClose} room={room} />

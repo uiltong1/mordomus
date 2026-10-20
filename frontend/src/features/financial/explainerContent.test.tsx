@@ -117,7 +117,6 @@ describe('BillListPage — a tela se explica', () => {
 
     const explainer = await screen.findByText(/Conta é o cadastro que se repete/)
     expect(explainer).toBeInTheDocument()
-    // a ponte com a outra aba está na frase, não escondida no detalhe
     expect(explainer).toHaveTextContent('vencimento')
   })
 
@@ -135,7 +134,6 @@ describe('BillListPage — a tela se explica', () => {
 
     await screen.findByText('Energia')
 
-    // a linha que mais parece quebrada é a que precisa dizer onde está o resto
     expect(screen.getByText(/lance cada fatura em Vencimentos/)).toBeInTheDocument()
     expect(screen.getByText(/vence todo dia 10/)).toBeInTheDocument()
   })

@@ -11,12 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 use Mordomus\Identity\Models\User;
 
-/**
- * Cota-parte materializada: quanto de um vencimento cabe a este morador.
- *
- * O valor gravado é o do dia do cálculo e não uma fórmula: a regra pode mudar
- * depois, e o que o morador já foi cobrado continua sendo o que está aqui.
- */
 #[Fillable([
     'tenant_id',
     'bill_occurrence_id',
@@ -42,13 +36,11 @@ class SplitResult extends Model
         ];
     }
 
-    /** @return BelongsTo<BillOccurrence, $this> */
     public function billOccurrence(): BelongsTo
     {
         return $this->belongsTo(BillOccurrence::class);
     }
 
-    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -14,13 +14,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\PageMeta;
 use OpenApi\Attributes as OA;
 
-/**
- * Cadastro das contas da residência.
- *
- * `due_day` e `advance_notice_days` não descrevem a conta: descrevem a
- * cadência, que o módulo Scheduling escreve e é quem calcula as datas. O que a
- * conta guarda é o que a casa paga.
- */
 class BillController extends Controller
 {
     public function __construct(private readonly BillServiceInterface $bills) {}

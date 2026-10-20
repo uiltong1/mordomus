@@ -6,10 +6,6 @@ use Mordomus\Support\Contracts\ContractSchemaValidator;
 use RuntimeException;
 use Tests\TestCase;
 
-/**
- * O portão do contrato só vale se ele próprio for testado: uma conferência que
- * engole erro e devolve "tudo certo" reprova o PR errado e aprova o quebrado.
- */
 class ContractSchemaValidatorTest extends TestCase
 {
     private string $path;
@@ -139,9 +135,6 @@ class ContractSchemaValidatorTest extends TestCase
         return new ContractSchemaValidator($this->path);
     }
 
-    /**
-     * @param  array<string, mixed>  $options
-     */
     private function write(string $event, array $payloadFields, array $options = []): void
     {
         $properties = ['tenant_id' => ['type' => 'string']];

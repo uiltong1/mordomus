@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Smoke E2E do identity via gateway.
-# Pré-requisito: `make up` e o gateway de pé em http://localhost:8080.
-# Uso: make smoke   (ou: bin/smoke.sh)
 set -uo pipefail
 API="http://localhost:8080/api/v1/identity"
 pass=0; fail=0
@@ -27,7 +24,6 @@ print(cur)
 " "$1" 2>/dev/null
 }
 
-# ---------------------------------------------------------------- 1. registro
 step "1. register (novo usuário + residência)"
 REG=$(curl -sS -w '\n%{http_code}' -X POST "$API/auth/register" \
   -H 'Content-Type: application/json' -H 'X-Request-Id: smoke-0001' \
@@ -45,14 +41,12 @@ RID=$(curl -sS -D- -o /dev/null "$API/me" -H "Authorization: Bearer $AT" \
 [ "$RID" = "smoke-0001" ] && ok "X-Request-Id propagado pelo gateway ($RID)" \
   || bad "X-Request-Id" "recebido=$RID"
 
-# ------------------------------------------------------------------ 2. /me
 step "2. GET /me"
 ME=$(curl -sS -w '\n%{http_code}' "$API/me" -H "Authorization: Bearer $AT")
 CODE=$(echo "$ME" | tail -1); BODY=$(echo "$ME" | sed '$d')
 [ "$CODE" = "200" ] && ok "200" || bad "/me" "status=$CODE body=$BODY"
 echo "$BODY" | jqr "capabilities" >/dev/null && ok "capabilities presentes" || bad "capabilities" "$BODY"
 
-# ------------------------------------------------------- 3. header forjado
 step "3. X-Tenant-ID forjado é ignorado"
 FORGED=$(curl -sS -w '\n%{http_code}' "$API/me" -H "Authorization: Bearer $AT" \
   -H 'X-Tenant-ID: 00000000000000000000000000')
@@ -61,12 +55,10 @@ TEN=$(echo "$BODY" | jqr "active_tenant")
 [ "$CODE" = "200" ] && [ "$TEN" = "$TID" ] && ok "escopo continua sendo o do JWT ($TEN)" \
   || bad "X-Tenant-ID" "status=$CODE tenant=$TEN"
 
-# ------------------------------------------------------------ 4. sem token
 step "4. sem token → 401"
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$API/me")
 [ "$CODE" = "401" ] && ok "401" || bad "sem token" "status=$CODE"
 
-# ------------------------------------------------------------ 5. 2º tenant
 step "5. criar 2ª residência"
 T2=$(curl -sS -w '\n%{http_code}' -X POST "$API/tenants" \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $AT" \
@@ -75,7 +67,6 @@ CODE=$(echo "$T2" | tail -1); BODY=$(echo "$T2" | sed '$d')
 TID2=$(echo "$BODY" | jqr "id")
 [ "$CODE" = "201" ] || [ "$CODE" = "200" ] && ok "2ª residência $TID2" || bad "criar tenant" "status=$CODE body=$BODY"
 
-# --------------------------------------------------------- 6. tenant_mismatch
 step "6. token do tenant A na rota do tenant B → tenant_mismatch"
 CODE=$(curl -sS -o /tmp/opencode/mm.json -w '%{http_code}' \
   -X PATCH "$API/tenants/$TID2" \
@@ -85,7 +76,6 @@ ERR=$(jqr "error.code" < /tmp/opencode/mm.json)
 [ "$CODE" = "403" ] && [ "$ERR" = "tenant_mismatch" ] && ok "403 tenant_mismatch" \
   || bad "tenant_mismatch" "status=$CODE code=$ERR"
 
-# --------------------------------------------------------- 7. switch-tenant
 step "7. switch-tenant para a 2ª residência"
 SW=$(curl -sS -w '\n%{http_code}' -X POST "$API/auth/switch-tenant" \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $AT" \
@@ -101,7 +91,6 @@ CODE=$(curl -sS -o /tmp/opencode/ok.json -w '%{http_code}' -X PATCH "$API/tenant
   -d '{"name":"Casa Segunda Renomeada"}')
 [ "$CODE" = "200" ] && ok "200 após trocar de residência" || bad "PATCH após switch" "status=$CODE"
 
-# -------------------------------------------------------------- 8. convite
 step "8. convite + aceite (membership novo)"
 INV=$(curl -sS -w '\n%{http_code}' -X POST "$API/tenants/$TID2/invitations" \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $AT2" \
@@ -122,7 +111,6 @@ TID3=$(echo "$BODY" | jqr "active_tenant")
 [ -n "$AT3" ] && [ "$TID3" = "$TID2" ] && ok "convidada entrou em $TID3" \
   || bad "aceite de convite" "status=$CODE body=$BODY"
 
-# ----------------------------------------------------------------- 9. RBAC
 step "9. member sem members.manage → 403"
 CODE=$(curl -sS -o /tmp/opencode/rbac.json -w '%{http_code}' -X POST "$API/tenants/$TID2/invitations" \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $AT3" \
@@ -130,7 +118,6 @@ CODE=$(curl -sS -o /tmp/opencode/rbac.json -w '%{http_code}' -X POST "$API/tenan
 ERR=$(jqr "error.code" < /tmp/opencode/rbac.json)
 [ "$CODE" = "403" ] && ok "403 $ERR" || bad "RBAC" "status=$CODE code=$ERR"
 
-# ------------------------------------------------------------ 10. rate limit
 step "10. rate limit do gateway"
 CODES=$(seq 1 300 | xargs -P 32 -I{} curl -sS -o /dev/null -w '%{http_code}\n' "$API/me")
 N429=$(printf '%s\n' "$CODES" | grep -c '^429$' || true)
@@ -140,7 +127,6 @@ else
   bad "rate limit" "nenhum 429 em 300 requests paralelos"
 fi
 
-# ------------------------------------------------------------ 11. JWKS/health
 step "11. gateway /health e JWKS"
 C=$(curl -sS -o /dev/null -w '%{http_code}' http://localhost:8080/health)
 [ "$C" = "200" ] && ok "/health 200" || bad "/health" "$C"

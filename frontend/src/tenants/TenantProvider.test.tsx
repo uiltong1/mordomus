@@ -66,7 +66,6 @@ function renderTenant() {
 describe('TenantProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // o perfil vem do /identity/me; a lista de casas é o que o seletor mostra
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -120,7 +119,6 @@ describe('TenantProvider', () => {
     const { result } = renderTenant()
     await waitFor(() => expect(result.current.tenant.tenants).toHaveLength(2))
 
-    // dado da casa A já em cache: se sobreviver à troca, vaza para a casa B
     result.current.queryClient.setQueryData(['mordomus', 'rooms', TENANT_A], ['sala'])
     expect(result.current.queryClient.getQueryData(['mordomus', 'rooms', TENANT_A])).toEqual([
       'sala',
@@ -186,7 +184,6 @@ describe('TenantProvider', () => {
     const { result } = renderTenant()
     await waitFor(() => expect(result.current.tenant.tenants).toHaveLength(2))
 
-    // o refresh devolve a primeira residência ativa do usuário (TECHSPEC §4.1)
     await act(async () => {
       adoptSession(sessionFixture(TENANT_B, 'access-2') as Session)
     })
@@ -196,7 +193,6 @@ describe('TenantProvider', () => {
 
   it('cai na seleção quando o backend diz que a residência não é mais do usuário', async () => {
     saveSession(sessionFixture(TENANT_A))
-    // o perfil continua vindo: quem perdeu a residência ainda tem casas
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) =>
@@ -223,7 +219,6 @@ describe('TenantProvider', () => {
     await waitFor(() => expect(result.current.tenant.tenants).toHaveLength(2))
     expect(result.current.tenant.activeTenantId).toBe(TENANT_A)
 
-    // membership removido pelo outro owner: o token segue válido, o 403 não
     await act(async () => {
       const { request } = await import('@/shared/api/client')
       await request({ path: '/identity/tenants/01J8Z0M9W3K6Q2T4R5Y7B8C9D0' }).catch(() => null)
@@ -231,7 +226,6 @@ describe('TenantProvider', () => {
 
     await waitFor(() => expect(result.current.tenant.activeTenantId).toBeNull())
     expect(result.current.tenant.needsTenant).toBe(true)
-    // o tid morto sai do storage, senão a próxima tela tentaria de novo
     expect(getActiveTenant()).toBeNull()
   })
 
@@ -240,7 +234,6 @@ describe('TenantProvider', () => {
     const { result } = renderTenant()
     await waitFor(() => expect(result.current.tenant.tenants).toHaveLength(2))
 
-    // o switch já é testado acima com 403: a residência atual tem de sobreviver
     vi.mocked(switchTenant).mockRejectedValue(
       new ApiError(403, { code: 'membership_required', message: 'Sem acesso à residência.' }),
     )

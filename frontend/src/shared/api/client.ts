@@ -9,20 +9,9 @@ import {
   type TokenGrant,
 } from './tokenStore'
 
-/**
- * Client central da API (T4.1.2). Nenhum componente chama `fetch` diretamente:
- * é este módulo que monta a URL, injeta o `Authorization` e traduz a falha em
- * `ApiError`.
- *
- * O escopo de residência NÃO vai em header: o gateway descarta `X-Tenant-ID`
- * (ADR-011) e o `TenantScope` deriva o tenant do claim `tid` do JWT. Trocar de
- * residência é `POST /identity/auth/switch-tenant`, que emite um token novo —
- * ver `features/auth/AuthProvider`.
- */
 const BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const API_PREFIX = '/api/v1'
 const REFRESH_PATH = '/identity/auth/refresh'
-/** Renova antes de estourar o `exp` para a requisição não pagar o round-trip do 401. */
 const EXPIRY_MARGIN_SECONDS = 30
 
 export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
@@ -34,14 +23,8 @@ export interface RequestOptions {
   method?: HttpMethod
   body?: unknown
   query?: Record<string, QueryValue>
-  /** `false` para as rotas públicas de sessão (login, registro, refresh). */
   auth?: boolean
   signal?: AbortSignal
-  /**
-   * A troca deresidência também recebe 403 quando o destino não é acessível,
-   * mas nesse caso a residência atual continua válida — a recusa é sobre o
-   * destino, não sobre a sessão.
-   */
   skipTenantLost?: boolean
 }
 
@@ -51,23 +34,16 @@ type TenantLostListener = (error: ApiError) => void
 const listeners = new Set<SessionListener>()
 const tenantLostListeners = new Set<TenantLostListener>()
 
-/** Notifica a aplicação de troca de sessão: usado no login, no refresh e no logout. */
 export function onSessionChange(listener: SessionListener): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
 
-/**
- * O token é válido mas a residência ativa deixou de servir: membership
- * removido, tenant arquivado ou `tid` ausente. A sessão continua de pé, então
- * quem reage é a tela — normalmente o `TenantProvider` caindo na seleção.
- */
 export function onTenantLost(listener: TenantLostListener): () => void {
   tenantLostListeners.add(listener)
   return () => tenantLostListeners.delete(listener)
 }
 
-/** Códigos que significam "esta residência não é mais sua", não "sem permissão pontual". */
 const TENANT_LOST_CODES = new Set(['tenant_required', 'membership_required'])
 
 function emitTenantLost(error: ApiError): void {
@@ -78,10 +54,6 @@ function emitSession(session: StoredSession | null): void {
   for (const listener of listeners) listener(session)
 }
 
-/**
- * Persiste um par de tokens novo e avisa a aplicação. É o caminho do refresh
- * rotativo, do login e da troca de residência.
- */
 export function adoptSession(grant: TokenGrant): StoredSession {
   const stored = saveSession(grant)
   emitSession(stored)
@@ -108,8 +80,6 @@ function requestId(): string {
 async function send(options: RequestOptions, accessToken: string | null): Promise<Response> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    // rastreia a requisição no log json do backend: o mesmo id volta em
-    // error.request_id e no cabeçalho da resposta
     'X-Request-Id': requestId(),
   }
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
@@ -123,10 +93,6 @@ async function send(options: RequestOptions, accessToken: string | null): Promis
   })
 }
 
-/**
- * Renova o par de tokens. O refresh é de uso único (rotação), então uma falha
- * aqui derruba a sessão inteira — inclusive quando o token foi reusado.
- */
 async function performRefresh(): Promise<boolean> {
   const refreshToken = getRefreshToken()
   if (!refreshToken) return false
@@ -147,11 +113,6 @@ async function performRefresh(): Promise<boolean> {
 
 let refreshInFlight: Promise<boolean> | null = null
 
-/**
- * Renova uma única vez por rajada: várias queries que tomam 401 no mesmo
- * instante compartilham a mesma promessa, porque o refresh é rotativo e o
- * reuso derrubaria a sessão.
- */
 function refreshSession(): Promise<boolean> {
   refreshInFlight ??= performRefresh().finally(() => {
     refreshInFlight = null
@@ -213,7 +174,6 @@ function isAbort(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-/** Atalho para quando a resposta já vem embrulhada em `{ data: ... }`. */
 export function unwrap<T>(response: { data: T }): T {
   return response.data
 }

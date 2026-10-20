@@ -7,16 +7,12 @@ namespace Tests\Feature;
 use Carbon\CarbonImmutable;
 use Mordomus\Notification\Models\NotificationLog;
 
-/**
- * Histórico do morador: recorte, filtro e o motivo da falha.
- */
 class NotificationLogCrudTest extends FeatureTestCase
 {
     private string $tenantId;
 
     private string $userId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     protected function setUp(): void
@@ -59,8 +55,7 @@ class NotificationLogCrudTest extends FeatureTestCase
 
     public function test_the_history_shows_the_failure_and_its_reason(): void
     {
-        // A resposta à pergunta "por que não recebi?" é o que o histórico
-        // precisa dar: só listar o que deu certo não responde nada.
+
         $this->log([
             'status' => NotificationLog::STATUS_FAILED,
             'error' => 'O serviço de push recusou a mensagem com 500.',
@@ -145,8 +140,7 @@ class NotificationLogCrudTest extends FeatureTestCase
         $this->withHeaders($this->headers)
             ->getJson('/api/v1/notification/logs')
             ->assertOk()
-            // 12:00 UTC são 09:00 em São Paulo, e é o horário do morador que
-            // a tela mostra.
+
             ->assertJsonPath('data.0.available_at', '2026-03-15T09:00:00-03:00');
     }
 
@@ -155,9 +149,6 @@ class NotificationLogCrudTest extends FeatureTestCase
         $this->getJson('/api/v1/notification/logs')->assertUnauthorized();
     }
 
-    // ---------------------------------------------------------------- helpers
-
-    /** @param array<string, mixed> $attributes */
     private function log(array $attributes = []): NotificationLog
     {
         static $sequence = 0;

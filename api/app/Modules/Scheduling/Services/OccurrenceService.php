@@ -21,13 +21,6 @@ use Mordomus\Scheduling\Jobs\RecalculateNextOccurrence;
 use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\ScheduleEvent;
 
-/**
- * Agenda da residência e as duas transições do morador.
- *
- * A conclusão grava o check-in e devolve na hora; o cálculo do próximo ciclo
- * fica na fila. É o que mantém o card respondendo mesmo com o motor ocupado,
- * e `occurrence.completed` avisa o consumidor assim que a data nova existe.
- */
 final class OccurrenceService implements OccurrenceServiceInterface
 {
     public function __construct(
@@ -45,9 +38,7 @@ final class OccurrenceService implements OccurrenceServiceInterface
 
         $occurrences = $this->occurrences->paginate(
             $this->dayBound($request, 'from', $tenantId),
-            // `to` é dia de calendário e por isso exclusivo na virada: a agenda
-            // de 30/09 precisa do dia inteiro, e comparar `due_at` com a
-            // meia-noite do dia 30 deixaria de fora o que dispara depois dela.
+
             $this->dayBound($request, 'to', $tenantId)?->addDay(),
             $this->optionalString($request->query('subject_type')),
             $this->optionalString($request->query('status')),
@@ -78,9 +69,7 @@ final class OccurrenceService implements OccurrenceServiceInterface
         $at = CarbonImmutable::now('UTC');
 
         $changed = DB::transaction(function () use ($tenantId, $occurrence, $actor, $at): bool {
-            // A atualização é condicional ao status de origem: a segunda
-            // conclusão não tem linha para alterar, e é isso — e não uma
-            // checagem antes — que fecha a corrida entre dois check-ins.
+
             if (! $this->occurrences->markCompleted($occurrence, $at, $actor)) {
                 return false;
             }
@@ -135,8 +124,6 @@ final class OccurrenceService implements OccurrenceServiceInterface
             ], $at);
         });
 
-        // A dispensa não recalcula: pular é dizer que aquele dia não acontece,
-        // e o ciclo continua na data que a regra já tinha.
         return ['data' => $this->resource->make(
             $this->occurrences->find($occurrenceId, $tenantId) ?? $occurrence,
             $timezone,
@@ -167,8 +154,7 @@ final class OccurrenceService implements OccurrenceServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 

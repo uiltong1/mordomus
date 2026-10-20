@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# Mordomus — gera segredos do ambiente local
-#   .secrets/rsa_private.pem   chave RS256 privada (assina o JWT de usuário)
-#   .secrets/rsa_public.pem    chave pública
-#   .secrets/vapid_private.pem par EC P-256 privado (assina o JWT VAPID)
-#   .secrets/vapid_public.pem  par público, e o ponto em base64url no .env
-#   gateway/jwks/jwks.json     JWKS servido pelo gateway em /.well-known/jwks.json
-#   .env                       APP_KEY, segredo JWT, VAPID e credenciais do Postgres
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,7 +8,6 @@ ENV_FILE="$ROOT/.env"
 mkdir -p "$SECRETS" "$JWKS_DIR"
 chmod 700 "$SECRETS"
 
-# grava/atualiza uma chave no .env, sem duplicar a entrada
 set_env() {
     if grep -q "^$1=" "$ENV_FILE" 2>/dev/null; then
         sed -i.bak "s|^$1=.*|$1=$2|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
@@ -24,7 +16,6 @@ set_env() {
     fi
 }
 
-# ---------------------------------------------------------------- .env --------
 if [ ! -f "$ENV_FILE" ]; then
     cat > "$ENV_FILE" <<EOF
 # Mordomus — ambiente local (gerado por bin/generate-secrets.sh; NÃO commitar)
@@ -39,7 +30,6 @@ else
     echo "[secrets] .env já existe — mantido"
 fi
 
-# ----------------------------------------------------------------- RSA --------
 PRIV="$SECRETS/rsa_private.pem"
 PUB="$SECRETS/rsa_public.pem"
 if [ ! -f "$PRIV" ]; then
@@ -52,7 +42,6 @@ else
     echo "[secrets] par de chaves RS256 já existe — mantido"
 fi
 
-# ----------------------------------------------------------------- JWKS -------
 MODULUS_HEX="$(openssl rsa -in "$PRIV" -noout -modulus | cut -d= -f2)"
 python3 - "$MODULUS_HEX" "$JWKS_DIR/jwks.json" "$SECRETS/rsa_kid.txt" <<'PY'
 import sys, base64, json, hashlib
@@ -67,7 +56,6 @@ n_bytes = n.to_bytes((n.bit_length() + 7) // 8, "big")
 e = 65537
 e_bytes = e.to_bytes((e.bit_length() + 7) // 8, "big")
 
-# thumbprint JWK (RFC 7638) -> kid determinístico
 canonical = json.dumps({"e": b64u(e_bytes), "kty": "RSA", "n": b64u(n_bytes)},
                        separators=(",", ":"), sort_keys=True)
 kid = b64u(hashlib.sha256(canonical.encode()).digest())
@@ -84,14 +72,9 @@ print(f"[secrets] JWKS gerado -> {jwks_path}")
 print(f"[secrets] kid = {kid}")
 PY
 
-# grava/atualiza JWT_KID no .env (o compose usa para assinar tokens do identity)
 KID="$(tr -d '[:space:]' < "$SECRETS/rsa_kid.txt")"
 set_env JWT_KID "$KID"
 
-# ---------------------------------------------------------------- VAPID -------
-# O par VAPID é EC P-256, não RSA: é a curva que o navegador exige para
-# assinar a aplicação do push. A pública entra no .env em base64url porque é
-# exatamente assim que o `pushManager.subscribe()` a consome.
 VAPID_PRIV="$SECRETS/vapid_private.pem"
 VAPID_PUB="$SECRETS/vapid_public.pem"
 if [ ! -f "$VAPID_PRIV" ]; then
@@ -112,8 +95,6 @@ import sys
 pem = open(sys.argv[1]).read()
 der = base64.b64decode(re.sub(r"-----[^-]+-----|\s", "", pem))
 
-# A SubjectPublicKeyInfo de um ponto P-256 não comprimido tem 26 bytes de
-# cabeçalho (SEQUENCE + AlgorithmIdentifier + BIT STRING) e 65 de ponto.
 point = der[-65:]
 
 if len(point) != 65 or point[0] != 0x04:

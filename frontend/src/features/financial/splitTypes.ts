@@ -1,19 +1,10 @@
 import type { SplitEntry, SplitMode } from '@/shared/api/types'
 import type { SplitEntryInput } from './api'
 
-/**
- * Os quatro jeitos de dividir uma conta, escritos para o morador ler.
- *
- * O backend valida por regime: o campo que o regime não usa é `prohibited` e
- * derruba o `PUT` com 422 (`SplitModeRules::modeRules`). O espelho aqui é
- * literal de propósito — um campo a mais vira recusa que o morador lê como
- * "o aplicativo quebrou".
- */
 export interface SplitModeOption {
   value: SplitMode
   label: string
   description: string
-  /** Rótulo do campo que cada participante preenche neste regime. */
   fieldLabel: string | null
 }
 
@@ -45,7 +36,6 @@ export const SPLIT_MODE_OPTIONS: readonly SplitModeOption[] = [
   },
 ] as const
 
-/** Campo que o regime exige de cada participante. Espelha `SplitModeRules::requiredByMode`. */
 const REQUIRED_FIELD_BY_MODE: Partial<Record<SplitMode, RequiredField>> = {
   WEIGHTED: 'weight',
   PERCENT: 'percent',
@@ -54,10 +44,6 @@ const REQUIRED_FIELD_BY_MODE: Partial<Record<SplitMode, RequiredField>> = {
 
 export type RequiredField = 'weight' | 'percent' | 'fixed_amount'
 
-/**
- * Estado do formulário. Espelha o payload, mas guarda `null` no que ficou de
- * fora — é esse `null` que `entriesPayload` corta antes de enviar.
- */
 export interface SplitEntryForm {
   user_id: string
   weight: number | null
@@ -83,7 +69,6 @@ export function emptySplitRule(userIds: readonly string[]): SplitRuleForm {
   }
 }
 
-/** A regra gravada vira formulário; o campo do regime vem preenchido, o resto é `null`. */
 export function splitRuleFromRule(rule: {
   mode: SplitMode
   is_active: boolean
@@ -109,20 +94,11 @@ export function splitModeOption(mode: SplitMode): SplitModeOption {
   return SPLIT_MODE_OPTIONS.find((option) => option.value === mode) ?? SPLIT_MODE_OPTIONS[0]!
 }
 
-/** Campos de regime que a escolha libera — o resto nem entra no payload. */
 export function entryFieldsFor(mode: SplitMode): readonly RequiredField[] {
   const field = requiredFieldFor(mode)
   return field ? [field] : []
 }
 
-/**
- * Monta as entradas do payload descartando o campo que o regime proíbe.
- *
- * É aqui que a maior parte dos 422 desta tela nasce: o formulário guarda o
- * `weight` que o morador digitou numa regra por peso, troca para "todos igual" e
- * o campo continua no estado. Sem o corte, o backend responde "The weight field
- * is prohibited" para um formulário que está certo.
- */
 export function entriesPayload(form: SplitRuleForm): SplitEntryInput[] {
   const allowed = entryFieldsFor(form.mode)
 
@@ -137,13 +113,6 @@ export function entriesPayload(form: SplitRuleForm): SplitEntryInput[] {
   })
 }
 
-/**
- * Recusa local antes do round-trip, com a mesma severidade do backend.
- *
- * O `PERCENT` e o `CUSTOM` fecham a soma aqui para que o morador veja o quanto
- * ainda falta enquanto digita — o `422 split_not_computable` do servidor é a
- * rede de proteção, não o caminho normal.
- */
 export function validateSplitRule(form: SplitRuleForm): Record<string, string[]> {
   const errors: Record<string, string[]> = {}
 
@@ -173,7 +142,6 @@ export function validateSplitRule(form: SplitRuleForm): Record<string, string[]>
   return errors
 }
 
-/** "50" e não "50,00" — o morador lê o erro, não a precision do motor. */
 function trimNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))
 }

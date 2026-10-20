@@ -2,14 +2,6 @@ import { execFileSync } from 'node:child_process'
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 import { apiUrl, password } from './env'
 
-/**
- * Cliente da API pelo gateway.
- *
- * O contexto de requisição do Playwright é o mesmo do navegador: as duas coisas
- * saem por `localhost:8080`, então o rate limit, o `X-Request-Id` e o descarte
- * de `X-Tenant-ID` do gateway valem para as duas pontas da jornada.
- */
-
 export type Session = {
   accessToken: string
   refreshToken: string
@@ -20,14 +12,6 @@ export type Session = {
 
 type Json = Record<string, unknown>
 
-/**
- * Chamada com repetição em 429.
- *
- * O gateway limita a 10 req/s com burst de 30 por IP, e uma jornada dispara
- * leitura de tela, assertion e chamada ao mesmo tempo. Insistir em 429 é o
- * comportamento de um cliente com retry, não de um teste que finge que o limite
- * não existe: o que não pode passar é o 4xx de verdade.
- */
 async function call(
   request: APIRequestContext,
   method: 'get' | 'post' | 'put' | 'patch' | 'delete',
@@ -73,7 +57,6 @@ function sessionOf(body: Json): Session {
   }
 }
 
-/** Conta nova com residência própria, como o formulário de cadastro faz. */
 export async function register(
   request: APIRequestContext,
   person: { name: string; email: string; homeName: string },
@@ -103,7 +86,6 @@ export async function login(
   )
 }
 
-/** Convite do owner; devolve o token puro, que é o que vai na URL `/convite/`. */
 export async function invite(
   request: APIRequestContext,
   owner: Session,
@@ -114,8 +96,6 @@ export async function invite(
     data: { email },
   })
 
-  // O token é irmão de `data` na resposta, não campo do convite: ele só existe
-  // enquanto não há envio por e-mail.
   return String(body.token)
 }
 
@@ -131,13 +111,6 @@ export async function acceptInvitation(
   )
 }
 
-/**
- * Token com a residência ativa trocada.
- *
- * Depois que um convite é aceito no navegador, a sessão do teste continua
- * apontando para a casa anterior do usuário: trocar de residência pela API é o
- * mesmo caminho que o seletor do painel usa.
- */
 export async function switchTenant(
   request: APIRequestContext,
   session: Session,
@@ -275,13 +248,6 @@ export async function notificationLogs(
   return body.data as Json[]
 }
 
-/**
- * Preferência de entrega do morador.
- *
- * `daily` é o caminho que produz linha de notificação sem serviço de push: o
- * consumidor só registra aviso de push para quem tem assinatura, e o ambiente
- * de desenvolvimento não tem provedor.
- */
 export async function setNotificationPreference(
   request: APIRequestContext,
   session: Session,
@@ -298,14 +264,6 @@ export async function setNotificationPreference(
   })
 }
 
-/**
- * Comando de console do monólito.
- *
- * A agenda é materializada pelo scheduler a cada dia e o aviso sai no varrimento
- * de 15 minutos. Uma jornada não pode esperar o relógio, e esperar deixaria o
- * teste passar sem provar o caminho real — então o comando roda na hora, no
- * mesmo container que o `api-worker` usa.
- */
 export function artisan(command: string, args: string[] = []): void {
   execFileSync(
     'docker',
@@ -314,14 +272,6 @@ export function artisan(command: string, args: string[] = []): void {
   )
 }
 
-/**
- * Materializa e espera a fila responder.
- *
- * `scheduling:materialize` enfileira uma tarefa por residência: a agenda existe
- * quando o `api-worker` consome, não quando o comando volta. Insistir no
- * polling é o que fecha a lacuna entre "comando rodou" e "a casa tem o que
- * fazer".
- */
 export async function materialize(
   request: APIRequestContext,
   session: Session,
@@ -338,7 +288,6 @@ export async function materialize(
     .toBe(true)
 }
 
-/** Entra pelo formulário de verdade: o que a jornada prova começa no navegador. */
 export async function signIn(page: Page, email: string, secret = password): Promise<void> {
   await page.goto('/entrar')
   await page.getByLabel('E-mail').fill(email)

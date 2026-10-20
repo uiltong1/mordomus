@@ -8,9 +8,6 @@ use Mordomus\Identity\Models\RefreshToken;
 use Mordomus\Identity\Models\User;
 use Mordomus\Identity\Services\JwtIssuerService;
 
-/**
- * Registro → login → refresh (rotação) → switch-tenant.
- */
 class AuthFlowTest extends FeatureTestCase
 {
     public function test_register_creates_user_owner_and_first_tenant(): void
@@ -105,7 +102,6 @@ class AuthFlowTest extends FeatureTestCase
         $this->assertNotSame($auth['refresh_token'], $refreshed->json('refresh_token'));
         $this->assertNotEmpty($refreshed->json('access_token'));
 
-        // reuso do token antigo → família revogada (detecção de roubo)
         $this->postJson('/api/v1/identity/auth/refresh', [
             'refresh_token' => $auth['refresh_token'],
         ])->assertStatus(401)->assertJsonPath('error.code', 'refresh_token_reused');
@@ -132,7 +128,6 @@ class AuthFlowTest extends FeatureTestCase
         ])->assertStatus(401);
     }
 
-    /** AC — cobertura de autenticação: access token expirado → 401. */
     public function test_expired_access_token_is_rejected_with_401(): void
     {
         $auth = $this->registerUser('expira@mordomus.test', 'Expira', 'Casa Expira');
@@ -153,7 +148,6 @@ class AuthFlowTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'unauthenticated');
     }
 
-    /** AC — cobertura de autenticação: refresh token expirado → 401. */
     public function test_expired_refresh_token_is_rejected_with_401(): void
     {
         $auth = $this->registerUser('refresh-velho@mordomus.test');

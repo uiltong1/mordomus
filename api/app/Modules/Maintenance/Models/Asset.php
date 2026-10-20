@@ -9,10 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 
-/**
- * Item do inventário (Ar-condicionado, Sofá, Filtro…), sempre dentro
- * de um `room` da mesma residência.
- */
 #[Fillable([
     'tenant_id',
     'room_id',
@@ -43,7 +39,6 @@ class Asset extends Model
         ];
     }
 
-    /** Só os não arquivados (soft delete). */
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
@@ -64,7 +59,6 @@ class Asset extends Model
         $this->forceFill(['archived_at' => null])->saveQuietly();
     }
 
-    /** Cômodo que hospeda o ativo — mesma residência garantida pelo escopo global. */
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);

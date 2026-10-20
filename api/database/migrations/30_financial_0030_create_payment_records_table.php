@@ -4,18 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Baixa de pagamento: o que foi pago, por quem, como e quando.
- *
- * A linha é append-only e não tem `created_at`/`updated_at` porque `paid_at`
- * é o único relógio dela — nada reescreve um pagamento depois de registrado.
- * Um lançamento de pagamento repetido não é corrigido: ele é a prova de que a
- * conta foi quitada, e o que a impede de virar duplicidade é a idempotência
- * do endpoint, não uma coluna que alguém ajustaria.
- *
- * O lançamento sabe o valor que foi pago e não o da ocorrência: em conta
- * variável (luz, água) o valor real só existe aqui.
- */
 return new class extends Migration
 {
     public function up(): void
@@ -34,9 +22,7 @@ return new class extends Migration
             $table->index(['bill_occurrence_id', 'paid_at']);
             $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
             $table->foreign('bill_occurrence_id')->references('id')->on('bill_occurrences')->cascadeOnDelete();
-            // Quem pagou continua legível depois que a conta é removida: o
-            // lançamento é histórico, e perder o autor dele só porque o morador
-            // saiu da residência apagaria a prova de que a conta foi quitada.
+
             $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
         });
     }

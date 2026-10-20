@@ -11,7 +11,6 @@ class UpdateMemberRequest extends TenantScopedRequest
         return 'members.manage';
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

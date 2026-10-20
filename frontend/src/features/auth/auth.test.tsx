@@ -47,7 +47,6 @@ function profileResponse(activeTenant: string) {
   })
 }
 
-/** O mesmo providers do app real (`TestProviders`), sem BrowserRouter. */
 function Providers({ children, route = '/entrar' }: { children: React.ReactNode; route?: string }) {
   return (
     <MemoryRouter initialEntries={[route]}>
@@ -56,11 +55,10 @@ function Providers({ children, route = '/entrar' }: { children: React.ReactNode;
   )
 }
 
-/** `useParams` só resolve dentro de um Route com o caminho declarado. */
 function AuthRoutes() {
   return (
     <Routes>
-      {/* no app real estas duas rotas compartilham o AppLayout */}
+      {}
       <Route path="/" element={<TenantSwitcher />} />
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/painel" element={<TenantSwitcher />} />
@@ -100,7 +98,6 @@ describe('login', () => {
     await fillLogin()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha inválidos.')
-    // a pessoa não perde o que digitou para corrigir
     expect(screen.getByLabelText('E-mail')).toHaveValue('ana@ex.com')
   })
 
@@ -149,9 +146,6 @@ describe('login', () => {
   })
 
   it('reconhece a residência ativa logo após entrar, sem recarregar', async () => {
-    // quem entra não tinha sessão: o TenantProvider montou sem `tid`. Se a
-    // publicação da sessão não chegar até ele, o painel abre pedindo uma
-    // residência que o usuário já tem.
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/auth/login')) {
         return Promise.resolve(jsonResponse(sessionFixture(TENANT_A)))

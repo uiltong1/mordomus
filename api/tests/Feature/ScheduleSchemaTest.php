@@ -12,23 +12,6 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Maintenance\Models\Asset;
 use Mordomus\Maintenance\Models\Room;
 
-/**
- * Esquema do motor de agendamento.
- *
- * O que se verifica não é o tipo de cada coluna, e sim as garantias que o
- * banco precisa dar sozinho: alvo do trigger com exclusão mútua, um título
- * por alvo, uma ocorrência por data (é o que torna o recálculo idempotente),
- * referência real para as linhas de cima e o destino das linhas filhas quando
- * o pai é removido.
- *
- * O alvo de conta entra com FK de verdade (ADR-011): `trigger_configs.bill_id`
- * só aceita uma conta que existe, e por isso o `Str::ulid()` solto não serve
- * como id de conta neste teste.
- *
- * As inserções são feitas por `DB::table` porque os models dessas tabelas
- * ainda não existem — este teste é sobre o esquema, não sobre a camada de
- * acesso.
- */
 class ScheduleSchemaTest extends FeatureTestCase
 {
     private string $tenantId;
@@ -69,7 +52,6 @@ class ScheduleSchemaTest extends FeatureTestCase
         ]));
     }
 
-    /** A trilha é append-only: `occurred_at` é o único relógio da linha. */
     public function test_schedule_events_has_no_update_clock(): void
     {
         $this->assertTrue(Schema::hasColumn('schedule_events', 'occurred_at'));
@@ -128,7 +110,6 @@ class ScheduleSchemaTest extends FeatureTestCase
         $this->assertSame(3, DB::table('trigger_configs')->count());
     }
 
-    /** Concluir duas vezes tenta a mesma data para o mesmo trigger — o banco recusa. */
     public function test_a_trigger_has_at_most_one_occurrence_per_date(): void
     {
         $configId = $this->insertTriggerConfig();

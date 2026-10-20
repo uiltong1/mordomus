@@ -16,25 +16,12 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Scheduling\Jobs\PublishEvent;
 use Opis\JsonSchema\Validator;
 
-/**
- * Contrato dos eventos publicados pelo Financial (ADR-009).
- *
- * O schema é a fonte da verdade do payload: o teste deixa o módulo inteiro
- * rodar — motor materializando, varrimento de avisos e baixa de pagamento — e
- * valida contra `packages/contracts` o que de fato foi para a fila. Campo
- * renomeado ou `dedupe_key` ausente quebram o build antes de chegarem ao
- * Notification.
- *
- * Só o `PublishEvent` é falsado: o materializador precisa rodar de verdade
- * para que haja o que publicar.
- */
 class FinancialEventContractTest extends FeatureTestCase
 {
     private const CONTRACTS = '/packages/contracts';
 
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     private Validator $validator;
@@ -82,7 +69,6 @@ class FinancialEventContractTest extends FeatureTestCase
         $notices = $this->publishes(function (): void {
             $this->artisan('scheduling:materialize')->assertSuccessful();
 
-            // Dia 10 com 3 dias de antecedência: o aviso vence em 07/04.
             CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-07 13:00:00', 'UTC'));
             $this->artisan('scheduling:publish-due')->assertSuccessful();
         });
@@ -129,11 +115,6 @@ class FinancialEventContractTest extends FeatureTestCase
         $this->assertSame('2026-04-10', $payload['due_date']);
     }
 
-    /**
-     * As cotas do vencimento saem no `expense.split_computed`, e a soma delas
-     * é o valor da conta (R5). A validação é do envelope que foi para a fila,
-     * com o módulo inteiro rodando.
-     */
     public function test_expense_split_computed_matches_the_contract(): void
     {
         $this->createSplitRule([$this->ownerId, $this->addResident('bruno@mordomus.test', 'Bruno')]);
@@ -161,9 +142,6 @@ class FinancialEventContractTest extends FeatureTestCase
     {
         $billId = $this->createBill();
 
-        // O lançamento manual é escrita do morador, não do motor: nada é
-        // publicado, e o Notification não recebe aviso de algo que ele mesmo
-        // acabou de cadastrar.
         $events = $this->publishes(function () use ($billId): void {
             $this->withHeaders($this->headers)
                 ->postJson('/api/v1/financial/occurrences', [
@@ -177,13 +155,6 @@ class FinancialEventContractTest extends FeatureTestCase
         $this->assertSame([], $events);
     }
 
-    // -------------------------------------------------------------- helpers
-
-    /**
-     * Regra padrão da casa em `EQUAL`, com os moradores que a casa tem.
-     *
-     * @param  list<string>  $userIds
-     */
     private function createSplitRule(array $userIds): void
     {
         $ruleId = $this->withTenantContext($this->tenantId, fn (): string => (string) SplitRule::create([
@@ -230,12 +201,6 @@ class FinancialEventContractTest extends FeatureTestCase
             ->json('data.id');
     }
 
-    /**
-     * Roda o módulo inteiro e devolve os envelopes do Financial que foram para
-     * a fila.
-     *
-     * @return list<array<string, mixed>>
-     */
     private function publishes(callable $flow): array
     {
         Queue::fake([PublishEvent::class]);
@@ -249,17 +214,12 @@ class FinancialEventContractTest extends FeatureTestCase
             ->all();
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $envelopes
-     */
     private function assertValid(string $event, array $envelopes): void
     {
         $schema = json_decode((string) file_get_contents($this->schemaPath($event)));
 
         foreach ($envelopes as $envelope) {
-            // O `opis` separa objeto de lista pelo tipo do dado, e um array
-            // associativo do PHP é indistinguível de uma lista: o envelope vai
-            // como objeto, que é o que cruza a fila de verdade.
+
             $result = $this->validator->validate(json_decode((string) json_encode($envelope)), $schema);
 
             $this->assertTrue(
@@ -274,17 +234,11 @@ class FinancialEventContractTest extends FeatureTestCase
         }
     }
 
-    /**
-     * Eventos do Financial que têm contrato em `packages/contracts`.
-     *
-     * @return list<string>
-     */
     private function contractedEvents(): array
     {
         return [EventName::BILL_DUE, EventName::BILL_PAID, EventName::EXPENSE_SPLIT_COMPUTED];
     }
 
-    /** @return list<string> */
     private function eventNamesWithSchema(): array
     {
         $names = array_map(
@@ -302,7 +256,6 @@ class FinancialEventContractTest extends FeatureTestCase
         return $this->contractsDir().'/'.$event.'.schema.json';
     }
 
-    /** `packages/` é irmão de `api/` no repositório e está montado em `/var/www/packages`. */
     private function contractsDir(): string
     {
         return dirname(__DIR__, 3).self::CONTRACTS;

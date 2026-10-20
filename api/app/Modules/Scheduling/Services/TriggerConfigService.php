@@ -17,24 +17,8 @@ use Mordomus\Scheduling\Exceptions\TriggerConfigAlreadyExists;
 use Mordomus\Scheduling\Http\Resources\TriggerConfigResource;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * CRUD das regras de recorrência, preview e o atalho proxied.
- *
- * `next_due_at` só é escrito aqui: este módulo é o dono do tempo, e nenhuma
- * data futura é calculada fora dele.
- */
 final class TriggerConfigService implements TriggerConfigServiceInterface
 {
-    /**
-     * Campos que alteram a data calculada.
-     *
-     * Uma alteração fora desta lista não pode reescrever `next_due_at`: a
-     * âncora padrão é `last_base_date ?? hoje`, então recalcular num dia
-     * seguinte empurraria a ocorrência para frente sozinha, mesmo sem ninguém
-     * ter tocado na regra.
-     *
-     * @var list<string>
-     */
     private const DATE_FIELDS = [
         'type',
         'interval_value',
@@ -43,7 +27,6 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
         'preferred_hour',
     ];
 
-    /** Campos que descrevem o tipo; trocá-lo de tipo limpa os que sobram. */
     private const TYPE_FIELDS = [
         'interval_value',
         'interval_unit',
@@ -137,9 +120,6 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
         $tenantId = $this->tenantId($request);
         $config = $this->find($request, $triggerConfigId);
 
-        // Exclusão de verdade, não arquivamento: a regra não tem `archived_at`,
-        // e a FK em cascata leva as ocorrências e a trilha junto. O caminho
-        // reversível de pausar uma regra é `is_active = false`.
         $this->configs->delete($config);
 
         return ['data' => $this->present($config, $tenantId), 'deleted' => true];
@@ -149,8 +129,6 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
     {
         $tenantId = $this->tenantId($request);
 
-        // Substituição completa: o atalho é um POST de formulário, então o
-        // payload descreve a regra inteira.
         $config = $this->storeForSubject(
             $tenantId,
             TriggerConfig::SUBJECT_ASSET,
@@ -194,9 +172,6 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
         $paused = $this->configs->forSubject($tenantId, $subjectType, $subjectId)
             ->reject(fn (TriggerConfig $config): bool => $config->isActive());
 
-        // A data é recalculada porque uma regra pausada por meses tem
-        // `next_due_at` no passado, e a agenda mostraria um vencimento que já
-        // passou.
         foreach ($paused as $config) {
             $this->withNextDue($this->configs->activate($config), $tenantId);
         }
@@ -224,12 +199,6 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
         ]];
     }
 
-    /**
-     * Calcula e grava `next_due_at` a partir da regra.
-     *
-     * Sem âncora explícita: quem chama já fixou a base do ciclo, e a data de
-     * hoje entra sozinha quando a regra ainda nunca rodou.
-     */
     private function withNextDue(TriggerConfig $config, string $tenantId): TriggerConfig
     {
         $timezone = $this->calendar->timezone($tenantId);
@@ -253,13 +222,6 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
         return $request->filled('type') && $request->string('type')->toString() !== $config->type;
     }
 
-    /**
-     * Campos da regra, sem o alvo: `subject_type`/`asset_id`/`bill_id` são
-     * resolvidos pelo repositório, que é quem sabe qual das duas colunas o
-     * tipo de alvo usa.
-     *
-     * @return array<string, mixed>
-     */
     private function ruleAttributes(Request $request): array
     {
         return [
@@ -288,9 +250,6 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
         return CarbonImmutable::createFromFormat('Y-m-d', $base, $timezone)->startOfDay();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function present(TriggerConfig $config, string $tenantId): array
     {
         return $this->resource->make($config, $this->calendar->timezone($tenantId));
@@ -303,8 +262,7 @@ final class TriggerConfigService implements TriggerConfigServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 

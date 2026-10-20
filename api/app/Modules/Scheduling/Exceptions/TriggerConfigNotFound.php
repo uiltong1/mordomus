@@ -8,9 +8,6 @@ use Mordomus\Http\Exceptions\ApiException;
 
 final class TriggerConfigNotFound extends ApiException
 {
-    /**
-     * @param  array<string, mixed>  $details
-     */
     public static function make(array $details = []): self
     {
         return new self(

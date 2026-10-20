@@ -7,16 +7,12 @@ namespace Tests\Feature;
 use Carbon\CarbonImmutable;
 use Mordomus\Notification\Models\NotificationPreference;
 
-/**
- * Quiet hours, digest e horário preferido, com a precedência resolvida.
- */
 class NotificationPreferenceCrudTest extends FeatureTestCase
 {
     private string $tenantId;
 
     private string $userId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     protected function setUp(): void
@@ -51,8 +47,7 @@ class NotificationPreferenceCrudTest extends FeatureTestCase
             ->assertJsonPath('data.effective.digest', config('notification.defaults.digest'))
             ->assertJsonPath('data.effective.quiet_start', '22:00')
             ->assertJsonPath('data.effective.quiet_end', '07:00')
-            // A tela precisa saber se a janela atravessa a meia-noite, e é o
-            // fuso que faz essa janela existir: 22:00–07:00 é uma janela só.
+
             ->assertJsonPath('data.effective.quiet_window_wraps_midnight', true);
     }
 
@@ -72,8 +67,6 @@ class NotificationPreferenceCrudTest extends FeatureTestCase
             ->assertJsonPath('data.own.digest', 'daily')
             ->assertJsonPath('data.effective.preferred_hour', '08:00');
 
-        // Quem escreve na própria linha nunca mexe no padrão da casa: ele é
-        // decisão de quem administra a residência.
         $this->assertSame('23:00', $this->houseDefaultRow()->quiet_start?->format('H:i'));
         $this->assertNull($this->houseDefaultRow()->user_id);
     }
@@ -94,9 +87,7 @@ class NotificationPreferenceCrudTest extends FeatureTestCase
                 'digest' => 'instant',
             ])
             ->assertOk()
-            // A janela e o digest são do morador; o horário preferido, que ele
-            // não mandou, continua sendo o da casa. Uma linha inteira
-            // venceria a casa inteira por causa de um campo.
+
             ->assertJsonPath('data.effective.quiet_start', '22:00')
             ->assertJsonPath('data.effective.digest', 'instant')
             ->assertJsonPath('data.effective.preferred_hour', '10:00')
@@ -110,8 +101,6 @@ class NotificationPreferenceCrudTest extends FeatureTestCase
             ->assertOk()
             ->assertJsonPath('data.effective.digest', 'daily');
 
-        // O PUT substitui o conjunto: um campo que sai do payload é um campo
-        // que o morador quer voltar ao padrão.
         $this->withHeaders($this->headers)
             ->putJson('/api/v1/notification/preferences', ['quiet_start' => '21:00', 'quiet_end' => '06:00'])
             ->assertOk()
@@ -121,8 +110,7 @@ class NotificationPreferenceCrudTest extends FeatureTestCase
 
     public function test_a_window_with_a_single_side_is_rejected(): void
     {
-        // Meia janela não existe: silêncio sem fim de noite é o morador sem
-        // notificação a vida inteira, por causa de um campo que ele esqueceu.
+
         $this->withHeaders($this->headers)
             ->putJson('/api/v1/notification/preferences', ['quiet_start' => '22:00'])
             ->assertStatus(422)
@@ -154,9 +142,6 @@ class NotificationPreferenceCrudTest extends FeatureTestCase
         $this->putJson('/api/v1/notification/preferences', ['digest' => 'daily'])->assertUnauthorized();
     }
 
-    // ---------------------------------------------------------------- helpers
-
-    /** @param array<string, mixed> $attributes */
     private function houseDefault(array $attributes): NotificationPreference
     {
         return $this->withTenantContext($this->tenantId, fn (): NotificationPreference => NotificationPreference::create([

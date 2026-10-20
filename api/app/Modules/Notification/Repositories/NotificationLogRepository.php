@@ -26,8 +26,7 @@ final class NotificationLogRepository implements NotificationLogRepositoryInterf
 
     public function create(array $attributes): NotificationLog
     {
-        // `refresh()` porque os padrões do banco (`status = queued`) não voltam
-        // no model que o `create` devolve, e a entrega usa essa linha.
+
         return NotificationLog::create($attributes)->refresh();
     }
 
@@ -57,7 +56,6 @@ final class NotificationLogRepository implements NotificationLogRepositoryInterf
         return $log;
     }
 
-    /** @return Builder<NotificationLog> */
     private function query(): Builder
     {
         return NotificationLog::query();

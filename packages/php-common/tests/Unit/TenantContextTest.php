@@ -37,7 +37,7 @@ class TenantContextTest extends TestCase
             });
             $this->fail('A exceção do callback deveria propagar.');
         } catch (\RuntimeException) {
-            // esperado
+
         }
 
         $this->assertSame('01OUTRO', TenantContext::tenantId());

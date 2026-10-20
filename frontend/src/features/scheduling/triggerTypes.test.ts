@@ -42,11 +42,6 @@ describe('campos de cada tipo', () => {
 })
 
 describe('typeFieldsPayload', () => {
-  /**
-   * O 422 mais comum desta tela nasce aqui: o formulário guarda o `day_of_month`
-   * que o morador digitou e troca de tipo. O campo proibido não pode viajar no
-   * payload, ou o backend recusa com "prohibited".
-   */
   it('descarta o dia do mês quando o tipo passa a ser intervalo', () => {
     const payload = buildConfigPayload(
       form({ type: 'INTERVAL', day_of_month: 15, interval_value: 30, interval_unit: 'days' }),

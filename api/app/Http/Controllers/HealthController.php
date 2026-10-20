@@ -11,10 +11,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\Health;
 use OpenApi\Attributes as OA;
 
-/**
- * Ponto de saúde nas três superfícies em que o serviço é exposto:
- * raiz do host, prefixo da API e namespace do módulo Identity.
- */
 class HealthController
 {
     #[OA\Get(
@@ -74,8 +70,7 @@ class HealthController
                 'cache' => (string) config('cache.default'),
                 'queue' => (string) config('queue.default'),
             ],
-            // o escopo de residência vem do backend (JWT + membership); o header
-            // X-Tenant-ID vindo do cliente é descartado pelo gateway
+
             'tenant' => app()->bound('mordomus.tenant_id') ? app('mordomus.tenant_id') : null,
             'request_id' => request()->header('X-Request-Id') ?? (string) Str::uuid(),
             'duration_ms' => round((microtime(true) - $started) * 1000, 1),

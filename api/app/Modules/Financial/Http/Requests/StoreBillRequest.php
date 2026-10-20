@@ -6,13 +6,6 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Mordomus\Financial\Models\Bill;
 
-/**
- * Cadastro da conta.
- *
- * `due_day` e `advance_notice_days` descrevem a cadência, e a validação é a do
- * Scheduling: quem materializa o dia do vencimento é o módulo dono do motor de
- * tempo, e o mesmo conjunto de campos que ele exige é o que chega na regra.
- */
 class StoreBillRequest extends FormRequest
 {
     public function authorize(): bool
@@ -20,7 +13,6 @@ class StoreBillRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

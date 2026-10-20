@@ -21,13 +21,7 @@ interface BillRepositoryInterface
 
     public function find(string $billId, ?string $tenantId): ?Bill;
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     public function create(array $attributes): Bill;
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     public function change(Bill $bill, array $attributes): Bill;
 }

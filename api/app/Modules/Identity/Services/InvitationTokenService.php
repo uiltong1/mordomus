@@ -2,16 +2,10 @@
 
 namespace Mordomus\Identity\Services;
 
-/**
- * Token de convite: valor na URL, apenas o hash persiste.
- */
 class InvitationTokenService
 {
     public const TTL_DAYS = 7;
 
-    /**
-     * @return array{plain: string, hash: string}
-     */
     public static function generate(): array
     {
         $plain = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');

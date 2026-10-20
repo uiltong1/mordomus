@@ -11,11 +11,6 @@ use Illuminate\Support\Str;
 use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Correlação da requisição: gera/recupera o `X-Request-Id` e o publica no
- * contexto compartilhado do logger, para evento de log, envelope de erro e
- * resposta falarem do mesmo identificador.
- */
 final class RequestContext
 {
     public function handle(Request $request, Closure $next): Response
@@ -43,7 +38,6 @@ final class RequestContext
 
         $response = $next($request);
 
-        // a borda já reemite o header recebido; só ecoamos o que nasceu aqui
         if ($minted) {
             $response->headers->set('X-Request-Id', $contextId);
         }

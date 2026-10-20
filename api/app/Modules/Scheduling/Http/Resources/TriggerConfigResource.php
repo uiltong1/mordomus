@@ -5,15 +5,8 @@ namespace Mordomus\Scheduling\Http\Resources;
 use Illuminate\Support\Carbon;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Shape da regra, com o alvo no par `subject_type`/`subject_id` e as datas no
- * fuso da residência.
- */
 final class TriggerConfigResource
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function make(TriggerConfig $config, string $timezone): array
     {
         return [
@@ -39,10 +32,6 @@ final class TriggerConfigResource
         ];
     }
 
-    /**
-     * @param  iterable<TriggerConfig>  $configs
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $configs, string $timezone): array
     {
         return collect($configs)

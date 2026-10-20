@@ -5,16 +5,10 @@ namespace Mordomus\Identity\Http\Resources;
 use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 use Mordomus\Identity\Models\Membership;
 
-/**
- * Shape do membro de residência, idêntico na listagem e no detalhe.
- */
 final readonly class MemberResource
 {
     public function __construct(private CapabilityResolverServiceInterface $capabilities) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function make(Membership $membership): array
     {
         $user = $membership->user;
@@ -36,10 +30,6 @@ final readonly class MemberResource
         ];
     }
 
-    /**
-     * @param  iterable<Membership>  $memberships
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $memberships): array
     {
         return collect($memberships)

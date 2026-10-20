@@ -6,19 +6,8 @@ use Illuminate\Support\Carbon;
 use Mordomus\Financial\Models\Bill;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Shape da conta, com a cadência que ela pediu ao Scheduling.
- *
- * `schedule` é a regra viva da conta: dia do vencimento, antecedência do aviso
- * e a próxima data que o motor já calculou. Vem junto porque quem cadastra a
- * conta é quem precisa conferir a data — e a resposta sem ela obrigaria a uma
- * segunda chamada a outro módulo.
- */
 final class BillResource
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function make(Bill $bill, string $timezone): array
     {
         return [
@@ -37,10 +26,6 @@ final class BillResource
         ];
     }
 
-    /**
-     * @param  iterable<Bill>  $bills
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $bills, string $timezone): array
     {
         return collect($bills)
@@ -49,7 +34,6 @@ final class BillResource
             ->all();
     }
 
-    /** A regra ativa da conta, ou a última conhecida quando ela foi pausada. */
     private function schedule(Bill $bill, string $timezone): ?array
     {
         $config = $this->config($bill);
@@ -69,10 +53,6 @@ final class BillResource
         ];
     }
 
-    /**
-     * A regra que manda é a ativa; sem ela, a conta não tem mais cadência e a
-     * última conhecida é informação, não comando.
-     */
     private function config(Bill $bill): ?TriggerConfig
     {
         $active = $bill->schedules->firstWhere('is_active', true);

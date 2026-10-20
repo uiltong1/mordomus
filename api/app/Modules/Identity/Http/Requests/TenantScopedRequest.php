@@ -14,10 +14,6 @@ use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 
-/**
- * Base de toda rota com `{tenant}`: tenant ativo do token, capability
- * exigida pelo endpoint e membership — nunca no corpo do controller.
- */
 abstract class TenantScopedRequest extends FormRequest
 {
     private bool $evaluated = false;
@@ -34,13 +30,11 @@ abstract class TenantScopedRequest extends FormRequest
         throw $this->authorizationFailure() ?? Forbidden::make();
     }
 
-    /** Capability que o endpoint exige; null = nenhuma. */
     protected function requiredCapability(): ?string
     {
         return null;
     }
 
-    /** Exige membership ativo mesmo sem capability associada. */
     protected function requiresMembership(): bool
     {
         return false;

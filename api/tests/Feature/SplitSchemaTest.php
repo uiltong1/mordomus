@@ -11,17 +11,6 @@ use Mordomus\Financial\Models\SplitRule;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 
-/**
- * Esquema da divisão de cota-parte.
- *
- * O que se verifica são as garantias que o banco precisa dar sozinho: uma
- * regra por conta (e uma só regra padrão da casa), um morador por entrada, uma
- * cota por morador e por vencimento — que é o que torna o recálculo
- * idempotente — e o destino das linhas filhas quando o pai é removido.
- *
- * As inserções são feitas por `DB::table` porque este teste é sobre o esquema,
- * não sobre a camada de acesso.
- */
 class SplitSchemaTest extends FeatureTestCase
 {
     private string $tenantId;
@@ -52,13 +41,6 @@ class SplitSchemaTest extends FeatureTestCase
         ]));
     }
 
-    /**
-     * Uma regra por conta e uma regra padrão da casa.
-     *
-     * O `NULL` de `bill_id` é o que torna isso necessário: ele não colide em
-     * índice único, e duas regras padrão valendo ao mesmo tempo fariam a mesma
-     * conta ser dividida de dois jeitos sem o banco reclamar.
-     */
     public function test_a_home_has_at_most_one_rule_per_bill_and_one_default(): void
     {
         $this->insertRule(null);
@@ -67,8 +49,6 @@ class SplitSchemaTest extends FeatureTestCase
         $this->assertRejected(fn () => $this->insertRule(null));
         $this->assertRejected(fn () => $this->insertRule($this->billId));
 
-        // Conta diferente é regra diferente: o índice é por conta, e não por
-        // residência.
         $this->insertRule($this->insertBill('Aluguel'));
 
         $this->assertSame(3, DB::table('split_rules')->count());
@@ -110,10 +90,6 @@ class SplitSchemaTest extends FeatureTestCase
         $this->assertSame(0, DB::table('split_entries')->count());
     }
 
-    /**
-     * A cota é única por morador e por vencimento: é o que faz o recálculo
-     * atualizar a linha em vez de abrir uma segunda cota para o mesmo morador.
-     */
     public function test_a_resident_has_at_most_one_share_per_due_date(): void
     {
         $userId = User::factory()->create()->id;
@@ -123,8 +99,6 @@ class SplitSchemaTest extends FeatureTestCase
 
         $this->assertRejected(fn () => $this->insertResult($occurrenceId, $userId));
 
-        // A mesma cota em outro vencimento é outra linha: cada conta é
-        // dividida por conta.
         $this->insertResult($this->insertOccurrence('2026-05-10'), $userId);
 
         $this->assertSame(2, DB::table('split_results')->count());
@@ -141,7 +115,6 @@ class SplitSchemaTest extends FeatureTestCase
         $this->assertSame(0, DB::table('split_results')->count());
     }
 
-    /** Apagar a conta leva a regra, os participantes e as cotas dela. */
     public function test_deleting_the_bill_takes_the_rule_with_it(): void
     {
         $ruleId = $this->insertRule($this->billId);
@@ -157,10 +130,6 @@ class SplitSchemaTest extends FeatureTestCase
         $this->assertSame(0, DB::table('split_results')->count());
     }
 
-    /**
-     * A cota já dividida é histórico: perder o morador deixa o valor no lugar,
-     * e o que ele deve continua legível.
-     */
     public function test_deleting_a_user_keeps_the_share_without_the_actor(): void
     {
         $userId = User::factory()->create()->id;
@@ -174,7 +143,6 @@ class SplitSchemaTest extends FeatureTestCase
         $this->assertTrue((bool) DB::table('split_results')->value('settled'));
     }
 
-    /** Participante que sai da residência sai da regra — e só dela. */
     public function test_deleting_a_user_takes_the_entry_out_of_the_rule(): void
     {
         $userId = User::factory()->create()->id;
@@ -186,8 +154,6 @@ class SplitSchemaTest extends FeatureTestCase
         $this->assertSame(1, DB::table('split_rules')->count());
         $this->assertSame(0, DB::table('split_entries')->count());
     }
-
-    // -------------------------------------------------------------- helpers
 
     private function insertBill(string $name): string
     {

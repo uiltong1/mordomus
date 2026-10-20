@@ -9,7 +9,6 @@ use Mordomus\Http\Tenancy\ActiveTenant;
 use Mordomus\Identity\Contracts\Repositories\MembershipRepositoryInterface;
 use Mordomus\Identity\Contracts\Services\ProfileServiceInterface;
 use Mordomus\Identity\Http\Resources\UserResource;
-use Mordomus\Identity\Models\User;
 
 final class ProfileService implements ProfileServiceInterface
 {
@@ -20,7 +19,7 @@ final class ProfileService implements ProfileServiceInterface
 
     public function show(Request $request): array
     {
-        /** @var User $user */
+
         $user = $request->user();
         $activeTenantId = ActiveTenant::id($request);
         $activeMembership = $activeTenantId

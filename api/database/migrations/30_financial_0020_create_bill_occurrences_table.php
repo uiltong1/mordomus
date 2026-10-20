@@ -4,23 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Vencimentos de conta: uma linha por dia a pagar.
- *
- * `schedule_id` é o elo com o motor de agendamento e nasce sem FK, porque
- * `job_schedules` é criada depois (`40_scheduling`); a referência é adicionada
- * em `50_financial_links`. Nulo significa lançamento manual — a conta
- * variável não tem cadência, e quem registra é o morador, com a data que
- * ele viu na conta.
- *
- * `due_date` é dia de calendário e não vem do relógio do servidor: o módulo
- * Financial não calcula data nenhuma (regra R7). Ela chega pronta pelo evento
- * `schedule.occurrence.created`, ou vem do morador no lançamento manual.
- *
- * `unique(bill_id, due_date)` é a garantia de idempotência do consumidor: o
- * mesmo evento reentregue pela fila tenta a mesma data para a mesma conta, e
- * o banco recusa a segunda linha em vez de duplicar o vencimento.
- */
 return new class extends Migration
 {
     public function up(): void

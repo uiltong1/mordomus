@@ -13,13 +13,6 @@ use Mordomus\OpenApi\Schemas\DeviceToken as DeviceTokenSchema;
 use Mordomus\OpenApi\Schemas\Error;
 use OpenApi\Attributes as OA;
 
-/**
- * Assinaturas de Web Push do morador (ADR-001).
- *
- * Registrar de novo a mesma assinatura atualiza a linha, e não cria outra: o
- * clique no sino pode acontecer quantas vezes o morador quiser, e duplicar a
- * assinatura faria o mesmo aviso sair duas vezes para o mesmo navegador.
- */
 class DeviceTokenController extends Controller
 {
     public function __construct(private readonly DeviceTokenServiceInterface $devices) {}

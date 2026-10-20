@@ -22,8 +22,6 @@ const COUNTS: readonly { key: keyof BillSummary['counts']; label: string }[] = [
   { key: 'cancelled', label: 'Cancelados' },
 ]
 
-/** Mês corrente no fuso do navegador — o seletor manda `YYYY-MM` e o backend
- *  recalcula a janela no fuso da residência. */
 function currentMonth(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`

@@ -46,9 +46,7 @@ final class SplitResultRepository implements SplitResultRepositoryInterface
             $result->fill([
                 'user_id' => $share['user_id'],
                 'share_amount' => $share['amount'],
-                // A baixa vale para o número com que o morador concordou. Se o
-                // valor mudou, aquilo que ele quitou já não é a cota atual, e
-                // manter a marca diria que uma cota diferente foi paga.
+
                 'settled' => $changed ? false : $result->settled,
                 'settled_at' => $changed ? null : $result->settled_at,
             ]);
@@ -58,9 +56,6 @@ final class SplitResultRepository implements SplitResultRepositoryInterface
             $saved[$share['user_id']] = $result;
         }
 
-        // Morador que saiu da regra perde a cota: a linha é apagada, e não
-        // zerada, porque uma cota zerada continuaria entrando na soma da R5 e
-        // a conta apareceria como fechada.
         foreach ($previous as $userId => $result) {
             if (! array_key_exists($userId, $saved)) {
                 $result->delete();
@@ -82,9 +77,7 @@ final class SplitResultRepository implements SplitResultRepositoryInterface
 
     public function settle(SplitResult $result, bool $settled, ?string $settledAt): SplitResult
     {
-        // Idempotente: repetir a baixa devolve a linha como está, e o instante
-        // gravado continua sendo o da primeira, do mesmo jeito que a baixa do
-        // vencimento.
+
         if ($result->isSettled() === $settled) {
             return $result;
         }
@@ -99,15 +92,6 @@ final class SplitResultRepository implements SplitResultRepositoryInterface
         return $result;
     }
 
-    /**
-     * Base das leituras.
-     *
-     * O morador não vem junto: o nome vem da entrada da regra, que é quem sabe
-     * quem participa, e uma segunda consulta para o mesmo nome seria o mesmo
-     * dado lido duas vezes.
-     *
-     * @return Builder<SplitResult>
-     */
     private function query(): Builder
     {
         return SplitResult::query();

@@ -27,25 +27,10 @@ use Mordomus\Http\Tenancy\ActiveTenant;
 use Mordomus\Scheduling\Contracts\Services\EventPublisherServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 
-/**
- * Cota-parte dos vencimentos: materializa, consulta, dá baixa e recalcula.
- *
- * A materialização é a única escrita aqui. Ela roda em três momentos, e são
- * eles que cobrem toda mudança possível do valor dividido: quando o vencimento
- * nasce, quando o valor real da conta chega (conta variável só tem valor na
- * fatura, e é no pagamento que ele aparece) e quando a regra muda.
- *
- * A consulta não materializa. Um vencimento anterior a este recurso não tem
- * cota gravada, e a tela precisa responder mesmo assim — mas responder
- * calculando é diferente de responder gravando: leitura que escreve esconde o
- * efeito de um segundo acesso e faz o evento de aviso sair de um GET.
- */
 final class SplitResultService implements SplitResultServiceInterface
 {
-    /** Leitura por quem administra a divisão. */
     private const SCOPE_ALL = 'all';
 
-    /** Leitura por quem só pode ver a cota própria. */
     private const SCOPE_OWN = 'own';
 
     public function __construct(
@@ -87,9 +72,6 @@ final class SplitResultService implements SplitResultServiceInterface
         $tenantId = (string) $occurrence->tenant_id;
         $rule = $this->rules->findEffective($tenantId, $occurrence->bill_id);
 
-        // Regra que sumiu não é regra com cota zero: as linhas do vencimento
-        // saem, para que a lista da casa não mostre uma divisão que ela mesma
-        // desfez.
         if ($rule === null) {
             $this->results->forget($tenantId, $occurrence->id);
 
@@ -99,10 +81,7 @@ final class SplitResultService implements SplitResultServiceInterface
         try {
             $shares = $this->calculator->shares($rule, $rule->orderedEntries()->all(), (string) $occurrence->amount);
         } catch (SplitNotComputable $failure) {
-            // A divisão é acessória à conta: uma regra que não fecha o valor
-            // deste vencimento não pode derrubar o vencimento, que a casa
-            // precisa pagar de qualquer jeito. A recusa honesta fica na leitura
-            // da divisão, com o número no detalhe, e aqui fica o log.
+
             Log::warning('financial.split_not_computable', [
                 'tenant_id' => $tenantId,
                 'bill_occurrence_id' => $occurrence->id,
@@ -119,9 +98,6 @@ final class SplitResultService implements SplitResultServiceInterface
         $before = $this->fingerprint($this->results->forOccurrence($tenantId, $occurrence->id));
         $saved = $this->results->sync($tenantId, $occurrence->id, $shares);
 
-        // O aviso sai quando o número muda, e não quando o cálculo roda: regra
-        // salva sem diferença real, ou a mesma materialização vista duas vezes,
-        // não podem virar duas notificações da mesma conta.
         if ($before !== $this->fingerprint($saved)) {
             $this->announce($occurrence, $rule, $saved);
         }
@@ -135,9 +111,7 @@ final class SplitResultService implements SplitResultServiceInterface
         $recalculated = 0;
 
         foreach ($this->occurrences->open($tenantId, $rule->bill_id) as $occurrence) {
-            // A regra geral não governa a conta que a casa ajustou: reescrever a
-            // divisão de um aluguel com regra própria apagaria o combinado que o
-            // dono da casa fez.
+
             if (in_array($occurrence->bill_id, $ownBills, true)) {
                 continue;
             }
@@ -149,11 +123,6 @@ final class SplitResultService implements SplitResultServiceInterface
         return $recalculated;
     }
 
-    /**
-     * Resposta da divisão de um vencimento.
-     *
-     * @return array<string, mixed>
-     */
     private function payload(Request $request, BillOccurrence $occurrence): array
     {
         $tenantId = (string) $occurrence->tenant_id;
@@ -196,15 +165,6 @@ final class SplitResultService implements SplitResultServiceInterface
         );
     }
 
-    /**
-     * Cotas de um vencimento que nunca foram materializadas.
-     *
-     * O cálculo é o mesmo e a resposta é a mesma; o que não acontece é a
-     * gravação, porque a tela não pediu para mudar nada.
-     *
-     * @param  array<string, ?string>  $names
-     * @return list<array<string, mixed>>
-     */
     private function derive(SplitRule $rule, BillOccurrence $occurrence, array $names): array
     {
         $shares = $this->calculator->shares($rule, $rule->orderedEntries()->all(), (string) $occurrence->amount);
@@ -218,9 +178,6 @@ final class SplitResultService implements SplitResultServiceInterface
         ], $shares);
     }
 
-    /**
-     * @return array<string, ?string>
-     */
     private function names(SplitRule $rule): array
     {
         return $rule->orderedEntries()
@@ -228,22 +185,11 @@ final class SplitResultService implements SplitResultServiceInterface
             ->all();
     }
 
-    /**
-     * Quem enxerga a divisão inteira.
-     *
-     * A autorização do endpoint é do `FormRequest`; a pergunta daqui é outra —
-     * de quais linhas a resposta pode ser montada. Quem administra a divisão
-     * vê todas as cotas porque precisa fechar a conta da casa; quem só tem
-     * leitura da própria vê a sua, e o critério de aceite do split é esse.
-     */
     private function seesEveryShare(Request $request): bool
     {
         return (bool) $request->user()?->can('splits.manage');
     }
 
-    /**
-     * @param  Collection<int, SplitResult>  $results
-     */
     private function announce(BillOccurrence $occurrence, SplitRule $rule, Collection $results): void
     {
         $tenantId = (string) $occurrence->tenant_id;
@@ -281,15 +227,6 @@ final class SplitResultService implements SplitResultServiceInterface
         ]);
     }
 
-    /**
-     * Resumo canônico das cotas, para comparar e para deduplicar.
-     *
-     * A comparação é pelo conjunto, não pela ordem: quem recalcula pode
-     * receber as entradas em outra sequência, e um aviso de recomputação sem
-     * mudança seria o mesmo aviso de novo.
-     *
-     * @param  Collection<int, SplitResult>  $results
-     */
     private function fingerprint(Collection $results): string
     {
         $lines = $results
@@ -307,8 +244,7 @@ final class SplitResultService implements SplitResultServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 }

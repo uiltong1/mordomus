@@ -15,9 +15,7 @@ final class SplitRuleRepository implements SplitRuleRepositoryInterface
     {
         return $this->query()
             ->where('tenant_id', $tenantId)
-            // O padrão da casa abre a lista: é a regra que vale para tudo que
-            // não tem regra própria, e escondê-la no fim da lista deixaria a
-            // casa sem enxergar o que está valendo.
+
             ->orderByRaw('(bill_id is null) desc')
             ->orderBy('bill_id')
             ->get();
@@ -46,9 +44,6 @@ final class SplitRuleRepository implements SplitRuleRepositoryInterface
             return $this->houseDefault($tenantId);
         }
 
-        // A regra da conta só vence se estiver ativa: pausada, a casa volta ao
-        // padrão. Do contrário, desligar a regra de uma conta tiraria a divisão
-        // dela em vez de devolver a regra geral.
         return $this->active($tenantId)->where('bill_id', $billId)->first()
             ?? $this->houseDefault($tenantId);
     }
@@ -93,17 +88,11 @@ final class SplitRuleRepository implements SplitRuleRepositoryInterface
         return $this->active($tenantId)->whereNull('bill_id')->first();
     }
 
-    /** @return Builder<SplitRule> */
     private function active(string $tenantId): Builder
     {
         return $this->query()->where('tenant_id', $tenantId)->where('is_active', true);
     }
 
-    /**
-     * Base das leituras, com os participantes e seus moradores já anexados.
-     *
-     * @return Builder<SplitRule>
-     */
     private function query(): Builder
     {
         return SplitRule::query()->with(['entries.user', 'bill']);

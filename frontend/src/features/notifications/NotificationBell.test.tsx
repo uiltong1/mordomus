@@ -62,7 +62,6 @@ describe('NotificationBell', () => {
 
   it('assina o push e avisa quando o backend ainda não tem a rota', async () => {
     installPushApi('granted')
-    // a rota nasce na T6.1; até lá o POST responde 404 pelo gateway
     vi.mocked(registerDevice).mockRejectedValue(
       new ApiError(404, {
         code: 'not_found',
@@ -81,7 +80,6 @@ describe('NotificationBell', () => {
   })
 
   it('tira a assinatura do backend ao desativar, não só do aparelho', async () => {
-    // aparelho que já está inscrito: o sino mostra "Desativar" direto
     installPushApi('granted')
     Object.defineProperty(navigator, 'serviceWorker', {
       configurable: true,

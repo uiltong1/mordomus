@@ -5,11 +5,6 @@ import { Button, Field, Input } from '@/shared/ui'
 import { useAuth } from './AuthProvider'
 import { AuthLayout, type FormErrors } from './AuthLayout'
 
-/**
- * Login (T4.1.6). Sem seletor de residência: quem acabou de autenticar ainda
- * não conhece as casas do usuário, e o backend entra na primeira residência
- * ativa. A escolha entre casas acontece no `TenantSwitcher`, depois do login.
- */
 export function LoginPage() {
   const { login, adoptSession } = useAuth()
   const navigate = useNavigate()

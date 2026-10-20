@@ -12,14 +12,8 @@ export interface DatePickerProps {
   id?: string
 }
 
-/** `YYYY-MM-DD` — o formato que o backend valida e que o `<input type="date">` usa. */
 export const toApiDate = toDateInputValue
 
-/**
- * Data em `YYYY-MM-DD`. É controlado de propósito: espelhar o prop em estado
- * local exigiria um efeito de sincronização, e o navegador já deixa o campo
- * vazio quando o morador apaga o que digitou.
- */
 export function DatePicker({
   label,
   value,

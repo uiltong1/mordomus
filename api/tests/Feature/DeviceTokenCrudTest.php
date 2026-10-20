@@ -12,9 +12,6 @@ use Mordomus\Notification\Contracts\Services\PushChannelInterface;
 use Mordomus\Notification\Models\DeviceToken;
 use Tests\Support\FakePushChannel;
 
-/**
- * Assinaturas de push do morador (ADR-001).
- */
 class DeviceTokenCrudTest extends FeatureTestCase
 {
     private const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc123';
@@ -23,7 +20,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
 
     private string $userId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     protected function setUp(): void
@@ -42,10 +38,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
         $this->withVapidPair();
     }
 
-    /**
-     * Par VAPID de verdade, porque o canal de verdade decide se está
-     * configurado a partir do par e não de um flag de teste.
-     */
     private function withVapidPair(): void
     {
         $private = openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
@@ -58,8 +50,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
             'notification.vapid.public_key' => $public['key'],
         ]);
     }
-
-    // ------------------------------------------------------------------ escrita
 
     public function test_a_signature_is_registered(): void
     {
@@ -82,8 +72,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
             ->postJson('/api/v1/notification/devices', ['platform' => 'web'] + $this->payload())
             ->assertCreated();
 
-        // O clique no sino pode acontecer quantas vezes o morador quiser: uma
-        // linha só, senão o mesmo aviso sai duas vezes no mesmo navegador.
         $this->assertSame(1, $this->deviceCount());
         $this->assertSame(
             '2026-04-01T09:00:00+00:00',
@@ -113,8 +101,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
             ->assertJsonCount(0, 'data');
     }
 
-    // ------------------------------------------------------------------- leitura
-
     public function test_the_list_does_not_carry_the_browser_secrets(): void
     {
         $this->withHeaders($this->headers)->postJson('/api/v1/notification/devices', $this->payload())->assertCreated();
@@ -125,8 +111,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
         $this->assertArrayNotHasKey('p256dh', $body['data'][0]);
         $this->assertArrayNotHasKey('auth', $body['data'][0]);
     }
-
-    // ------------------------------------------------------------------- remoção
 
     public function test_a_signature_is_removed_by_its_endpoint(): void
     {
@@ -162,16 +146,12 @@ class DeviceTokenCrudTest extends FeatureTestCase
     {
         $this->withHeaders($this->headers)->postJson('/api/v1/notification/devices', $this->payload())->assertCreated();
 
-        // Mesmo endpoint, mesma casa, morador diferente: a assinatura é do
-        // dono, e desinscrever a dele é responder por ele.
         $this->asUser($this->mate(), $this->tenantId)
             ->deleteJson('/api/v1/notification/devices?endpoint='.urlencode(self::ENDPOINT))
             ->assertStatus(404);
 
         $this->assertSame(1, $this->deviceCount());
     }
-
-    // ------------------------------------------------------------------ teste
 
     public function test_the_test_send_reports_what_the_provider_answered(): void
     {
@@ -210,8 +190,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
             ->assertJsonPath('error.code', 'push_not_configured');
     }
 
-    // ------------------------------------------------------------------ acesso
-
     public function test_everything_here_demands_a_token(): void
     {
         $this->getJson('/api/v1/notification/devices')->assertUnauthorized();
@@ -219,8 +197,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
         $this->deleteJson('/api/v1/notification/devices?endpoint=x')->assertUnauthorized();
         $this->postJson('/api/v1/notification/devices/test')->assertUnauthorized();
     }
-
-    // ---------------------------------------------------------------- helpers
 
     private function mate(): User
     {
@@ -241,7 +217,6 @@ class DeviceTokenCrudTest extends FeatureTestCase
         $this->app->instance(PushChannelInterface::class, new FakePushChannel($endpoints));
     }
 
-    /** @return array<string, mixed> */
     private function payload(): array
     {
         return [

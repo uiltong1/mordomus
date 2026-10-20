@@ -17,16 +17,6 @@ use Mordomus\Scheduling\Events\QueuedEnvelope;
 use Mordomus\Scheduling\Jobs\PublishEvent;
 use Opis\JsonSchema\Validator;
 
-/**
- * `tenant.member_added`: o contrato do evento, o caminho da publicação e a
- * ponte até o consumidor.
- *
- * O evento é o único que o Identity publica, e sai pelo aceite do convite —
- * dentro de uma transação de requisição, não de um job. O `PublishEvent` é o
- * que leva o envelope para a fila e o listener do Notification é quem o
- * consome; os dois lados precisam concordar sobre o formato, e é isso que o
- * teste amarra.
- */
 class MemberAddedEventTest extends FeatureTestCase
 {
     private Validator $validator;
@@ -98,8 +88,6 @@ class MemberAddedEventTest extends FeatureTestCase
         $guest = User::factory()->create(['email' => 'veio@mordomus.test']);
         $this->signatureOf($tenantId, (string) $guest->id);
 
-        // Só a entrega é falsada: o resto — publicar, o listener, o consumidor —
-        // precisa rodar de verdade para o contrato do módulo valer alguma coisa.
         Queue::fake([DeliverNotification::class]);
 
         event(new QueuedEnvelope($this->envelope($tenantId, (string) $guest->id)));
@@ -148,12 +136,6 @@ class MemberAddedEventTest extends FeatureTestCase
         ));
     }
 
-    // ---------------------------------------------------------------- helpers
-
-    /**
-     * O canal padrão é push, e push sem assinatura não vira linha: quem está
-     * entrando acabou de abrir a conta e provavelmente não assinou nada ainda.
-     */
     private function signatureOf(string $tenantId, string $userId): void
     {
         $this->withTenantContext($tenantId, fn () => DeviceToken::create([
@@ -167,7 +149,6 @@ class MemberAddedEventTest extends FeatureTestCase
         ]));
     }
 
-    /** @return array<string, mixed> */
     private function envelope(string $tenantId, string $userId): array
     {
         return [

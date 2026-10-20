@@ -1,10 +1,3 @@
-/**
- * Erro da API normalizado a partir do envelope do monólito:
- * `{ "error": { code, message, details, request_id } }`.
- *
- * O `details` é um objeto livre (validação: campo → mensagens) ou uma lista de
- * strings, então é lido como `unknown` e estreitado só onde faz sentido.
- */
 export interface ErrorBody {
   code: string
   message: string
@@ -27,7 +20,6 @@ export class ApiError extends Error {
     this.requestId = body.request_id ?? null
   }
 
-  /** `details` de 422: campo → lista de mensagens. */
   get fieldErrors(): Record<string, string[]> {
     if (
       this.code !== 'validation_failed' ||
@@ -43,7 +35,6 @@ export class ApiError extends Error {
     return out
   }
 
-  /** Erros de domínio que a interface trata de forma específica. */
   get isUnauthenticated(): boolean {
     return this.status === 401
   }
@@ -56,12 +47,10 @@ export class ApiError extends Error {
     return this.status === 429
   }
 
-  /** `tenant_required`: o token não carrega `tid` — a tela de seleção resolve. */
   get needsTenant(): boolean {
     return this.code === 'tenant_required'
   }
 
-  /** Falha de rede ou resposta ilegível: `code` distingue de um erro do backend. */
   get isNetwork(): boolean {
     return this.code === 'network_error'
   }
@@ -82,11 +71,6 @@ const FALLBACK_MESSAGES: Record<number, string> = {
   500: 'Erro interno. Tente novamente.',
 }
 
-/**
- * Converte qualquer resposta de erro em `ApiError`. O 429 do gateway e o 502
- * podem chegar sem o envelope do monólito, então o status nunca pode virar
- * erro genérico: cada um cai na mensagem do status.
- */
 export async function toApiError(response: Response): Promise<ApiError> {
   const requestId = response.headers.get('X-Request-Id')
   let body: ErrorBody | null = null
@@ -108,9 +92,7 @@ export async function toApiError(response: Response): Promise<ApiError> {
         }
       }
     }
-  } catch {
-    // corpo não-JSON: cai no fallback por status abaixo
-  }
+  } catch {}
 
   if (body) return new ApiError(response.status, body)
 
@@ -125,7 +107,6 @@ function statusCode(status: number): string {
   return status >= 500 ? 'server_error' : 'http_error'
 }
 
-/** `fetch` rejeita com `TypeError` quando a rede falha — vira erro conhecido da API. */
 export function networkError(cause: unknown): ApiError {
   return new ApiError(
     0,

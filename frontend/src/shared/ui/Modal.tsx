@@ -11,17 +11,6 @@ export interface ModalProps {
   footer?: ReactNode
 }
 
-/**
- * Diálogo modal. Fica em portal, prende o Tab dentro dele, devolve o foco ao
- * elemento de origem e fecha com Esc — o conjunto mínimo para não aprisionar
- * quem navega por teclado ou leitor de tela.
- *
- * O clique fora **não** fecha: os diálogos desta aplicação são formulários, e
- * um clique no vazio perdia o que o morador tinha digitado sem nenhum aviso. A
- * saída é deliberada — o X, o Cancelar do rodapé ou o envio. O fundo continua
- * lá, para escurecer a tela e engolir o clique, que é o que impede o clique de
- * alcançar a página de trás.
- */
 export function Modal({ open, title, description, onClose, children, footer }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
@@ -72,17 +61,9 @@ export function Modal({ open, title, description, onClose, children, footer }: M
   if (!open) return null
 
   return createPortal(
-    // O fundo é o que rola quando a tela é menor que o diálogo. `my-auto` no
-    // painel substitui o `items-center`: com centralização por flex, a parte que
-    // sobrava acima do topo ficava fora do alcance da rolagem — o título e o X
-    // sumiam justamente nos modais mais longos, que são os que precisam do
-    // formulário inteiro.
     <div className="fixed inset-0 z-50 flex overflow-y-auto overscroll-contain p-4">
       <div className="absolute inset-0 bg-scrim/70 backdrop-blur-sm" aria-hidden="true" />
-      {/* `max-h-full` limita o painel à altura da tela e o corpo é que rola: é o
-          que mantém título e ações sempre à vista, sem a faixa de conteúdo que
-          um rodapé grudado deixaria escapar por baixo. `min-h-0` é o que
-          autoriza o corpo a encolher abaixo do próprio conteúdo. */}
+      {}
       <div
         ref={panelRef}
         role="dialog"

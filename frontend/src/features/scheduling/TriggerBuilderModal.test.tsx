@@ -97,10 +97,6 @@ describe('TriggerBuilderModal', () => {
     await signIn()
   })
 
-  /**
-   * Critério de aceite: o morador cria a regra de 30 dias sem ler documentação.
-   * O caminho é escolher o tipo, dar um nome e salvar — nada mais.
-   */
   it('cria uma regra de 30 dias em três interações', async () => {
     vi.mocked(saveAssetSchedule).mockResolvedValue({ id: 'cfg1' } as never)
     open()
@@ -123,12 +119,6 @@ describe('TriggerBuilderModal', () => {
     expect(await screen.findByText('Regra criada.')).toBeInTheDocument()
   })
 
-  /**
-   * Critério de aceite da edição: abrir a regra do item mostra a regra inteira
-   * na tela. Os quatro cartões de tipo empurravam intervalo, avisos e horário
-   * para fora da área visível — por isso na edição o tipo vira um select
-   * compacto e o cabeçalho passa a dizer o resumo real, não o exemplo do tipo.
-   */
   it('ao editar, o tipo vira select e todos os campos vêm preenchidos', async () => {
     open(existingConfig)
 
@@ -171,11 +161,6 @@ describe('TriggerBuilderModal', () => {
     expect(await screen.findByText('Regra atualizada.')).toBeInTheDocument()
   })
 
-  /**
-   * Critério de aceite: o preview bate com o cálculo do backend. O formulário
-   * manda exatamente o payload que o `POST /preview` documenta, e a tela
-   * mostra o `scheduled_for` que o monólito devolveu.
-   */
   it('mostra a data que o backend calculou, sem inventar a sua', async () => {
     vi.mocked(previewNextDue).mockResolvedValue({
       type: 'INTERVAL',
@@ -236,10 +221,6 @@ describe('TriggerBuilderModal', () => {
     expect(screen.getByLabelText('De quantos em quantos')).toBeInTheDocument()
   })
 
-  /**
-   * O 422 mais comum: o morador preencheu o dia do mês e trocou para intervalo.
-   * O campo proibido não pode viajar, ou o backend recusa.
-   */
   it('não manda no payload o campo que ficou de fora da tela', async () => {
     vi.mocked(saveAssetSchedule).mockResolvedValue({ id: 'cfg1' } as never)
     open()
@@ -284,8 +265,6 @@ describe('TriggerBuilderModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Criar regra' }))
 
     expect(await screen.findByText('O intervalo informado é grande demais.')).toBeInTheDocument()
-    // a mensagem do envelope aparece no formulário e no aviso; o que interessa
-    // aqui é o recado por campo, que é o que o morador consegue corrigir
     expect(
       screen.getAllByRole('alert').some((node) => node.textContent?.includes('Dados inválidos.')),
     ).toBe(true)

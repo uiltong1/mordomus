@@ -13,13 +13,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\PageMeta;
 use OpenApi\Attributes as OA;
 
-/**
- * Vencimentos: consulta, lançamento manual e baixa de pagamento.
- *
- * O lançamento de uma conta com cadência não vem por esta rota: o Scheduling
- * materializa a data e o evento `schedule.occurrence.created` cria a linha
- * (regra R7). Aqui entra só o que a casa registra sozinha.
- */
 class BillOccurrenceController extends Controller
 {
     public function __construct(private readonly BillOccurrenceServiceInterface $occurrences) {}

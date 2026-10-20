@@ -40,7 +40,6 @@ class Tenant extends Model
         });
     }
 
-    /** Residências ainda não arquivadas (soft delete via archived_at). */
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
@@ -57,25 +56,21 @@ class Tenant extends Model
         $this->memberships()->update(['status' => Membership::STATUS_ARCHIVED]);
     }
 
-    /** @return HasMany<Membership, $this> */
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);
     }
 
-    /** @return HasMany<Invitation, $this> */
     public function invitations(): HasMany
     {
         return $this->hasMany(Invitation::class);
     }
 
-    /** @return HasOne<TenantPreference, $this> */
     public function preferences(): HasOne
     {
         return $this->hasOne(TenantPreference::class);
     }
 
-    /** `preferred_hour` armazenado como `HH:MM:SS` — exposto como `HH:MM`. */
     public function getPreferredHourAttribute(?string $value): ?string
     {
         return $value === null ? null : substr($value, 0, 5);

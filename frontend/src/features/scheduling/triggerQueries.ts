@@ -25,21 +25,11 @@ export function useTriggerConfigs(filters: { subjectType?: SubjectType | null } 
 }
 
 export interface SaveTriggerConfigInput {
-  /** `null` na criação, o id da regra na edição. */
   configId: string | null
-  /** Ativo alvo. Não entra no `PATCH` — o backend trata o alvo como imutável. */
   subjectId: string
   payload: TriggerConfigInput
 }
 
-/**
- * Mutação de regra.
- *
- * O `POST /preview` roda com o mesmo `enabled` da regra: ele é a razão de o
- * formulário existir, e sem ele o morador só descobre a data depois de salvar.
- * Já vem sem capability no backend (`auth:jwt` + `tenant`), então o botão de
- * preview existe mesmo para quem não pode editar regra.
- */
 export function useSaveTriggerConfig() {
   const { activeTenantId } = useTenant()
   const queryClient = useQueryClient()
@@ -52,13 +42,8 @@ export function useSaveTriggerConfig() {
       payload,
     }: SaveTriggerConfigInput): Promise<TriggerConfig> => {
       if (configId) {
-        // o alvo não volta no `PATCH`: `subject_type`/`subject_id` são imutáveis
-        // e enviá-los derrubaria a requisição
         return updateTriggerConfig(configId, payload)
       }
-      // regra de manutenção passa pelo atalho do inventário: o upsert por
-      // título é o que impede "limpar filtro" duplicado quando o morador abre
-      // a mesma regra duas vezes sem saber que ela já existe
       return saveAssetSchedule(subjectId, payload)
     },
     onSuccess: () => {
@@ -72,12 +57,6 @@ export function useSaveTriggerConfig() {
   })
 }
 
-/**
- * Criação avulsa pela porta do Scheduling. Existe separada da anterior porque
- * o `POST /trigger-configs` exige `subject_type` explícito e é a rota que a
- * Fase 5 vai usar para as contas — deixá-la pronta evita a tela de contas
- * nascer fingindo que manutenção é caso especial.
- */
 export function useCreateTriggerConfig() {
   const { activeTenantId } = useTenant()
   const queryClient = useQueryClient()

@@ -4,17 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Trilha imutável do que aconteceu com cada ocorrência.
- *
- * A linha é append-only: não há `created_at`/`updated_at` porque
- * `occurred_at` é o único relógio, e nada reescreve o registro depois de
- * inserido.
- *
- * `actor` é nulo quando o evento veio da fila e não de um morador; a FK é
- * `nullOnDelete` para que a trilha sobreviva à exclusão de conta e o
- * histórico continue legível.
- */
 return new class extends Migration
 {
     public function up(): void

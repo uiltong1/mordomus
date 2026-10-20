@@ -4,9 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Usuários (PK ULID char(26)).
- */
 return new class extends Migration
 {
     public function up(): void

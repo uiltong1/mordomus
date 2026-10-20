@@ -9,15 +9,10 @@ use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\User;
 use Mordomus\Maintenance\Models\Room;
 
-/**
- * CRUD de cômodos: isolamento por residência, ordenação persistida e
- * refletida na API, arquivamento lógico e RBAC.
- */
 class RoomCrudTest extends FeatureTestCase
 {
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     protected function setUp(): void
@@ -57,7 +52,6 @@ class RoomCrudTest extends FeatureTestCase
             ->assertJsonPath('data.id', $sala->json('data.id'));
     }
 
-    /** AC 1 — cada residência vê apenas os próprios cômodos. */
     public function test_rooms_are_isolated_between_tenants(): void
     {
         $mine = $this->withHeaders($this->headers)
@@ -95,7 +89,6 @@ class RoomCrudTest extends FeatureTestCase
         $this->assertSame('Sala da Casa B', $stillThere->name);
     }
 
-    /** AC 2 — a ordenação é persistida e devolvida nessa ordem pela API. */
     public function test_listing_reflects_persisted_order(): void
     {
         $ids = [];
@@ -133,13 +126,11 @@ class RoomCrudTest extends FeatureTestCase
         $b = $this->withHeaders($this->headers)
             ->postJson('/api/v1/maintenance/rooms', ['name' => 'B'])->json('data.id');
 
-        // lista parcial
         $this->withHeaders($this->headers)
             ->putJson('/api/v1/maintenance/rooms/order', ['ids' => [$b]])
             ->assertStatus(422)
             ->assertJsonPath('error.code', 'validation_failed');
 
-        // id de fora da residência
         $other = $this->registerUser('terceira@mordomus.test', 'Terceira', 'Casa C');
         $foreignId = Room::create([
             'tenant_id' => $other['active_tenant'],
@@ -152,12 +143,10 @@ class RoomCrudTest extends FeatureTestCase
             ->assertStatus(422)
             ->assertJsonPath('error.code', 'validation_failed');
 
-        // nada foi reordenado
         $persisted = DB::table('rooms')->where('tenant_id', $this->tenantId)->orderBy('sort_order')->pluck('sort_order');
         $this->assertSame([1, 2], $persisted->all());
     }
 
-    /** `DELETE` arquiva; a linha permanece no banco. */
     public function test_delete_archives_logically_and_hides_from_list(): void
     {
         $id = $this->withHeaders($this->headers)
@@ -205,7 +194,6 @@ class RoomCrudTest extends FeatureTestCase
             ->assertJsonCount(1, 'data');
     }
 
-    /** member não tem `rooms.manage`; leitura segue liberada. */
     public function test_member_without_rooms_manage_can_read_but_not_write(): void
     {
         $member = User::factory()->create();

@@ -5,9 +5,6 @@ namespace Tests\Unit;
 use Mordomus\Identity\Services\InvitationTokenService;
 use Tests\TestCase;
 
-/**
- * Token de convite: valor único na URL, apenas hash persiste.
- */
 class InvitationTokenTest extends TestCase
 {
     public function test_generate_returns_plain_and_matching_hash(): void

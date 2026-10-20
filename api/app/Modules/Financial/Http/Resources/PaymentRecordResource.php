@@ -5,17 +5,8 @@ namespace Mordomus\Financial\Http\Resources;
 use Illuminate\Support\Carbon;
 use Mordomus\Financial\Models\PaymentRecord;
 
-/**
- * Shape da baixa de pagamento.
- *
- * Sem `tenant_id`: o lançamento só existe dentro do vencimento que o traz, e
- * repeti-lo aqui só criaria a chance de os dois divergirem.
- */
 final class PaymentRecordResource
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function make(PaymentRecord $payment, string $timezone): array
     {
         return [
@@ -29,10 +20,6 @@ final class PaymentRecordResource
         ];
     }
 
-    /**
-     * @param  iterable<PaymentRecord>  $payments
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $payments, string $timezone): array
     {
         return collect($payments)

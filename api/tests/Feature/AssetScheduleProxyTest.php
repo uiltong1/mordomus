@@ -10,17 +10,10 @@ use Mordomus\Maintenance\Models\Asset;
 use Mordomus\Maintenance\Models\Room;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Atalho proxied do Maintenance: `POST /assets/{asset}/schedule`.
- *
- * O alvo vem da URL, então o front não monta `subject_type`/`subject_id`, e a
- * regra é gravada pelo módulo Scheduling — dono do cálculo de data.
- */
 class AssetScheduleProxyTest extends FeatureTestCase
 {
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     private string $assetId;
@@ -69,8 +62,7 @@ class AssetScheduleProxyTest extends FeatureTestCase
 
     public function test_shortcut_needs_no_target_in_the_payload(): void
     {
-        // `subject_type`/`subject_id` são da rota; mandar no corpo seria
-        // aceitar um alvo diferente do ativo da URL.
+
         $this->withHeaders($this->headers)
             ->postJson('/api/v1/maintenance/assets/'.$this->assetId.'/schedule', [
                 'title' => 'Sem alvo no corpo',
@@ -126,8 +118,7 @@ class AssetScheduleProxyTest extends FeatureTestCase
 
     public function test_shortcut_validates_the_fields_of_the_type(): void
     {
-        // Chamada direta: o atalho `shortcut` preencheria os campos de
-        // intervalo, que é justamente o que esta requisição precisa omitting.
+
         $this->withHeaders($this->headers)
             ->postJson('/api/v1/maintenance/assets/'.$this->assetId.'/schedule', [
                 'title' => 'Sem intervalo',
@@ -138,7 +129,6 @@ class AssetScheduleProxyTest extends FeatureTestCase
             ->assertJsonStructure(['error' => ['details' => ['interval_value', 'interval_unit']]]);
     }
 
-    /** A regra é escrita pelo Scheduling, então a capability é `rules.edit`. */
     public function test_member_cannot_create_the_rule_through_the_shortcut(): void
     {
         $member = User::factory()->create();
@@ -175,9 +165,6 @@ class AssetScheduleProxyTest extends FeatureTestCase
             ->assertJsonPath('data.0.title', 'Limpeza do filtro');
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function shortcut(array $payload): TestResponse
     {
         return $this->withHeaders($this->headers)->postJson(

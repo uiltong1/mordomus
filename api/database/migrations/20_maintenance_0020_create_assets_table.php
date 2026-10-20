@@ -4,13 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Inventário de ativos do módulo Maintenance.
- *
- * `acquired_at`/`warranty_until` são `timestamptz` para que a API possa
- * devolvê-los no fuso do tenant. Soft delete via `archived_at` e FK real
- * para `rooms`.
- */
 return new class extends Migration
 {
     public function up(): void

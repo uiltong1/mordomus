@@ -12,7 +12,6 @@ use Mordomus\Identity\Models\User;
 
 interface MembershipRepositoryInterface
 {
-    /** Residências do usuário — lista cross-tenant por definição. */
     public function paginateForUser(string $userId, OffsetPagination $pagination): LengthAwarePaginator;
 
     public function firstActiveForUser(User $user): ?Membership;
@@ -21,7 +20,6 @@ interface MembershipRepositoryInterface
 
     public function findActiveWithRole(User $user, string $tenantId): ?Membership;
 
-    /** @return Collection<int, Membership> */
     public function listActiveForTenant(string $tenantId): Collection;
 
     public function attachRole(Membership $membership, string $roleId): Membership;

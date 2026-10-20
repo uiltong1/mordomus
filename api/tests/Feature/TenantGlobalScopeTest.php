@@ -11,12 +11,6 @@ use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 
-/**
- * `BelongsToTenant` / `TenantGlobalScope` nos models do módulo.
- *
- * Fail-closed: sem contexto de residência nenhuma linha passa; com contexto,
- * só as daquela residência.
- */
 class TenantGlobalScopeTest extends FeatureTestCase
 {
     private Tenant $tenantA;

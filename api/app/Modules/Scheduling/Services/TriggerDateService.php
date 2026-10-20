@@ -9,18 +9,6 @@ use Mordomus\Scheduling\Contracts\Services\TriggerDateServiceInterface;
 use Mordomus\Scheduling\Exceptions\IncompleteTriggerRule;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * A matemática de recorrência: `nextDue` nos 4 tipos e o instante de disparo.
- *
- * Duas decisões que o código acima não explica sozinho:
- *
- * - `addMonthsNoOverflow` no intervalo em meses: 31 de janeiro mais um mês é
- *   28/29 de fevereiro, não 2 de março. Com overflow, a data de uma tarefa
- *   mensal pularia o mês e o ciclo nunca fecharia no dia esperado.
- * - `day_of_month` é preso ao último dia do mês (31 em fevereiro vira 28/29).
- *   Somar dias a partir do dia 1 transbordaria para o mês seguinte — a regra
- *   do dia 31 passaria a valer dia 3 de março.
- */
 final class TriggerDateService implements TriggerDateServiceInterface
 {
     public function nextDue(TriggerConfig $config, ?CarbonImmutable $base, string $timezone): ?CarbonImmutable
@@ -31,10 +19,7 @@ final class TriggerDateService implements TriggerDateServiceInterface
         return match ($config->type) {
             TriggerConfig::TYPE_INTERVAL => $this->addInterval($anchor, $config),
             TriggerConfig::TYPE_CALENDAR_MONTHLY => $this->onDayOfMonth($anchor, $config, $today),
-            // Os dois medem a partir de um cumprimento: sem âncora não há data,
-            // e a data precisa vir do registro concluído, não de um palpite.
-            // `ESCALATED` divide o mesmo caminho do `INTERVAL` — o que o faz
-            // repetir é o intervalo, e o que o distingue são os N avisos.
+
             TriggerConfig::TYPE_POST_COMPLETION, TriggerConfig::TYPE_ESCALATED => $anchor === null
                 ? null
                 : $this->addInterval($anchor, $config),
@@ -49,17 +34,6 @@ final class TriggerDateService implements TriggerDateServiceInterface
         return $scheduledFor->setTimezone($timezone)->setTime($hour, $minute)->utc();
     }
 
-    /**
-     * Âncora do ciclo: a base explícita quando existe, senão a data da última
-     * base gravada, senão o que o tipo permitir.
-     *
-     * `INTERVAL`, `CALENDAR_MONTHLY` e `ESCALATED` contam a partir de hoje,
-     * então nunca ficam sem âncora — `ESCALATED` é um `INTERVAL` com avisos e
-     * repetiria em ciclo fechado se esperasse um cumprimento. Só
-     * `POST_COMPLETION` mede a partir de uma entrega que ainda não aconteceu:
-     * sem âncora ele devolve `null`, e quem chama decide o que fazer com uma
-     * regra que ainda não rodou.
-     */
     private function resolveAnchor(TriggerConfig $config, ?CarbonImmutable $base, CarbonImmutable $today, string $timezone): ?CarbonImmutable
     {
         if ($base !== null) {
@@ -69,9 +43,7 @@ final class TriggerDateService implements TriggerDateServiceInterface
         $stored = $config->last_base_date;
 
         if ($stored !== null) {
-            // Coluna `date` é dia de calendário, não instante: ler o `Y-m-d` e
-            // remontar no fuso da residência evita o salto de um dia que a
-            // conversão de fuso produziria.
+
             return CarbonImmutable::createFromFormat('Y-m-d', $stored->format('Y-m-d'), $timezone)->startOfDay();
         }
 
@@ -113,8 +85,6 @@ final class TriggerDateService implements TriggerDateServiceInterface
         $month = $from->startOfMonth();
         $candidate = $this->dayIn($month, $dayOfMonth);
 
-        // Laço e não um `if`: a âncora pode estar vários meses no passado e
-        // um único avanço ainda deixaria a data no passado.
         while ($candidate->isBefore($today)) {
             $month = $month->addMonthNoOverflow()->startOfMonth();
             $candidate = $this->dayIn($month, $dayOfMonth);
@@ -123,13 +93,11 @@ final class TriggerDateService implements TriggerDateServiceInterface
         return $candidate;
     }
 
-    /** Dia fixo do mês, preso ao último dia quando o mês é mais curto. */
     private function dayIn(CarbonImmutable $month, int $dayOfMonth): CarbonImmutable
     {
         return $month->day(min($dayOfMonth, $month->daysInMonth))->startOfDay();
     }
 
-    /** @return array{0: int, 1: int} */
     private function splitHour(string $preferredHour): array
     {
         $parts = explode(':', $preferredHour);

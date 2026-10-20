@@ -8,12 +8,6 @@ use Mordomus\Identity\Http\Controllers\MeController;
 use Mordomus\Identity\Http\Controllers\MemberController;
 use Mordomus\Identity\Http\Controllers\TenantController;
 
-/*
-|--------------------------------------------------------------------------
-| Módulo Identity — /api/v1/identity/*
-|--------------------------------------------------------------------------
-*/
-
 Route::get('/health', HealthController::class);
 
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:auth');
@@ -31,7 +25,6 @@ Route::middleware('auth:jwt')->group(function () {
 
     Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept']);
 
-    // exige claim `tid` no JWT + membership ativo (middleware `tenant`)
     Route::middleware('tenant')->group(function () {
         Route::get('/tenants/{tenant}', [TenantController::class, 'show']);
         Route::patch('/tenants/{tenant}', [TenantController::class, 'update']);

@@ -34,10 +34,6 @@ const VARIANT_STYLES: Record<ToastVariant, string> = {
   info: 'border-brand/40 bg-brand/15 text-brand',
 }
 
-/**
- * Avisos efêmeros de feedback de mutação (sucesso, erro, informação). Vive num
- * provider próprio para que qualquer tela precise só importar `useToast()`.
- */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const nextId = useRef(0)

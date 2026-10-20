@@ -10,13 +10,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\TriggerConfig as TriggerConfigSchema;
 use OpenApi\Attributes as OA;
 
-/**
- * Atalho do card do ativo para a regra de manutenção.
- *
- * Existe para o front não precisar montar `subject_type`/`subject_id` à mão:
- * a rota já diz que o alvo é este ativo, e o módulo Scheduling é quem cria a
- * regra e calcula a primeira data.
- */
 class AssetScheduleController extends Controller
 {
     public function __construct(private readonly AssetServiceInterface $assets) {}

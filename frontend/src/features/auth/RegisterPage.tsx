@@ -5,10 +5,6 @@ import { Button, Field, Input } from '@/shared/ui'
 import { useAuth } from './AuthProvider'
 import { AuthLayout, type FormErrors } from './AuthLayout'
 
-/**
- * Registro (T4.1.6). O backend já cria a primeira residência junto com a conta,
- * então o morador entra direto no painel — não há passo de "criar casa" aqui.
- */
 export function RegisterPage() {
   const { register } = useAuth()
   const navigate = useNavigate()

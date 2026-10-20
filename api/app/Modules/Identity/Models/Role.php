@@ -27,14 +27,12 @@ class Role extends Model
         ];
     }
 
-    /** @return BelongsToMany<Permission, $this> */
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'role_permissions', 'role_id', 'permission_id')
             ->withPivot('granted');
     }
 
-    /** Role de sistema (tenant_id nulo) pela key. */
     public static function systemByKey(string $key): self
     {
         return static::query()->whereNull('tenant_id')->where('key', $key)->firstOrFail();

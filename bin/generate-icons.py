@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""Gera os ícones rasterizados do PWA a partir do desenho do favicon.svg.
-
-O favicon é vetorial e serve para o browser; a instalabilidade do PWA exige
-PNG em 192 e 512 px (e um maskable para Android). O desenho é redesenhado com
-PIL em supersampling 4x e reduzido com LANCZOS, para bordas suaves.
-
-Uso: python3 bin/generate-icons.py
-"""
 from __future__ import annotations
 
 import pathlib
@@ -14,7 +6,7 @@ import pathlib
 from PIL import Image, ImageDraw
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / "frontend" / "public"
-SS = 4  # fator de supersampling
+SS = 4
 
 BG = "#0f172a"
 ROOF = "#38bdf8"
@@ -27,8 +19,6 @@ def draw_icon(size: int, maskable: bool = False) -> Image.Image:
     d = ImageDraw.Draw(img)
 
     if maskable:
-        # Android recorta a máscara: fundo ocupa tudo e o logo fica na zona segura
-        # (80% central). O padding extra evita que o telhado seja cortado.
         d.rectangle([0, 0, s, s], fill=BG)
         k = 0.52
     else:
@@ -41,7 +31,6 @@ def draw_icon(size: int, maskable: bool = False) -> Image.Image:
 
     stroke = max(1, round(s * 5 / 64 * k))
 
-    # o favicon usa stroke-linecap="round": as pontas são círculos cheios
     def stroke_path(points: list[tuple[float, float]], color: str) -> None:
         d.line([pt(x, y) for x, y in points], fill=color, width=stroke, joint="curve")
         r = stroke / 2

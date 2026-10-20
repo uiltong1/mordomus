@@ -27,13 +27,6 @@ final class NotificationPreferenceRepository implements NotificationPreferenceRe
             ->first();
     }
 
-    /**
-     * Grava a preferência do morador, criando a linha se ainda não existir.
-     *
-     * A corrida entre dois PUT do mesmo morador é resolvida pelo índice único
-     * em vez de por uma checagem antes: quem perder o `INSERT` atualiza a linha
-     * que ganhou, e o resultado é o mesmo que o do `upsert` do SQL.
-     */
     public function upsertForUser(string $tenantId, string $userId, array $attributes): NotificationPreference
     {
         $existing = $this->findForUser($tenantId, $userId);

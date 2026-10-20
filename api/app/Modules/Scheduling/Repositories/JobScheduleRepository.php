@@ -83,17 +83,10 @@ final class JobScheduleRepository implements JobScheduleRepositoryInterface
         $date = (string) $attributes['scheduled_for'];
         $configId = (string) $attributes['trigger_config_id'];
 
-        // A checagem evita a escrita desnecessária no regime normal (o
-        // materializador roda de novo todo dia e quase nada é novo); o
-        // `insertOrIgnore` é quem garante a atomicidade quando dois workers
-        // materializam a mesma data ao mesmo tempo.
         if ($this->findByDate($configId, $date) !== null) {
             return null;
         }
 
-        // Minúsculo como o `HasUlids` do Eloquent: a linha entra por
-        // `insertOrIgnore` (e não pelo model) e o id precisa ficar na mesma
-        // forma dos ids gerados pelos outros caminhos de escrita.
         $id = strtolower((string) Str::ulid());
 
         $inserted = DB::table('job_schedules')->insertOrIgnore([
@@ -125,9 +118,7 @@ final class JobScheduleRepository implements JobScheduleRepositoryInterface
 
     public function markNotified(JobSchedule $occurrence, CarbonImmutable $at): bool
     {
-        // Só a primeira passagem escreve o relógio: num `ESCALATED` os offsets
-        // seguintes republicam aviso sem reescrever `notified_at`, que é o
-        // instante em que a ocorrência ficou visível para o morador.
+
         return JobSchedule::query()
             ->whereKey($occurrence->id)
             ->whereIn('status', [JobSchedule::STATUS_PENDING, JobSchedule::STATUS_NOTIFIED])

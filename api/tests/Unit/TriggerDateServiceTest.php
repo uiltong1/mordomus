@@ -8,13 +8,6 @@ use Mordomus\Scheduling\Models\TriggerConfig;
 use Mordomus\Scheduling\Services\TriggerDateService;
 use Tests\TestCase;
 
-/**
- * A matemática de `nextDue` nos 4 tipos.
- *
- * O relógio é congelado: qualquer teste que dependesse do dia em que roda
- * falharia amanhã. O fuso entra como parâmetro, e não como global, para que
- * o comportamento de cada residência fique explícito no próprio cenário.
- */
 class TriggerDateServiceTest extends TestCase
 {
     private const SAO_PAULO = 'America/Sao_Paulo';
@@ -37,13 +30,10 @@ class TriggerDateServiceTest extends TestCase
         parent::tearDown();
     }
 
-    /** Congela o relógio em UTC — sem isso o resultado mudaria todo dia. */
     private function freezeAt(string $instantUtc): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse($instantUtc, 'UTC'));
     }
-
-    // ---------------------------------------------------------------- INTERVAL
 
     public function test_interval_adds_days_to_the_base(): void
     {
@@ -63,7 +53,6 @@ class TriggerDateServiceTest extends TestCase
         ], base: '2026-03-15')));
     }
 
-    /** 31 de janeiro + 1 mês é o último dia de fevereiro, não 2 de março. */
     public function test_interval_in_months_does_not_overflow_into_the_next_month(): void
     {
         $config = $this->config([
@@ -95,7 +84,6 @@ class TriggerDateServiceTest extends TestCase
         ])));
     }
 
-    /** Tarefa atrasada: a âncora é a última base, não hoje. */
     public function test_interval_one_day_late_keeps_counting_from_the_late_base(): void
     {
         $this->assertSame('2026-05-15', $this->due($this->config([
@@ -105,8 +93,6 @@ class TriggerDateServiceTest extends TestCase
             'last_base_date' => '2026-04-15',
         ])));
     }
-
-    // ---------------------------------------------------------- CALENDAR_MONTHLY
 
     public function test_calendar_monthly_stays_in_the_current_month_when_the_day_is_ahead(): void
     {
@@ -120,15 +106,13 @@ class TriggerDateServiceTest extends TestCase
 
     public function test_calendar_monthly_advances_a_full_month_when_the_base_is_stale(): void
     {
-        // A âncora de novembro ainda deixaria a data no passado com um único
-        // avanço; a data precisa cair no próximo dia 5 futuro.
+
         $this->assertSame('2026-04-05', $this->due($this->calendarMonthly(5, base: '2025-11-20')));
     }
 
     public function test_calendar_monthly_clamps_day_31_to_the_last_day_of_february(): void
     {
-        // Fevereiro é o único mês que não tem dia 31: a regra do dia 31 tem de
-        // virar o último dia, senão transbordaria para março.
+
         $this->freezeAt('2026-02-10 12:00:00');
         $this->assertSame('2026-02-28', $this->due($this->calendarMonthly(31, base: '2026-02-10')));
 
@@ -138,7 +122,7 @@ class TriggerDateServiceTest extends TestCase
 
     public function test_calendar_monthly_handles_a_30_day_month_exactly(): void
     {
-        // Abril tem 30 dias: o dia 30 existe e o dia 31 é preso a ele.
+
         $this->freezeAt('2026-04-10 12:00:00');
         $this->assertSame('2026-04-30', $this->due($this->calendarMonthly(30, base: '2026-04-10')));
 
@@ -150,8 +134,6 @@ class TriggerDateServiceTest extends TestCase
     {
         $this->assertSame('2026-04-01', $this->due($this->calendarMonthly(1)));
     }
-
-    // --------------------------------------------------------- POST_COMPLETION
 
     public function test_post_completion_counts_the_interval_from_the_completion(): void
     {
@@ -173,12 +155,6 @@ class TriggerDateServiceTest extends TestCase
         ]), null, self::SAO_PAULO));
     }
 
-    // ---------------------------------------------------------------- ESCALATED
-
-    /**
-     * O que distingue `ESCALATED` do `INTERVAL` são os N avisos; a data
-     * avança pelo mesmo intervalo, senão o ciclo nunca se repetiria.
-     */
     public function test_escalated_advances_by_the_interval(): void
     {
         $this->assertSame('2026-04-14', $this->due($this->config([
@@ -189,7 +165,6 @@ class TriggerDateServiceTest extends TestCase
         ], base: '2026-03-15')));
     }
 
-    /** É um `INTERVAL` com avisos: sem entrega anterior, conta a partir de hoje. */
     public function test_escalated_without_a_base_counts_from_today(): void
     {
         $this->assertSame('2026-04-14', $this->due($this->config([
@@ -200,25 +175,12 @@ class TriggerDateServiceTest extends TestCase
         ])));
     }
 
-    // -------------------------------------------------------------------- FUSO
-
-    /**
-     * O mesmo instante é "hoje" num fuso e "amanhã" no outro: a comparação que
-     * decide avançar o mês tem de ser feita no fuso da residência.
-     */
     public function test_today_is_resolved_in_the_tenant_timezone(): void
     {
-        // 2026-03-15 12:00 UTC é 15/03 09:00 em São Paulo e 15/03 21:00 em
-        // Tokyo — mesmo dia nos dois. O caso que separa os fusos é 23:00 UTC,
-        // que já é o dia 16 em Tokyo e ainda 15 em São Paulo; com o relógio
-        // congelado em 12:00 UTC o dia 16 ainda não chegou em lugar nenhum,
-        // então a regra do dia 16 fica no mês corrente nos dois fusos.
+
         $this->assertSame('2026-03-16', $this->dates->nextDue($this->calendarMonthly(16), null, self::SAO_PAULO)?->format('Y-m-d'));
         $this->assertSame('2026-03-16', $this->dates->nextDue($this->calendarMonthly(16), null, 'Asia/Tokyo')?->format('Y-m-d'));
 
-        // 15/03 20:30 em São Paulo, mas 16/03 08:30 em Tokyo. A regra do dia 15
-        // já é hoje em São Paulo e ainda vai acontecer em Tokyo — no mesmo
-        // instante, a resposta muda com o fuso da residência.
         $this->freezeAt('2026-03-15 23:30:00');
 
         $this->assertSame('2026-03-15', $this->dates->nextDue($this->calendarMonthly(15), null, self::SAO_PAULO)?->format('Y-m-d'));
@@ -242,21 +204,17 @@ class TriggerDateServiceTest extends TestCase
     {
         $scheduledFor = CarbonImmutable::parse('2026-03-20', self::SAO_PAULO);
 
-        // 09:00 em São Paulo (UTC-3) é 12:00 do mesmo dia em UTC.
         $this->assertSame(
             '2026-03-20T12:00:00+00:00',
             $this->dates->dueAt($scheduledFor, self::SAO_PAULO, '09:00')->toIso8601String(),
         );
 
-        // 21:00 em São Paulo já é meia-noite do dia seguinte em UTC — a
-        // ocorrência continua pertencendo a 20/03 no calendário da residência.
         $this->assertSame(
             '2026-03-21T00:00:00+00:00',
             $this->dates->dueAt($scheduledFor, self::SAO_PAULO, '21:00')->toIso8601String(),
         );
     }
 
-    /** O `time` do PostgreSQL volta como `HH:MM:SS`; os segundos não podem empurrar o disparo. */
     public function test_due_at_accepts_the_hour_with_seconds(): void
     {
         $scheduledFor = CarbonImmutable::parse('2026-03-20', self::SAO_PAULO);
@@ -266,8 +224,6 @@ class TriggerDateServiceTest extends TestCase
             $this->dates->dueAt($scheduledFor, self::SAO_PAULO, '09:00:00')->toIso8601String(),
         );
     }
-
-    // ------------------------------------------------------------- INCOMPLETAS
 
     public function test_a_stored_rule_missing_its_interval_points_at_the_field(): void
     {
@@ -291,9 +247,6 @@ class TriggerDateServiceTest extends TestCase
         }
     }
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     private function config(array $attributes, ?string $base = null): TriggerConfig
     {
         return new TriggerConfig($attributes + ['last_base_date' => $base]);

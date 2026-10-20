@@ -11,13 +11,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\NotificationPreference as NotificationPreferenceSchema;
 use OpenApi\Attributes as OA;
 
-/**
- * Quiet hours, digest e horário preferido.
- *
- * A resposta traz as três camadas — a do morador, a da casa e a que vale — e o
- * PUT grava só a primeira. Quem escreve aqui nunca mexe no padrão da casa, que
- * é decisão de quem administra a residência.
- */
 class NotificationPreferenceController extends Controller
 {
     public function __construct(

@@ -19,24 +19,16 @@ interface RoomRepositoryInterface
 
     public function create(array $attributes): Room;
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     public function change(Room $room, array $attributes): Room;
 
     public function archive(Room $room): Room;
 
     public function restore(Room $room): Room;
 
-    /** @return list<string> */
     public function activeIds(): array;
 
-    /** @return Collection<int, Room> */
     public function ordered(): Collection;
 
-    /**
-     * @param  list<string>  $ids
-     */
     public function reorder(array $ids): void;
 
     public function nextSortOrder(): int;

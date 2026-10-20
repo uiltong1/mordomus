@@ -8,20 +8,12 @@ use Mordomus\Financial\Models\Bill;
 use Mordomus\Financial\Models\BillOccurrence;
 use Mordomus\Financial\Models\PaymentRecord;
 
-/**
- * Consolidação mensal: quanto venceu, quanto saiu e o que ficou em aberto.
- *
- * A soma é o ponto: os valores são texto decimal com duas casas, e o critério
- * do módulo é que a soma feche com o total (regra R5) — inclusive com
- * centavos que não dividem igualmente.
- */
 class BillSummaryTest extends FeatureTestCase
 {
     private const NOW = '2026-04-01 12:00:00';
 
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     private string $billId = '';
@@ -77,7 +69,7 @@ class BillSummaryTest extends FeatureTestCase
         $this->withHeaders($this->headers)
             ->getJson('/api/v1/financial/summary?month=2026-04')
             ->assertOk()
-            // 1800.00 do dia 10 + 213.77 do dia 18 = 2013.77
+
             ->assertJsonPath('data.totals.due', '2013.77')
             ->assertJsonPath('data.totals.paid', '1800.00')
             ->assertJsonPath('data.totals.open', '213.77')
@@ -92,8 +84,6 @@ class BillSummaryTest extends FeatureTestCase
         $this->createBill('Aluguel', 'moradia', '1800.00', dueDay: 10);
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // Abril e maio estão materializados; a consolidação de abril não pode
-        // arrastar maio junto.
         $this->withHeaders($this->headers)
             ->getJson('/api/v1/financial/summary?month=2026-04')
             ->assertOk()
@@ -121,8 +111,7 @@ class BillSummaryTest extends FeatureTestCase
             ->getJson('/api/v1/financial/summary?month=2026-04')
             ->assertOk()
             ->assertJsonCount(3, 'data.by_category')
-            // Ordem estável pelo rótulo do grupo, e a conta sem categoria
-            // declarada aparece como `null` em vez de sumir do recorte.
+
             ->assertJsonPath('data.by_category.0.category', 'energia')
             ->assertJsonPath('data.by_category.0.due', '187.43')
             ->assertJsonPath('data.by_category.0.open', '187.43')
@@ -148,8 +137,7 @@ class BillSummaryTest extends FeatureTestCase
         $this->withHeaders($this->headers)
             ->getJson('/api/v1/financial/summary?month=2026-04')
             ->assertOk()
-            // O que já venceu (10/04) continua em aberto; o de 20/04 deixou de
-            // ser dívida — e os dois continuam contando no total do mês.
+
             ->assertJsonPath('data.totals.due', '79.80')
             ->assertJsonPath('data.totals.open', '39.90')
             ->assertJsonPath('data.totals.cancelled', '39.90')
@@ -174,8 +162,6 @@ class BillSummaryTest extends FeatureTestCase
         $this->createBill('Aluguel', 'moradia', '1800.00', dueDay: 10);
         $this->artisan('scheduling:materialize')->assertSuccessful();
 
-        // A outra casa é criada com o relógio real: `exp` do token sai de
-        // `now()` e nasceria vencido no congelado.
         CarbonImmutable::setTestNow();
         $outra = $this->registerUser('outra-casa-resumo@mordomus.test', 'Outra', 'Casa B');
         CarbonImmutable::setTestNow(self::NOW);
@@ -204,8 +190,6 @@ class BillSummaryTest extends FeatureTestCase
         $this->withHeaders($this->headers)->getJson('/api/v1/financial/summary')->assertOk();
         $this->flushHeaders()->getJson('/api/v1/financial/summary')->assertUnauthorized();
     }
-
-    // -------------------------------------------------------------- helpers
 
     private function createBill(
         string $name,
@@ -236,9 +220,6 @@ class BillSummaryTest extends FeatureTestCase
         ]);
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function payOn(string $dueDate, array $payload): TestResponse
     {
         $occurrenceId = $this->withTenantContext(

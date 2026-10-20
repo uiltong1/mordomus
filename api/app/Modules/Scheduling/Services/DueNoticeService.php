@@ -18,35 +18,14 @@ use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\ScheduleEvent;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Publica `schedule.due` para tudo que já venceu o aviso.
- *
- * Roda de 15 em 15 minutos, então a idempotência não é detalhe: a mesma
- * ocorrência é vista em dezenas de passadas. O que separa "aviso novo" de
- * "aviso já publicado" é o `dedupe_key` gravado na trilha, e não um flag na
- * ocorrência — uma regra `ESCALATED` tem um aviso por offset, e um único
- * `notified_at` não dá conta de quatro instantes.
- */
 final class DueNoticeService implements DueNoticeServiceInterface
 {
-    /** Aviso único, `advance_notice_days` antes do vencimento. */
     private const KIND_ADVANCE_NOTICE = 'advance_notice';
 
-    /** Aviso no dia do vencimento. */
     private const KIND_DUE = 'due';
 
-    /** Um dos offsets de uma regra `ESCALATED`. */
     private const KIND_OFFSET = 'offset';
 
-    /**
-     * Atraso de aviso ainda publicável, em dias.
-     *
-     * O recorte exato (`due_at` no instante do aviso) deixaria de fora o aviso
-     * de uma passada que o scheduler não rodou: um container reiniciado às
-     * 09:00 perderia para sempre o `due` das 12:00. Um dia de tolerância
-     * absorve a queda do processo e faz o varrimento se recuperar sozinho — a
-     * `dedupe_key` garante que o que já saiu não sai de novo.
-     */
     private const MISSED_NOTICE_GRACE_DAYS = 1;
 
     public function __construct(
@@ -81,12 +60,6 @@ final class DueNoticeService implements DueNoticeServiceInterface
             return 0;
         }
 
-        // O recorte é a extensão de aviso da residência: o limite superior
-        // garante que nenhum aviso por vir fique de fora, e o inferior é o
-        // alcance pelo avesso — o alerta de atraso de um `ESCALATED` vive
-        // depois de `due_at`, e é o piso que evita que o histórico inteiro de
-        // ocorrências vencidas entre em cada passada de 15 min. É o único
-        // filtro que o índice `(tenant_id, status, due_at)` atende.
         $lead = $configs->max(fn (TriggerConfig $config): int => $config->noticeLeadDays());
         $tail = $configs->max(fn (TriggerConfig $config): int => $config->noticeTailDays());
         $candidates = $this->occurrences->dueForNotice(
@@ -115,7 +88,6 @@ final class DueNoticeService implements DueNoticeServiceInterface
         return $count;
     }
 
-    /** @param  list<string>  $already  `dedupe_key` já publicados da ocorrência */
     private function publishOccurrence(
         string $tenantId,
         JobSchedule $occurrence,

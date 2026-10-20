@@ -9,11 +9,6 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * O cenário de demonstração é contrato de ambiente: o README promete duas casas
- * com cômodo, inventário, agenda e conta, e é isso que o painel abre na
- * primeira visita. Seed que roda e não monta nada é falha silenciosa.
- */
 class DemoSeederTest extends FeatureTestCase
 {
     protected function setUp(): void
@@ -32,8 +27,6 @@ class DemoSeederTest extends FeatureTestCase
         $this->assertSame(5, DB::table('assets')->count());
         $this->assertSame(6, DB::table('bills')->count());
 
-        // Regras de manutenção têm alvo `asset`; a cadência de cada conta é
-        // escrita pelo módulo dono quando a conta nasce.
         $this->assertSame(4, $this->rulesFor('asset'));
         $this->assertSame(6, $this->rulesFor('bill'));
     }

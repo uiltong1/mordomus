@@ -41,24 +41,12 @@ const RECALCULATE_OPTIONS: readonly { value: RecalculateBase; label: string; hin
 export interface TriggerBuilderModalProps {
   open: boolean
   onClose: () => void
-  /** Ativo alvo. A regra nasce presa a ele. */
   subjectId: string
-  /** Nome do ativo, usado no título e na descrição do modal. */
   subjectName: string
-  /** `null` na criação; a regra existente na edição. */
   config?: TriggerConfig | null
   onSaved?: () => void
 }
 
-/**
- * Formulário visual de regra de manutenção.
- *
- * O morador escolhe **como** quer repetir, em português, e a tela descobre quais
- * campos o backend exige naquele tipo. O preview da próxima data é a peça que
- * fecha o ciclo de confiança: ele pergunta ao mesmo motor que vai gravar
- * (`POST /scheduling/preview`), então o que aparece na tela antes de salvar é
- * literalmente a data que o calendário vai assumir.
- */
 export function TriggerBuilderModal({
   open,
   onClose,
@@ -104,12 +92,6 @@ function TriggerForm({
   const toast = useToast()
   const save = useSaveTriggerConfig()
 
-  /**
-   * Cada campo guarda o último valor que o morador digitou, para voltar intacto
-   * quando ele troca de tipo e depois volta. Sem isso, ir de "a cada 90 dias"
-   * para "dia fixo do mês" e de volta apagaria os 90 — a troca de tipo é para
-   * comparar as opções, não para jogar fora o que já estava pronto.
-   */
   const remembered = useRef<RememberedTypeFields>({})
 
   const update = <K extends keyof TriggerFormState>(field: K, value: TriggerFormState[K]) => {
@@ -119,11 +101,6 @@ function TriggerForm({
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  /**
-   * Trocar de tipo limpa os campos que o novo tipo proíbe. Sem isso o valor
-   * antigo sobrevive no estado e volta no payload como `prohibited` — o
-   * morador receberia um 422 por um campo que nem está na tela.
-   */
   const changeType = (type: TriggerType) => {
     setForm((current) => {
       const allowed = fieldsForType(type)
@@ -162,8 +139,6 @@ function TriggerForm({
   const fields = fieldsForType(form.type)
   const localErrors = useMemo(() => validateTriggerForm(form), [form])
 
-  // o backend manda o 422 por campo e vale mais que a regra local: a recusa dele
-  // sabe o que aconteceu com este dado, e a local só olha a forma
   const fieldError = (field: string) => errors[field] ?? localErrors[field]
 
   const preview = useMutation({
@@ -243,8 +218,7 @@ function TriggerForm({
           </p>
         ) : null}
 
-        {/* Na edição o tipo vira um select: os quatro cartões empurravam os
-            campos já carregados para fora da área visível do modal. */}
+        {}
         {config ? (
           <Field label="Como você quer repetir?">
             {({ id, describedBy }) => (
@@ -585,7 +559,6 @@ function PreviewPanel({
   )
 }
 
-/** Valor de qualquer campo de tipo, sem discrimination — o ref é por nome de campo. */
 type RememberedTypeFields = Record<string, TriggerTypeFieldSet[keyof TriggerTypeFieldSet]>
 
 function isTypeField(field: keyof TriggerFormState): field is keyof TriggerTypeFieldSet {
@@ -598,11 +571,6 @@ function isTypeField(field: keyof TriggerFormState): field is keyof TriggerTypeF
   )
 }
 
-/**
- * O motor prende o dia ao último dia do mês: regra de dia 31 em fevereiro vira
- * dia 29, não 3 de março. Dizer isso na tela evita o morador de achar que o
- * calendário errou.
- */
 function clampedDayInFebruary(dayOfMonth: number): string {
   return dayOfMonth > 29 ? `dia 28 ou 29, não dia ${dayOfMonth}` : `dia ${dayOfMonth}`
 }

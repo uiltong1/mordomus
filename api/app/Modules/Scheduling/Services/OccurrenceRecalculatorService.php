@@ -17,13 +17,6 @@ use Mordomus\Scheduling\Events\EventName;
 use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Ciclo seguinte a uma conclusão.
- *
- * A data nasce da regra e da base do `recalculate_base` (R4) — nunca do
- * relógio do worker, que é o que mantém o ciclo preso ao dia em que a tarefa
- * foi cumprida e não ao dia em que a fila esvaziou.
- */
 final class OccurrenceRecalculatorService implements OccurrenceRecalculatorServiceInterface
 {
     public function __construct(
@@ -40,8 +33,7 @@ final class OccurrenceRecalculatorService implements OccurrenceRecalculatorServi
         $occurrence = $this->occurrences->find($occurrenceId, $tenantId);
 
         if ($occurrence === null) {
-            // A regra foi excluída e a ocorrência foi junto, em cascata: não há
-            // ciclo a refazer, e falhar aqui só ocuparia a DLQ.
+
             return;
         }
 
@@ -55,14 +47,10 @@ final class OccurrenceRecalculatorService implements OccurrenceRecalculatorServi
         $next = $this->dates->nextDue($config, $base, $this->calendar->timezone($tenantId));
 
         $nextDueAt = DB::transaction(function () use ($config, $base, $next): ?CarbonImmutable {
-            // String e não Carbon: `last_base_date` é dia de calendário, e
-            // gravar o Carbon de meia-noite num fuso à frente do UTC gravaria
-            // o dia anterior.
+
             $config->last_base_date = $base->format('Y-m-d');
             $config->save();
 
-            // Regra pausada não ganha data nova — `is_active = false` significa
-            // que o morador não quer nada na agenda até reativar.
             if (! $config->isActive() || $next === null) {
                 return null;
             }
@@ -83,14 +71,6 @@ final class OccurrenceRecalculatorService implements OccurrenceRecalculatorServi
         ]);
     }
 
-    /**
-     * Âncora do novo ciclo (R4).
-     *
-     * `COMPLETION` conta a partir de quando o morador entregou; `DUE_DATE`, a
-     * partir do dia do vencimento — que é `scheduled_for`, e não `due_at`
-     * convertido: um `preferred_hour` à meia-noite jogaria a data para o dia
-     * anterior, e o ciclo andaria para trás sem a tarefa ter sido cumprida.
-     */
     private function base(JobSchedule $occurrence, TriggerConfig $config, string $tenantId): CarbonImmutable
     {
         $day = $config->recalculate_base === TriggerConfig::RECALCULATE_COMPLETION

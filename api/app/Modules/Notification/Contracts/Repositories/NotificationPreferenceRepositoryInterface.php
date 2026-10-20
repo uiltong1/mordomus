@@ -12,8 +12,5 @@ interface NotificationPreferenceRepositoryInterface
 
     public function findForHouse(string $tenantId): ?NotificationPreference;
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     public function upsertForUser(string $tenantId, string $userId, array $attributes): NotificationPreference;
 }

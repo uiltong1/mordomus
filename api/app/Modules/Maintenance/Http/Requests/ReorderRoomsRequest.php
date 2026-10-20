@@ -11,11 +11,6 @@ class ReorderRoomsRequest extends FormRequest
         return true;
     }
 
-    /**
-     * Conjunto completo e ordenado dos ids ativos da residência.
-     *
-     * @return array<string, mixed>
-     */
     public function rules(): array
     {
         return [

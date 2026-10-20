@@ -19,10 +19,6 @@ use Mordomus\Identity\Exceptions\MembershipRequired;
 use Mordomus\Identity\Http\Resources\UserResource;
 use Mordomus\Identity\Models\User;
 
-/**
- * Registro, login, renovação e troca de residência — os três eventos de
- * autenticação que o contrato de log exige saem daqui.
- */
 final class AuthService implements AuthServiceInterface
 {
     public function __construct(
@@ -34,7 +30,6 @@ final class AuthService implements AuthServiceInterface
         private readonly UserResource $resource,
     ) {}
 
-    /** @return array<string, mixed> */
     public function register(Request $request): array
     {
         $user = $this->users->create([
@@ -52,7 +47,6 @@ final class AuthService implements AuthServiceInterface
         return $this->session($user, $provisioned['tenant']->id);
     }
 
-    /** @return array<string, mixed> */
     public function login(Request $request): array
     {
         $email = strtolower($request->input('email'));
@@ -83,7 +77,6 @@ final class AuthService implements AuthServiceInterface
         return $this->session($user, $tenantId);
     }
 
-    /** @return array<string, mixed> */
     public function refresh(Request $request): array
     {
         try {
@@ -106,7 +99,6 @@ final class AuthService implements AuthServiceInterface
         );
     }
 
-    /** @return array<string, mixed> */
     public function logout(Request $request): array
     {
         if ($token = $request->input('refresh_token')) {
@@ -116,7 +108,6 @@ final class AuthService implements AuthServiceInterface
         return ['status' => 'ok'];
     }
 
-    /** @return array<string, mixed> */
     public function switchTenant(Request $request): array
     {
         $user = $request->user();
@@ -134,7 +125,6 @@ final class AuthService implements AuthServiceInterface
         return $this->session($user, $tenantId);
     }
 
-    /** @return array<string, mixed> */
     private function session(User $user, ?string $tenantId): array
     {
         return array_merge($this->tokens->session($user, $tenantId), [

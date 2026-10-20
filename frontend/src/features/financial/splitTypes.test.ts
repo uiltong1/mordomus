@@ -87,8 +87,6 @@ describe('entriesPayload', () => {
     const weighted = formWith('WEIGHTED', {
       entries: USERS.map((id, index) => ({ ...emptySplitEntry(id), weight: index + 1 })),
     })
-    // o mesmo estado de formulário, com o regime trocado e os campos zerados:
-    // é o que o builder faz ao trocar o select, e o que evita o 422 prohibited
     const switched: SplitRuleForm = {
       ...weighted,
       mode: 'EQUAL',

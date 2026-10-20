@@ -24,10 +24,6 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean
 }
 
-/**
- * Botão base do design system. `loading` trava o envio e anuncia para leitor de
- * tela, porque botão desabilitado sozinho não explica o atraso ao morador.
- */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
     variant = 'primary',

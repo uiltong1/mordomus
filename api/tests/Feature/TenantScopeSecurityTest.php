@@ -9,14 +9,6 @@ use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\User;
 
-/**
- * Regressão de segurança do escopo por residência.
- *
- * - header `X-Tenant-ID` forjado é descartado pelo gateway e nunca lido pelo backend;
- * - sem token / token adulterado → 401;
- * - membership não ativo → 403;
- * - usuário do Tenant A não lê nem grava dados do Tenant B.
- */
 class TenantScopeSecurityTest extends FeatureTestCase
 {
     private Tenant $tenantA;

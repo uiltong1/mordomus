@@ -2,27 +2,12 @@
 
 namespace Mordomus\Identity\Services;
 
-use Firebase\JWT\BeforeValidException;
-use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use Firebase\JWT\SignatureInvalidException;
 use Mordomus\Identity\Contracts\Services\JwtVerifierServiceInterface;
 
-/**
- * Verificação do JWT de usuário (RS256).
- * Lança exceções; o guard converte qualquer falha em "não autenticado".
- */
 class JwtVerifierService implements JwtVerifierServiceInterface
 {
-    /**
-     * @return array<string, mixed> claims decodificados
-     *
-     * @throws BeforeValidException
-     * @throws ExpiredException
-     * @throws SignatureInvalidException
-     * @throws \UnexpectedValueException
-     */
     public function verify(string $token): array
     {
         $publicKey = config('jwt.public_key');

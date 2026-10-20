@@ -8,10 +8,6 @@ use Mordomus\Http\Exceptions\ApiException;
 
 final class ReorderMismatch extends ApiException
 {
-    /**
-     * @param  list<string>  $expected
-     * @param  list<string>  $received
-     */
     public static function make(array $expected, array $received): self
     {
         return new self(

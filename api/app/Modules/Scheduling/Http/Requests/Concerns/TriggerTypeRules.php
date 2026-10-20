@@ -5,40 +5,19 @@ namespace Mordomus\Scheduling\Http\Requests\Concerns;
 use Illuminate\Validation\Rule;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Campos por tipo de regra (TECHSPEC §6.1) e as regras que os exigem.
- *
- * Os campos que não pertencem ao tipo saem `prohibited`: uma regra `INTERVAL`
- * que carregue `day_of_month` guardado é lixo silencioso que volta a puzzling
- * quando alguém ler a linha do banco. O erro aponta o campo, que é o que o AC
- * de payload inválido pede.
- *
- * No patch os campos omitidos não são cobrados — a regra já os tem gravados.
- * Eles só passam a ser obrigatórios quando o próprio `type` vem no payload,
- * porque aí a linha muda de tipo e o conjunto novo precisa chegar inteiro.
- */
 trait TriggerTypeRules
 {
-    /** Campos que cada tipo exige. */
     private static function requiredByType(): array
     {
         return [
             TriggerConfig::TYPE_INTERVAL => ['interval_value', 'interval_unit'],
             TriggerConfig::TYPE_CALENDAR_MONTHLY => ['day_of_month'],
             TriggerConfig::TYPE_POST_COMPLETION => ['interval_value', 'interval_unit', 'recalculate_base'],
-            // `ESCALATED` é um `INTERVAL` com avisos: o intervalo diz de quanto
-            // em quanto tempo o ciclo se repete, e os offsets só multiplicam os
-            // avisos. Sem o intervalo a ocorrência nunca voltaria, e a regra
-            // ficaria presa num único dia.
+
             TriggerConfig::TYPE_ESCALATED => ['interval_value', 'interval_unit', 'custom_offsets'],
         ];
     }
 
-    /**
-     * Validadores de cada campo, sem a exigência condicional.
-     *
-     * @return array<string, list<mixed>>
-     */
     private static function typeValidators(): array
     {
         return [
@@ -51,19 +30,13 @@ trait TriggerTypeRules
         ];
     }
 
-    /**
-     * @param  bool  $typeChanged  o patch está trocando o tipo da regra
-     * @return array<string, list<mixed>>
-     */
     private static function typeRules(?string $type, bool $typeChanged): array
     {
         $required = self::requiredByType()[$type] ?? [];
         $rules = [];
 
         foreach (self::typeValidators() as $field => $validators) {
-            // As regras curinga (`custom_offsets.*`) descrevem os itens de um
-            // campo, não um campo do tipo: elas não entram na decisão de exigir
-            // nem de proibir.
+
             if (str_contains($field, '*')) {
                 continue;
             }
@@ -84,12 +57,6 @@ trait TriggerTypeRules
         return $rules;
     }
 
-    /**
-     * Campos válidos em qualquer tipo.
-     *
-     * @param  bool  $partial  patch: os campos omitidos não são cobrados
-     * @return array<string, list<mixed>>
-     */
     private static function sharedRules(bool $partial = false): array
     {
         $presence = $partial ? 'sometimes' : 'required';

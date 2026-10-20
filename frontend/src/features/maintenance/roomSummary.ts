@@ -6,30 +6,19 @@ import {
 } from '@/shared/api/types'
 import { daysBetween, todayInputValue } from '@/shared/datetime'
 
-/**
- * O painel precisa responder "o que está pendente neste cômodo?" cruzando três
- * listas que o backend entrega separadas: cômodos, inventário e ocorrências. O
- * cruzamento é puro e fica aqui — sem ele, a mesma junção nasce de novo na
- * tela do cômodo e na agenda, e as duas divergem no primeiro filtro novo.
- */
-
 export interface PendingItem {
   occurrence: Occurrence
   asset: Asset | null
   roomId: string | null
-  /** Dias em atraso; `0` para o que vence hoje ou depois. */
   daysOverdue: number
 }
 
 export interface RoomSummary {
   room: Room
   assets: Asset[]
-  /** Ocorrências em aberto (pendente, avisada ou atrasada) dos ativos do cômodo. */
   pending: PendingItem[]
   overdueCount: number
-  /** Vencimento mais próximo ainda em aberto. */
   next: PendingItem | null
-  /** Ativos do cômodo sem nenhuma regra de manutenção. */
   withoutRules: number
 }
 
@@ -42,15 +31,6 @@ function overdueDays(occurrence: Occurrence): number {
   return Math.max(0, -daysBetween(todayInputValue(), occurrence.scheduled_for))
 }
 
-/**
- * Junta ocorrência → ativo → cômodo.
- *
- * A ocorrência traz `subject_id` e não o cômodo, e o endpoint de ocorrências
- * não aceita filtro por cômodo: a associação existe só aqui. Ocorrência cujo
- * ativo não está mais no inventário (arquivado ou removido) entra com
- * `asset: null` e `roomId: null` — some dos cards, mas continua na agenda, onde
- * o título da regra identifica o que é.
- */
 export function toPendingItems(
   occurrences: readonly Occurrence[],
   assets: readonly Asset[],
@@ -103,7 +83,6 @@ export function buildRoomSummaries(
   })
 }
 
-/** Vencimento mais antigo primeiro; o que não tem data vai para o fim. */
 function byDue(left: PendingItem, right: PendingItem): number {
   const a = left.occurrence.scheduled_for ?? '9999-12-31'
   const b = right.occurrence.scheduled_for ?? '9999-12-31'
@@ -111,7 +90,6 @@ function byDue(left: PendingItem, right: PendingItem): number {
   return a.localeCompare(b)
 }
 
-/** Contagem geral do imóvel, para o cabeçalho do painel. */
 export interface PropertyTotals {
   rooms: number
   assets: number

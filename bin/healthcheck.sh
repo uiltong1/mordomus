@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Mordomus — saúde do ambiente (gateway, api, postgres, redis)
 set -uo pipefail
 
 fail=0
@@ -17,7 +16,6 @@ check_http() {
     fi
 }
 
-# o `api` não publica porta: checa de dentro do container (rede `backend`)
 check_api() {
     local body
     body="$(docker compose exec -T api curl -fsS --max-time 5 http://127.0.0.1:8080/health 2>/dev/null || true)"

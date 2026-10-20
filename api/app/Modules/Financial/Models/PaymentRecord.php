@@ -8,13 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 
-/**
- * Baixa de pagamento: o que foi pago, por quem, como e quando.
- *
- * Append-only — sem `created_at`/`updated_at` porque `paid_at` é o único
- * relógio da linha. `amount` é o que foi pago e não o previsto no vencimento:
- * em conta variável é o único lugar onde o valor real aparece.
- */
 #[Fillable([
     'tenant_id',
     'bill_occurrence_id',
@@ -42,7 +35,6 @@ class PaymentRecord extends Model
 
     public const METHOD_OTHER = 'other';
 
-    /** @var list<string> */
     public const METHODS = [
         self::METHOD_PIX,
         self::METHOD_BOLETO,
@@ -67,7 +59,6 @@ class PaymentRecord extends Model
         ];
     }
 
-    /** @return BelongsTo<BillOccurrence, $this> */
     public function billOccurrence(): BelongsTo
     {
         return $this->belongsTo(BillOccurrence::class);

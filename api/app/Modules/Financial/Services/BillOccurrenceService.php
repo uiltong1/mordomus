@@ -24,13 +24,6 @@ use Mordomus\Http\Tenancy\ActiveTenant;
 use Mordomus\Scheduling\Contracts\Services\EventPublisherServiceInterface;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 
-/**
- * Vencimentos: consulta, lançamento manual e baixa de pagamento.
- *
- * O lançamento manual existe porque a conta variável não tem valor nem dia
- * enquanto a fatura não chega. É o único caminho do módulo em que uma data vem
- * do morador em vez do motor — e ela é gravada como veio, sem cálculo (R7).
- */
 final class BillOccurrenceService implements BillOccurrenceServiceInterface
 {
     public function __construct(
@@ -79,8 +72,7 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
         $occurrence = $this->occurrences->create([
             'tenant_id' => $tenantId,
             'bill_id' => $bill->id,
-            // `null` é o que distingue o lançamento manual de um vencimento
-            // materializado: não há agenda por trás dele.
+
             'schedule_id' => null,
             'due_date' => $dueDate,
             'amount' => $this->amount($request, $bill->amount),
@@ -97,8 +89,6 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
         $timezone = $this->calendar->timezone($tenantId);
         $occurrence = $this->find($request, $billOccurrenceId);
 
-        // Idempotência: o botão de pago não sabe se a requisição anterior
-        // chegou, e repetir a baixa não pode abrir um segundo lançamento.
         if ($occurrence->isPaid()) {
             return ['data' => $this->resource->make($occurrence, $timezone)];
         }
@@ -114,9 +104,7 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
         $receiptUrl = $this->optionalString($request->input('receipt_url'));
 
         $changed = DB::transaction(function () use ($tenantId, $occurrence, $actor, $amount, $paidAt, $method, $receiptUrl): bool {
-            // A atualização é condicional ao estado de origem: a segunda baixa
-            // não tem linha para alterar, e é isso — e não uma checagem antes —
-            // que fecha a corrida entre dois cliques no botão.
+
             if (! $this->occurrences->markPaid($occurrence, $paidAt->toIso8601String(), $actor, $amount)) {
                 return false;
             }
@@ -140,10 +128,6 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
 
         $paid = $this->reload($occurrence, $tenantId);
 
-        // A cota é do valor que a casa quitou: em conta variável o valor real
-        // só aparece na baixa, e a divisão feita sobre o valor previsto seria a
-        // divisão de um valor que ninguém pagou. A cota que o morador já
-        // baixou e que muda de valor volta a ficar em aberto.
         $this->splits->compute($paid);
 
         $this->publisher->publish(EventName::BILL_PAID, $tenantId, [
@@ -160,13 +144,6 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
         return ['data' => $this->resource->make($paid, $timezone)];
     }
 
-    /**
-     * Período da consulta: `month` traz o mês fechado, `from`/`to` trazem o
-     * recorte — e os dois juntos não fazem sentido, porque um tornaria o outro
-     * silenciosamente ignorado.
-     *
-     * @return array{0: ?string, 1: ?string}
-     */
     private function range(Request $request, string $tenantId): array
     {
         $month = $this->optionalString($request->query('month'));
@@ -186,13 +163,6 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
         ];
     }
 
-    /**
-     * Valor do lançamento.
-     *
-     * Cai no valor previsto da conta quando o morador não informa outro: em
-     * conta variável o que ele digita é o valor real da fatura, e é ele que
-     * passa a valer no vencimento.
-     */
     private function amount(Request $request, ?string $expected): string
     {
         $value = $request->input('amount');
@@ -230,8 +200,7 @@ final class BillOccurrenceService implements BillOccurrenceServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 

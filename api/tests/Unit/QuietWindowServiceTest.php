@@ -8,18 +8,6 @@ use Mordomus\Notification\Models\NotificationPreference;
 use Mordomus\Notification\Services\QuietWindowService;
 use Tests\TestCase;
 
-/**
- * Quiet hours, digest e horário preferido (T6.1.3).
- *
- * O critério de aceite da tarefa é "usuário não recebe push entre `quiet_start`
- * e `quiet_end`", e o que se prova aqui é a outra metade dele: dentro da
- * janela o aviso é **adiado**, nunca descartado. A diferença entre as duas
- * coisas é o que separa um morador que acorda sabendo do que perdeu de um
- * morador que nunca soube.
- *
- * Sem banco: o serviço só precisa das três camadas da preferência, e elas
- * entram por um contrato à parte.
- */
 class QuietWindowServiceTest extends TestCase
 {
     private const SAO_PAULO = 'America/Sao_Paulo';
@@ -40,8 +28,6 @@ class QuietWindowServiceTest extends TestCase
         ]);
     }
 
-    // ------------------------------------------------------- a janela de silêncio
-
     public function test_inside_the_window_is_quiet(): void
     {
         $service = $this->service();
@@ -61,10 +47,6 @@ class QuietWindowServiceTest extends TestCase
         $this->assertFalse($service->isQuietAt($preference, $this->at('07:00'), self::SAO_PAULO));
     }
 
-    /**
-     * A janela atravessa a meia-noite: 22:00–07:00 é uma janela só, e é assim
-     * que 03:00 continua sendo silêncio mesmo com `quiet_start` às 22:00.
-     */
     public function test_the_window_wraps_midnight(): void
     {
         $preference = $this->preference();
@@ -83,7 +65,6 @@ class QuietWindowServiceTest extends TestCase
         $this->assertFalse($this->service()->isQuietAt($preference, $this->at('15:00'), self::SAO_PAULO));
     }
 
-    /** Início e fim iguais é ausência de janela, e não silêncio de 24 h. */
     public function test_equal_sides_is_not_a_window(): void
     {
         $preference = $this->preference(quietStart: '22:00', quietEnd: '22:00');
@@ -97,8 +78,6 @@ class QuietWindowServiceTest extends TestCase
 
         $this->assertFalse($this->service()->isQuietAt($preference, $this->at('03:00'), self::SAO_PAULO));
     }
-
-    // ------------------------------------------------------------ o adiamento
 
     public function test_outside_the_window_it_goes_out_now(): void
     {
@@ -121,7 +100,6 @@ class QuietWindowServiceTest extends TestCase
         $this->assertSame('2026-04-01T07:00:00-03:00', $delivered->toIso8601String());
     }
 
-    /** Janela dentro do dia não vira a meia-noite, e o fim é o do mesmo dia. */
     public function test_a_daytime_window_ends_the_same_day(): void
     {
         $preference = $this->preference(quietStart: '13:00', quietEnd: '15:00');
@@ -130,8 +108,6 @@ class QuietWindowServiceTest extends TestCase
 
         $this->assertSame('2026-04-01T15:00:00-03:00', $delivered->toIso8601String());
     }
-
-    // -------------------------------------------------------- o digest diário
 
     public function test_the_daily_digest_waits_for_the_preferred_hour(): void
     {
@@ -142,7 +118,6 @@ class QuietWindowServiceTest extends TestCase
         $this->assertSame('2026-04-02T09:00:00-03:00', $delivered->toIso8601String());
     }
 
-    /** Slot de hoje ainda pela frente: sai hoje, e não amanhã. */
     public function test_the_daily_digest_goes_out_today_when_the_hour_is_ahead(): void
     {
         $preference = $this->preference(digest: NotificationPreference::DIGEST_DAILY, preferredHour: '09:00');
@@ -152,11 +127,6 @@ class QuietWindowServiceTest extends TestCase
         $this->assertSame('2026-04-01T09:00:00-03:00', $delivered->toIso8601String());
     }
 
-    /**
-     * Horário preferido dentro da janela de silêncio é desobedeça-la: a casa
-     * que pediu silêncio até as 07:00 não pode receber e-mail às 06:00 porque o
-     * slot padrão é esse.
-     */
     public function test_the_daily_digest_respects_the_quiet_window(): void
     {
         $preference = $this->preference(
@@ -169,13 +139,10 @@ class QuietWindowServiceTest extends TestCase
         $this->assertSame('2026-04-01T07:00:00-03:00', $delivered->toIso8601String());
     }
 
-    // ----------------------------------------------------------- a precedência
-
     public function test_the_own_preference_wins_over_the_house(): void
     {
         $house = $this->preference(quietStart: '20:00', quietEnd: '21:00', digest: NotificationPreference::DIGEST_DAILY);
-        // Digest nulo é "não mexi nesse campo", e é o que separa a precedência
-        // de campo da precedência de linha.
+
         $own = new NotificationPreference(['quiet_start' => '13:00', 'quiet_end' => '14:00']);
 
         $effective = $this->service($own, $house)->effective('tenant', 'user');
@@ -205,7 +172,6 @@ class QuietWindowServiceTest extends TestCase
         $this->assertSame('09:00', $effective->preferred_hour?->format('H:i'));
     }
 
-    /** A precedência resolvida não é gravada: ela é a resposta, não o cadastro. */
     public function test_the_resolved_preference_is_not_persisted(): void
     {
         $effective = $this->service()->effective('tenant', 'user');
@@ -213,8 +179,6 @@ class QuietWindowServiceTest extends TestCase
         $this->assertFalse($effective->exists);
         $this->assertNull($effective->tenant_id);
     }
-
-    // -------------------------------------------------------------- helpers
 
     private function service(
         ?NotificationPreference $own = null,

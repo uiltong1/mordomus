@@ -19,24 +19,8 @@ use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\ScheduleEvent;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Preenche a agenda da residência com as ocorrências das regras ativas.
- *
- * O motor nunca guarda "a próxima data" só como número: a data vira linha de
- * `job_schedules`, e é dela que o morador, o varrimento de avisos e os
- * consumidores de evento tiram tudo o que precisam.
- */
 final class OccurrenceMaterializerService implements OccurrenceMaterializerServiceInterface
 {
-    /**
-     * Teto de datas avaliadas por regra, numa execução.
-     *
-     * O laço avança a regra data a data para chegar na janela; uma regra
-     * esquecida há anos com intervalo de 1 dia passaria por milhares de datas
-     * descartadas antes de chegar em hoje. O teto corta o trabalho
-     * patológico e o restante fica para a execução seguinte — nenhuma data é
-     * perdida, só adiada.
-     */
     private const MAX_DATES_PER_CONFIG = 400;
 
     public function __construct(
@@ -95,14 +79,6 @@ final class OccurrenceMaterializerService implements OccurrenceMaterializerServi
         return $occurrence;
     }
 
-    /**
-     * Percorre a janela da regra a partir da última ocorrência materializada.
-     *
-     * Começar da última linha (e não de hoje) é o que mantém o ritmo sem
-     * lacuna quando o intervalo é curto: com um dia de intervalo e janela de
-     * 45 dias, refazer a lista do zero a cada execução gastaria 45 avaliações
-     * para criar uma data.
-     */
     private function fillWindow(TriggerConfig $config, string $tenantId, int $horizonDays): int
     {
         $timezone = $this->calendar->timezone($tenantId);
@@ -125,8 +101,6 @@ final class OccurrenceMaterializerService implements OccurrenceMaterializerServi
                 break;
             }
 
-            // Data passada não é recuperada: o morador não pode concluir em
-            // retrospecto, e a linha ficaria para sempre aberta.
             if ($date->greaterThanOrEqualTo($today) && $this->materializeDate($config, $date) !== null) {
                 $created++;
             }
@@ -150,14 +124,6 @@ final class OccurrenceMaterializerService implements OccurrenceMaterializerServi
         return $created;
     }
 
-    /**
-     * Próxima data do ciclo depois de `$from`.
-     *
-     * `CALENDAR_MONTHLY` é dia fixo do mês, não dia relativo: somar um mês a
-     * um dia 31 cairia em 28 de fevereiro e o ciclo ficaria preso ali. A data
-     * seguinte é a do mesmo dia no mês que vem, e o `TriggerDateService`
-     * continua sendo quem decide o dia.
-     */
     private function nextAfter(TriggerConfig $config, CarbonImmutable $from, string $timezone): ?CarbonImmutable
     {
         $base = $config->type === TriggerConfig::TYPE_CALENDAR_MONTHLY
@@ -172,10 +138,7 @@ final class OccurrenceMaterializerService implements OccurrenceMaterializerServi
         try {
             return $this->dates->nextDue($config, $base, $timezone);
         } catch (IncompleteTriggerRule $exception) {
-            // Regra gravada com o conjunto de campos do tipo incompleto é dado
-            // legado: deixar a exceção subir abortaria a materialização das
-            // outras regras da mesma residência. Fica registrado e a regra
-            // espera a correção.
+
             Log::warning('scheduling.materialize_incomplete', [
                 'tenant_id' => $tenantId,
                 'trigger_config_id' => $config->id,
@@ -196,7 +159,6 @@ final class OccurrenceMaterializerService implements OccurrenceMaterializerServi
         );
     }
 
-    /** `next_due_at` da regra espelha a primeira ocorrência ainda aberta. */
     private function refreshNextDue(TriggerConfig $config): void
     {
         $next = $this->occurrences->nextOpenFor($config);

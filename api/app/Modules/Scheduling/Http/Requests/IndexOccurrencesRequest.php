@@ -14,7 +14,6 @@ class IndexOccurrencesRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

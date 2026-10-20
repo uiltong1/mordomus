@@ -6,16 +6,10 @@ use Mordomus\Identity\Contracts\Services\CapabilityResolverServiceInterface;
 use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\User;
 
-/**
- * Shape público do usuário (perfil e sessão) — nunca expõe `password_hash`.
- */
 final readonly class UserResource
 {
     public function __construct(private CapabilityResolverServiceInterface $capabilities) {}
 
-    /**
-     * @return array{id: string, name: string, email: string, locale: string}
-     */
     public function make(User $user): array
     {
         return [
@@ -26,11 +20,6 @@ final readonly class UserResource
         ];
     }
 
-    /**
-     * Residências com membership ativo, como aparecem no payload de sessão.
-     *
-     * @return list<array<string, mixed>>
-     */
     public function tenants(User $user): array
     {
         return $user->memberships()
@@ -49,9 +38,6 @@ final readonly class UserResource
             ->all();
     }
 
-    /**
-     * @return list<string>
-     */
     public function capabilities(Membership $membership): array
     {
         return $this->capabilities->keys($membership);

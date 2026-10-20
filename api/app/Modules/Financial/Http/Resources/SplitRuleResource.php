@@ -5,22 +5,8 @@ namespace Mordomus\Financial\Http\Resources;
 use Mordomus\Financial\Models\SplitEntry;
 use Mordomus\Financial\Models\SplitRule;
 
-/**
- * Shape da regra de divisão, com quem participa e em que proporção.
- *
- * O morador vem dentro de cada entrada, e não numa lista separada: a regra é
- * lida para montar a tela de divisão, e um id sem nome ali obriga a uma
- * segunda chamada para saber a quem o peso pertence.
- *
- * `is_house_default` separa a regra padrão das regras por conta. Sem isso a
- * tela não distinguiria "esta conta é dividida assim" de "a casa inteira é
- * dividida assim", que são decisões diferentes do dono da casa.
- */
 final class SplitRuleResource
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function make(SplitRule $rule): array
     {
         return [
@@ -37,10 +23,6 @@ final class SplitRuleResource
         ];
     }
 
-    /**
-     * @param  iterable<SplitRule>  $rules
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $rules): array
     {
         return collect($rules)
@@ -49,12 +31,6 @@ final class SplitRuleResource
             ->all();
     }
 
-    /**
-     * Só o campo do regime em uso vem preenchido; os outros saem nulos, e é
-     * isso que impede a tela de ler peso numa regra percentual.
-     *
-     * @return list<array<string, mixed>>
-     */
     private function entries(SplitRule $rule): array
     {
         return $rule->orderedEntries()

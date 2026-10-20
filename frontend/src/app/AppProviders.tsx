@@ -6,10 +6,6 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { TenantProvider } from '@/tenants/TenantProvider'
 import { ErrorBoundary } from './ErrorBoundary'
 
-/**
- * Um cliente por aplicação. `retry` não repete erro de domínio: 401 já passa
- * pelo refresh rotativo e 403/404 não melhoram com nova tentativa.
- */
 function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -28,13 +24,9 @@ function createQueryClient(): QueryClient {
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  // criado uma única vez: um cliente novo a cada render jogaria o cache fora
   const [queryClient] = useState(createQueryClient)
 
   return (
-    // O tema é o provider mais externo porque a própria tela de erro do
-    // ErrorBoundary é feita com os tokens — se o atributo chegasse depois dela,
-    // o fallback apareceria na paleta errada.
     <ThemeProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>

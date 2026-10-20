@@ -123,8 +123,6 @@ describe('BillListPage', () => {
 
     await screen.findByText('Aluguel')
 
-    // o botão precisa estar lá e o clique precisa abrir o diálogo: o regresso
-    // desta tela era o clique não rendendo nada
     await userEvent.click(screen.getByRole('button', { name: 'Nova conta' }))
 
     expect(await screen.findByRole('dialog', { name: 'Nova conta' })).toBeInTheDocument()
@@ -218,7 +216,6 @@ describe('BillListPage', () => {
     await signIn([])
     renderWithRouter(<BillListPage />)
 
-    // a leitura é de qualquer morador
     expect(await screen.findByText('Aluguel')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nova conta' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Pausar' })).not.toBeInTheDocument()
@@ -413,7 +410,6 @@ describe('BillFormModal — os campos se explicam', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Nova conta' })
     await userEvent.selectOptions(within(dialog).getByLabelText('Tipo'), 'variable')
 
-    // campos da cadência somem, mas o morador fica sabendo onde lançar a fatura
     expect(within(dialog).queryByLabelText('Dia do vencimento')).not.toBeInTheDocument()
     expect(within(dialog).getByText(/cada fatura entra pela aba Vencimentos/i)).toBeInTheDocument()
   })

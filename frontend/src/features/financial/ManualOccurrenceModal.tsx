@@ -5,14 +5,6 @@ import { ApiError } from '@/shared/api/errors'
 import { useBills } from './queries'
 import { useCreateOccurrence } from './mutations'
 
-/**
- * Lançamento manual — o caminho da conta variável, em que a fatura chega com
- * valor e data que só o morador sabe.
- *
- * O `<input type="date">` já entrega `YYYY-MM-DD`, que é o formato que o
- * `date_format:Y-m-d` do backend valida: a data vai como o morador leu na
- * fatura, sem passar por `Date` — este módulo não calcula data (regra R7).
- */
 export function ManualOccurrenceModal({ onClose }: { onClose: () => void }) {
   const bills = useBills({ isActive: true })
   const create = useCreateOccurrence()
@@ -46,8 +38,6 @@ export function ManualOccurrenceModal({ onClose }: { onClose: () => void }) {
         return
       }
       setErrors(error.fieldErrors)
-      // 409 bill_occurrence_exists: a mesma conta já tem vencimento nesta data —
-      // o erro aponta a data, e a tela precisa dizer isso e não "conflito".
       if (error.code === 'bill_occurrence_exists') {
         toast.error('Esta conta já tem um vencimento nesta data.')
         return

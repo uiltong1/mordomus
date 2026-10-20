@@ -9,9 +9,6 @@ use Mordomus\Notification\Support\PublicKeyPoint;
 use RuntimeException;
 use Tests\TestCase;
 
-/**
- * Credencial VAPID: o par do ambiente e o JWT que autentica o envio.
- */
 class VapidTokenServiceTest extends TestCase
 {
     private VapidTokenService $vapid;
@@ -42,8 +39,6 @@ class VapidTokenServiceTest extends TestCase
 
         $point = base64_decode(strtr($this->vapid->publicKey(), '-_', '+/'), true);
 
-        // O `applicationServerKey` do `pushManager.subscribe()` é o ponto não
-        // comprimido: 0x04 || X(32) || Y(32), 65 bytes invariantes.
         $this->assertSame(65, strlen($point));
         $this->assertSame(0x04, ord($point[0]));
     }
@@ -52,9 +47,6 @@ class VapidTokenServiceTest extends TestCase
     {
         $details = $this->withPair();
 
-        // A comparação é pela identidade da chave e não pelas coordenadas
-        // cruas: o openssl devolve uma coordenada com um byte a mais de vez em
-        // quando, e comparar byte a byte daria um teste que falha sozinho.
         $fromPoint = openssl_pkey_get_details(
             PublicKeyPoint::toPublicKey(base64_decode(strtr($this->vapid->publicKey(), '-_', '+/'), true)),
         );
@@ -79,8 +71,6 @@ class VapidTokenServiceTest extends TestCase
 
         $claims = $this->claimsOfToken($this->vapid->token('https://fcm.googleapis.com'));
 
-        // O token viaja em toda requisição de push: quem o intercepta manda
-        // mensagem para as assinaturas daquele par. 12 h é o teto da RFC 8292.
         $this->assertLessThanOrEqual(12 * 3600, $claims->exp - time());
         $this->assertGreaterThan(11 * 3600, $claims->exp - time());
     }
@@ -109,9 +99,6 @@ class VapidTokenServiceTest extends TestCase
         $this->vapid->token('https://fcm.googleapis.com');
     }
 
-    // ---------------------------------------------------------------- helpers
-
-    /** @return array<string, mixed> */
     private function withPair(): array
     {
         $key = openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);

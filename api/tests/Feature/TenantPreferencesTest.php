@@ -6,9 +6,6 @@ use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Role;
 use Mordomus\Identity\Models\User;
 
-/**
- * Preferências do tenant: preferred_hour (09:00) + quiet hours.
- */
 class TenantPreferencesTest extends FeatureTestCase
 {
     public function test_defaults_are_created_with_the_tenant(): void
@@ -46,7 +43,6 @@ class TenantPreferencesTest extends FeatureTestCase
         $this->assertSame(['start' => '21:30', 'end' => '06:45'], $updated->json('data.quiet_hours'));
         $this->assertFalse($updated->json('data.channels.email'));
 
-        // persistido no tenant
         $this->withHeaders($headers)
             ->getJson("/api/v1/identity/tenants/{$tenantId}/preferences")
             ->assertJsonPath('data.preferred_hour', '08:30');
@@ -65,12 +61,10 @@ class TenantPreferencesTest extends FeatureTestCase
             'status' => Membership::STATUS_ACTIVE,
         ]);
 
-        // member tem notifications.manage → pode ler
         $this->asUser($member, $tenantId)
             ->getJson("/api/v1/identity/tenants/{$tenantId}/preferences")
             ->assertOk();
 
-        // mas não tenant.manage → não grava
         $this->asUser($member, $tenantId)
             ->patchJson("/api/v1/identity/tenants/{$tenantId}/preferences", ['preferred_hour' => '03:00'])
             ->assertStatus(403)

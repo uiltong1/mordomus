@@ -11,19 +11,12 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\UniqueJobLockReleaseException;
 use Illuminate\Support\Facades\Log;
 use Mordomus\Scheduling\Contracts\Services\OccurrenceMaterializerServiceInterface;
 use Mordomus\Scheduling\Jobs\Concerns\RunsInsideTenant;
 use Throwable;
 
-/**
- * Materializa a janela de ocorrências de uma residência.
- *
- * Uma instância por residência, e não uma para o banco inteiro: o trabalho é
- * particionável por `tenant_id`, e materializar cada casa não segura o worker
- * enquanto a próxima é processada. O `ShouldBeUnique` evita que a rotina diária
- * e um disparo manual se sobreponham na mesma casa.
- */
 class MaterializeTenantOccurrences implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, RunsInsideTenant, SerializesModels;
@@ -32,7 +25,6 @@ class MaterializeTenantOccurrences implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 3600;
 
-    /** @var list<int> */
     public array $backoff = [30, 120, 600];
 
     public function __construct(
@@ -54,8 +46,8 @@ class MaterializeTenantOccurrences implements ShouldBeUnique, ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        if ($exception instanceof \Illuminate\Queue\UniqueJobLockReleaseException) {
-             Log::warning('scheduling.materialize_unique_collision', [
+        if ($exception instanceof UniqueJobLockReleaseException) {
+            Log::warning('scheduling.materialize_unique_collision', [
                 'tenant_id' => $this->tenantId,
             ]);
         }

@@ -7,12 +7,6 @@ const ICON: Record<ThemePreference, string> = {
   system: '◐',
 }
 
-/**
- * Alternador de tema. Um botão só, ciclando claro → escuro → sistema: três
- * estados cabem num botão de 36 px, e o rótulo diz em texto qual é o estado e
- * para onde o próximo clique vai — ícone sozinho não informa nada a quem navega
- * por leitor de tela.
- */
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const { preference, cyclePreference } = useTheme()
   const next = nextPreference(preference)

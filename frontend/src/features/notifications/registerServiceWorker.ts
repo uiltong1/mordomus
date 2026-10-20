@@ -1,15 +1,7 @@
 import { registerSW } from 'virtual:pwa-register'
 import type { PushPayload } from '@/features/notifications/pushPayload'
 
-/**
- * Registro do service worker (T4.1.7).
- *
- * O registro fica em `main.tsx` (e não no plugin) para que a UI possa avisar
- * que há versão nova e pedir o aceite do morador — com `registerType: 'prompt'`
- * o worker novo espera, então a troca é sempre deliberada.
- */
 export interface ServiceWorkerHandle {
-  /** Aplica a versão que está esperando. */
   applyUpdate: () => void
 }
 
@@ -28,10 +20,6 @@ export function registerServiceWorker(handlers: {
   return { applyUpdate: () => void update(true) }
 }
 
-/**
- * Mensagens que o app mostra dentro do sino. A notificação do sistema já é do
- * worker; o sino cobre o app aberto e o caso da permissão negada.
- */
 const INBOX_KEY = 'mordomus.inbox'
 
 export interface InboxMessage {
@@ -60,9 +48,7 @@ export function pushToInbox(payload: PushPayload): InboxMessage[] {
   const next = [message, ...readInbox()].slice(0, 20)
   try {
     window.localStorage.setItem(INBOX_KEY, JSON.stringify(next))
-  } catch {
-    // sem storage o sino mostra apenas o que está em memória
-  }
+  } catch {}
   window.dispatchEvent(new CustomEvent('mordomus:inbox', { detail: next }))
   return next
 }
@@ -70,8 +56,6 @@ export function pushToInbox(payload: PushPayload): InboxMessage[] {
 export function clearInbox(): void {
   try {
     window.localStorage.removeItem(INBOX_KEY)
-  } catch {
-    // idem
-  }
+  } catch {}
   window.dispatchEvent(new CustomEvent('mordomus:inbox', { detail: [] }))
 }

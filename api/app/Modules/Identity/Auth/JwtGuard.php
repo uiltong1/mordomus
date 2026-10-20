@@ -7,23 +7,12 @@ use Illuminate\Http\Request;
 use Mordomus\Identity\Contracts\Services\JwtVerifierServiceInterface;
 use Mordomus\Identity\Models\User;
 
-/**
- * Guard stateless que resolve o usuário a partir do JWT RS256 no header
- * Authorization: Bearer <token> (config/auth.php → guards.jwt.driver = jwt).
- */
 class JwtGuard extends RequestGuard
 {
     private ?Request $resolvedRequest = null;
 
     private ?string $resolvedToken = null;
 
-    /**
-     * Resolve o usuário sempre a partir da requisição corrente do container:
-     * o guard é cacheado pelo AuthManager entre requisições do mesmo processo
-     * (testes de integração) e precisa revalidar cada token novo — e o
-     * resolver precisa rodar de novo para expor as claims (`jwt_claims`)
-     * ao middleware `tenant`.
-     */
     public function user(): mixed
     {
         $request = $this->currentRequest();

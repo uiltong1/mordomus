@@ -9,7 +9,6 @@ import type {
   TenantCreatedSession,
 } from '@/shared/api/types'
 
-/** Rotas públicas de sessão — o token ainda não existe. */
 export function login(input: {
   email: string
   password: string
@@ -35,13 +34,6 @@ export function logout(refreshToken: string): Promise<{ status: string }> {
   })
 }
 
-/**
- * Troca de residência. Não é um header: o `TenantScope` deriva o tenant do claim
- * `tid`, então a troca emite um JWT novo (R1). O par anterior deixa de valer.
- *
- * `skipTenantLost` porque o 403 aqui é sobre o **destino** — a residência atual
- * continua válida e a tela deve recuar para ela, não cair na seleção.
- */
 export function switchTenant(tenantId: string): Promise<Session> {
   return api.post<Session>(
     '/identity/auth/switch-tenant',
@@ -62,7 +54,6 @@ export function fetchTenants(signal?: AbortSignal): Promise<Paginated<Tenant>> {
   return api.get<Paginated<Tenant>>('/identity/tenants', { signal })
 }
 
-/** `POST /tenants` devolve sessão nova já apontada para a residência criada. */
 export function createTenant(input: {
   name: string
   timezone?: string

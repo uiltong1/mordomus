@@ -11,14 +11,6 @@ use Mordomus\OpenApi\Schemas\Error;
 use Mordomus\OpenApi\Schemas\OccurrenceSplit;
 use OpenApi\Attributes as OA;
 
-/**
- * Cota-parte de um vencimento: quanto cabe a cada morador e quem já quitou.
- *
- * A leitura responde a duas perguntas diferentes com o mesmo endpoint: quem
- * administra a divisão vê a conta inteira, e quem só tem `splits.view_own` vê
- * a cota dele. A gravação é a baixa da cota, e a capability dela é a de
- * gerenciar a divisão — é quem responde pela conta que anota a quitação.
- */
 class SplitController extends Controller
 {
     public function __construct(private readonly SplitResultServiceInterface $splits) {}

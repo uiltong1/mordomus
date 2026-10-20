@@ -13,14 +13,6 @@ use Mordomus\Scheduling\Http\Requests\IndexOccurrencesRequest;
 use Mordomus\Scheduling\Http\Requests\SkipOccurrenceRequest;
 use OpenApi\Attributes as OA;
 
-/**
- * Agenda materializada pelo motor: consulta, check-in e dispensa.
- *
- * A conclusão é idempotente por contrato: repetir o check-in devolve a mesma
- * ocorrência e não abre um segundo ciclo. Recalcular a data é trabalho da
- * fila, então a resposta não carrega a próxima data — quem precisa dela ouve
- * `occurrence.completed`, ou lê a regra.
- */
 class OccurrenceController extends Controller
 {
     public function __construct(private readonly OccurrenceServiceInterface $occurrences) {}

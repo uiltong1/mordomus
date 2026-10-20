@@ -7,39 +7,23 @@ import { Button } from '@/shared/ui'
 
 type UpdateState = 'idle' | 'ready' | 'applying'
 
-/**
- * Aviso de "há versão nova" no lugar do reload por baixo.
- *
- * O bundle antigo recarregava a página assim que o worker novo aparecia. Com
- * o formulário de regra de manutenção na tela, isso apagaria tudo que o morador
- * tinha digitado — e perder trabalho é pior do que rodar uma versão a menos
- * por um dia. Aqui a troca é sempre deliberada: quem recusa continua na versão
- * antiga, com o que preenchido, até a próxima abertura.
- */
 export function UpdateBanner() {
   const [state, setState] = useState<UpdateState>('idle')
   const handleRef = useRef<ServiceWorkerHandle | null>(null)
 
   useEffect(() => {
-    // em desenvolvimento o worker serviria um bundle velho e cada HMR exigiria
-    // recarregar. O guarda é o modo do CLI e não `import.meta.env.PROD`, que o
-    // NODE_ENV do container deixaria falso mesmo em `vite build`.
     if (import.meta.env.MODE !== 'production') return
 
     let cancelled = false
 
     try {
-      // o handle fica guardado: `registerSW` é quem devolve a função que aplica
-      // a versão esperando, e registrar de novo criaria um segundo listener
       handleRef.current = registerServiceWorker({
         onNeedRefresh: () => {
           if (!cancelled) setState('ready')
         },
         onError: (error) => console.error('pwa.register_error', error),
       })
-    } catch {
-      // sem service worker o app segue funcionando, só não avisa de atualização
-    }
+    } catch {}
 
     return () => {
       cancelled = true
@@ -82,8 +66,6 @@ export function UpdateBanner() {
           size="sm"
           onClick={() => {
             setState('applying')
-            // a troca recarrega a página; recarregar por baixo era justamente o
-            // que se queria evitar, então aqui é o morador quem apertou
             handleRef.current?.applyUpdate()
           }}
         >

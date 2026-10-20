@@ -5,11 +5,6 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { createTenant } from '@/features/auth/api'
 import { useQueryClient } from '@tanstack/react-query'
 
-/**
- * Criação de residência — o único caminho para sair do estado "sem residência
- * ativa". `POST /tenants` devolve tokens novos já apontados para a casa criada,
- * então a sessão precisa ser adotada antes de qualquer nova leitura.
- */
 export function CreateTenantPage({ onDone }: { onDone: () => void }) {
   const { adoptSession, user } = useAuth()
   const queryClient = useQueryClient()
@@ -30,7 +25,6 @@ export function CreateTenantPage({ onDone }: { onDone: () => void }) {
         preferred_hour: preferredHour,
       })
       adoptSession({ ...created, user: user ?? undefined })
-      // a lista de casas mudou: a próxima leitura já traz a nova
       void queryClient.invalidateQueries({ queryKey: ['mordomus', 'profile'] })
       onDone()
     } catch (error) {

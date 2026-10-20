@@ -12,10 +12,6 @@ use Mordomus\Identity\Models\User;
 use Mordomus\Support\Logging\LogContext;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Exige tenant ativo no JWT (claim `tid`) + membership ativo.
- * Falhas → 401 sem token/tenant · 403 sem membership.
- */
 class TenantScope
 {
     public function __construct(private readonly JwtVerifierServiceInterface $verifier) {}
@@ -24,7 +20,6 @@ class TenantScope
     {
         $claims = $request->attributes->get('jwt_claims');
 
-        // fallback: se o guard devolveu usuário cacheado sem revalidar o token
         if (! is_array($claims) && $request->bearerToken()) {
             try {
                 $claims = $this->verifier->verify($request->bearerToken());
@@ -50,9 +45,6 @@ class TenantScope
             return $this->deny($request, 401, 'unauthenticated', 'Token inválido ou ausente.');
         }
 
-        // alimenta o TenantGlobalScope do Eloquent — popula antes de consultar
-        // membership e limpa em finally para não vazar entre requisições do
-        // mesmo worker FPM
         TenantContext::set($tenantId, $user->id, $claims);
 
         try {

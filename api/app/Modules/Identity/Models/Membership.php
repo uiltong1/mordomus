@@ -31,25 +31,21 @@ class Membership extends Model
         ];
     }
 
-    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /** @return BelongsTo<Tenant, $this> */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }
 
-    /** @return BelongsTo<Role, $this> */
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
     }
 
-    /** Overrides pontuais. @return BelongsToMany<Permission, $this> */
     public function permissionGrants(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'membership_grants', 'membership_id', 'permission_id')

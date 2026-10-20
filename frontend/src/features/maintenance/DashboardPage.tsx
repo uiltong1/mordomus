@@ -11,13 +11,6 @@ import { RoomFormModal } from './RoomFormModal'
 import type { RoomSummary } from './roomSummary'
 import { usePropertyOverview } from './usePropertyOverview'
 
-/**
- * Painel do imóvel: um card por cômodo, com o que está pendente dentro dele.
- *
- * A ordem de leitura é do topo para baixo — o que está atrasado, o que é hoje,
- * o que vem depois — e não por ordem alfabética. Um cômodo called "Abaixo" com
- * nada pendente não pode ficar acima da cozinha com a filtro vencida.
- */
 export function DashboardPage() {
   const { activeTenant } = useTenant()
   const { can } = useAuth()
@@ -200,13 +193,6 @@ export interface PendingCheckInProps {
   compact?: boolean
 }
 
-/**
- * Check-in rápido: concluir sem sair da tela.
- *
- * A conclusão é idempotente no monólito, então dois toques não abrem dois
- * ciclos; o botão fica travado durante a chamada para o toque duplo nem
- * chegar a ser feito.
- */
 export function PendingCheckIn({ item, canComplete, onDone, compact }: PendingCheckInProps) {
   const toast = useToast()
   const [busy, setBusy] = useState(false)

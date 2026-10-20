@@ -161,40 +161,16 @@ class AppServiceProvider extends ServiceProvider
         $this->registerNotificationListeners();
     }
 
-    /**
-     * Consumidor in-process do Scheduling (ADR-011).
-     *
-     * O envelope é publicado dentro do processo e a fila continua sendo a
-     * entrega para quem só observa depois; aqui quem reage na mesma transação
-     * é o Financial, que grava o `schedule_id` do vencimento logo depois de a
-     * ocorrência do motor existir.
-     */
     private function registerFinancialListeners(): void
     {
         Event::listen(DomainEvent::class, BillScheduleListener::class);
     }
 
-    /**
-     * Consumidor in-process do envelope que chegou pela fila.
-     *
-     * O `PublishEvent` é o contrato do Scheduling — publicar o envelope é
-     * dele; o tratamento é deste módulo, e o listener é a ponte que faz o par
-     * fechar sem que nenhum dos dois conheça a implementação do outro. A
-     * entrega continua sendo a fila, e o retry e a DLQ são os do job.
-     */
     private function registerNotificationListeners(): void
     {
         Event::listen(QueuedEnvelope::class, QueuedEnvelopeListener::class);
     }
 
-    /**
-     * Binding de `Membership` fora do TenantGlobalScope.
-     *
-     * `SubstituteBindings` roda no grupo da rota, antes do middleware `tenant` —
-     * ainda não há contexto de residência e o escopo devolveria `1 = 0`. A
-     * fronteira fica no FormRequest (tenant ativo) e no `MemberService`
-     * (`membership.tenant_id === tenant.id`).
-     */
     private function registerTenantBindings(): void
     {
         Route::bind('membership', fn (string $value): Membership => Membership::query()
@@ -284,13 +260,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(VapidTokenServiceInterface::class, VapidTokenService::class);
         $this->app->bind(WebPushEncryptionServiceInterface::class, WebPushEncryptionService::class);
 
-        // O canal é contrato porque o adapter de app nativo (FCM) entra depois
-        // pelo mesmo lugar: o serviço de entrega pergunta por `PushChannel` e
-        // não sabe se falou com um navegador ou com um telefone.
         $this->app->bind(PushChannelInterface::class, WebPushChannel::class);
     }
 
-    /** Guard stateless: driver `jwt` (config/auth.php). */
     private function registerJwtGuard(): void
     {
         Auth::extend('jwt', function ($app, $name, array $config) {
@@ -302,10 +274,6 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * `$user->can('rules.edit')` resolve pela capability efetiva
-     * (membership_grants → role_permissions) no tenant ativo da requisição.
-     */
     private function registerCapabilityGate(): void
     {
         Gate::before(function (mixed $user, string $ability): ?bool {
@@ -317,11 +285,6 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * `Mordomus\<Módulo>\Models\X` → `Database\Factories\XFactory`.
-     * O resolvedor padrão do Laravel usa a raiz do namespace (`Mordomus\`) e
-     * perderia o segmento do módulo.
-     */
     private function registerFactoryNames(): void
     {
         Factory::guessFactoryNamesUsing(function (string $modelName): string {
@@ -333,7 +296,6 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /** Rate limiting por IP e por credencial nas rotas de auth. */
     private function registerRateLimits(): void
     {
         RateLimiter::for('auth', function (Request $request) {

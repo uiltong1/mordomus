@@ -6,9 +6,6 @@ namespace Mordomus\Identity\Exceptions;
 
 use Mordomus\Http\Exceptions\ApiException;
 
-/**
- * Falha na troca do refresh token → 401.
- */
 class InvalidRefreshToken extends ApiException
 {
     public const CODE_UNKNOWN = 'invalid_refresh_token';

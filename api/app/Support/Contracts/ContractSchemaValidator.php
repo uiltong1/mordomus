@@ -8,29 +8,16 @@ use Opis\JsonSchema\Exceptions\ParseException;
 use Opis\JsonSchema\Helper;
 use Opis\JsonSchema\Validator;
 
-/**
- * Conferência dos JSON Schemas de `packages/contracts` — o contrato entre os
- * módulos que publicam evento e o Notification que consome.
- *
- * O nome do evento é o mesmo no código e no arquivo: um evento novo sem schema
- * (ou um schema sem evento) não é detectado pelo consumidor, só quando alguém
- * tenta consumir. Aqui a divergência é erro de build.
- */
 final class ContractSchemaValidator
 {
     private const DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 
     private const ID_PREFIX = 'https://mordomus.app/contracts/';
 
-    /** Campos que todo envelope precisa declarar. */
     private const ENVELOPE_REQUIRED = ['event', 'event_id', 'occurred_at', 'tenant_id', 'payload'];
 
     public function __construct(private readonly string $contractsPath) {}
 
-    /**
-     * @param  array<string, list<string>>  $publishedEvents  nome do evento => classes que o publicam
-     * @return list<string> achados; vazio significa contrato íntegro
-     */
     public function inspect(array $publishedEvents): array
     {
         $findings = [];
@@ -68,9 +55,6 @@ final class ContractSchemaValidator
         return $findings;
     }
 
-    /**
-     * @return list<string>
-     */
     private function inspectSchema(string $file, string $event): array
     {
         $where = basename($file);
@@ -106,14 +90,6 @@ final class ContractSchemaValidator
         return array_merge($findings, $this->inspectPatterns($where, $schema), $this->inspectParsable($where, $raw));
     }
 
-    /**
-     * `pattern` é PCRE e só é compilado na hora de validar um dado: um schema com
-     * regex quebrado passa no parser e só quebra quando um payload real passar
-     * por ele — no worker, não no build.
-     *
-     * @param  array<mixed>  $node
-     * @return list<string>
-     */
     private function inspectPatterns(string $where, array $node, string $path = ''): array
     {
         $findings = [];
@@ -137,10 +113,6 @@ final class ContractSchemaValidator
         return $findings;
     }
 
-    /**
-     * @param  array<mixed>  $schema
-     * @return list<string>
-     */
     private function inspectEnvelope(string $where, array $schema): array
     {
         $findings = [];
@@ -163,10 +135,6 @@ final class ContractSchemaValidator
         return $findings;
     }
 
-    /**
-     * @param  array<mixed>  $schema
-     * @return list<string>
-     */
     private function inspectPayload(string $where, array $schema): array
     {
         $payload = $schema['properties']['payload'] ?? null;
@@ -197,13 +165,6 @@ final class ContractSchemaValidator
         return $findings;
     }
 
-    /**
-     * Compilar o documento é o jeito de pegar schema que o JSON aceita e a
-     * biblioteca não: `pattern` inválido, `enum` com tipo misturado, palavra
-     * chave com valor do tipo errado.
-     *
-     * @return list<string>
-     */
     private function inspectParsable(string $where, string $raw): array
     {
         $validator = new Validator;
@@ -217,7 +178,6 @@ final class ContractSchemaValidator
         return [];
     }
 
-    /** @return list<string> */
     private function schemaFiles(): array
     {
         $files = glob(rtrim($this->contractsPath, '/').'/*.schema.json');

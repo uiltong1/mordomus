@@ -12,10 +12,6 @@ import {
 } from './api'
 import type { BillFilters, OccurrenceFilters } from './api'
 
-/**
- * Todo hook exige residência ativa antes de sair para a rede (R6): sem `tid` o
- * `TenantScope` recusa com 403 e a tela mostra erro onde devia mostrar seleção.
- */
 export function useSummary(month: string) {
   const { activeTenantId } = useTenant()
 
@@ -63,7 +59,6 @@ export function useBillOccurrences(filters: OccurrenceFilters) {
   })
 }
 
-/** Sem `billId`, a lista traz a regra da casa — é o que o builder abre primeiro. */
 export function useSplitRule(billId?: string | null) {
   const { activeTenantId } = useTenant()
 
@@ -84,7 +79,6 @@ export function useOccurrenceSplit(occurrenceId: string | null) {
   })
 }
 
-/** Moradores ativos da residência: a lista de quem pode entrar no split. */
 export function useActiveMembers() {
   const { activeTenantId } = useTenant()
 

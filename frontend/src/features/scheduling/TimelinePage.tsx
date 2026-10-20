@@ -50,15 +50,6 @@ const TONE_CLASS: Record<DueTone, string> = {
   done: 'bg-success/15 text-success',
 }
 
-/**
- * Agenda da residência, agrupada por dia.
- *
- * O filtro de cômodo é aplicado aqui, e não no `GET /occurrences`: o endpoint
- * aceita período, alvo e status, mas não cômodo. Como a ocorrência carrega
- * `subject_id` e não o cômodo, a junção passa pelo inventário — e o contador
- * mostrado no cabeçalho diz "de N" quando o filtro deixa de lado alguma coisa,
- * para a lista nunca parecer completa quando não está.
- */
 export function TimelinePage() {
   const [period, setPeriod] = useState<Period>('upcoming')
   const [roomId, setRoomId] = useState('')
@@ -66,8 +57,6 @@ export function TimelinePage() {
 
   const range = PERIOD_OPTIONS.find((option) => option.value === period) ?? PERIOD_OPTIONS[0]!
 
-  // o filtro de status é o único que vai para o servidor; período e cômodo são
-  // recorte de tela e mandá-los no `from`/`to` economizaria uma montagem inútil
   const query = useOccurrences({
     from: shiftInputValue(todayInputValue(), range.from),
     to: shiftInputValue(todayInputValue(), range.to),
@@ -211,7 +200,6 @@ export function TimelinePage() {
   )
 }
 
-/** Ordena por dia de calendário e agrupa. Sem `scheduled_for` a linha vai para o fim. */
 function groupByDay(occurrences: readonly Occurrence[]): [string, Occurrence[]][] {
   const buckets = new Map<string, Occurrence[]>()
   const ordered = [...occurrences].sort((left, right) =>
@@ -265,8 +253,6 @@ function OccurrenceRow({
       )
     } finally {
       setPendingAction(null)
-      // a linha muda de lugar e de situação sem reload — é o critério de aceite
-      // de "concluir atualiza a timeline"
       void queryClient.invalidateQueries({ queryKey: resourceKeys.occurrences(activeTenantId) })
     }
   }

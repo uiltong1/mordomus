@@ -7,13 +7,6 @@ namespace Database\Seeders;
 use Database\Seeders\Demo\DemoScenario;
 use Illuminate\Database\Seeder;
 
-/**
- * Cenário de demonstração — o que `db:seed --demo` monta.
- *
- * Depende do RBAC: as capabilities do proprietário e do morador são o que
- * decide o que a tela de cada um mostra, e sem elas o cenário entra num banco
- * onde todo morador nasce sem permissão nenhuma.
- */
 class DemoSeeder extends Seeder
 {
     private const LEGEND = [

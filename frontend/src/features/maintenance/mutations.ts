@@ -6,15 +6,6 @@ import { useTenant } from '@/tenants/TenantProvider'
 import type { Asset, Room } from '@/shared/api/types'
 import { archiveAsset, archiveRoom, reorderRooms, restoreAsset, restoreRoom } from './api'
 
-/**
- * Arquivamento do inventário.
- *
- * O `DELETE` do monólito é soft delete: a linha vira `archived` e continua
- * referenciada pelas regras que apontam para ela. Por isso a tela oferece
- * "Arquivar" e "Restaurar" em vez de apagar — um cômodo errado se corrige, e a
- * regra de manutenção que dependia dele não fica órfã.
- */
-
 function useArchive<T extends Asset | Room>(
   archive: (id: string) => Promise<T>,
   restore: (id: string) => Promise<T>,
@@ -70,8 +61,6 @@ export function useReorderRooms() {
   return useMutation({
     mutationFn: (ids: string[]) => reorderRooms(ids),
     onSuccess: () => {
-      // a resposta já é a ordem definitiva do servidor; sem invalidar, um
-      // `refetch` posterior com o `sort_order` antigo reordenaria a tela de volta
       void queryClient.invalidateQueries({ queryKey: resourceKeys.rooms(activeTenantId) })
     },
     onError: (error) => {

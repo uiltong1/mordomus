@@ -97,7 +97,6 @@ describe('Modal', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Excluir cômodo' })
     expect(dialog).toHaveAttribute('aria-modal', 'true')
-    // o primeiro focável do diálogo recebe o foco ao abrir
     expect(dialog.contains(document.activeElement)).toBe(true)
 
     await userEvent.keyboard('{Escape}')
@@ -126,8 +125,6 @@ describe('Modal', () => {
       </Modal>,
     )
 
-    // contrato de layout, não de comportamento: o jsdom não calcula altura, e
-    // o que segura o formulário comprido na tela são estas três classes
     const painel = screen.getByRole('dialog')
     expect(painel.className).toContain('max-h-full')
     expect(painel.className).toContain('flex-col')
@@ -136,8 +133,6 @@ describe('Modal', () => {
     expect(corpo?.className).toContain('overflow-y-auto')
     expect(corpo?.className).toContain('min-h-0')
 
-    // título e ações são filhos diretos e não encolhem: eles não podem sumir
-    // nem sairem da rolagem do corpo
     const [cabecalho, , rodape] = Array.from(painel.children)
     expect(cabecalho?.tagName).toBe('HEADER')
     expect(cabecalho?.className).toContain('shrink-0')
@@ -178,8 +173,6 @@ describe('Modal', () => {
       </Modal>,
     )
 
-    // o fundo é irmão do painel, dentro do portal: é nele que mora o clique
-    // que antes fechava o diálogo e levava o que o morador digitou junto
     const backdrop = document.querySelector('[aria-hidden="true"].absolute')
     expect(backdrop).not.toBeNull()
 
@@ -229,7 +222,6 @@ describe('Modal', () => {
 
 describe('DatePicker', () => {
   it('entrega a data no formato que o backend valida', () => {
-    // controlado de propósito: quem usa o componente é que guarda o estado
     function Harness({ onChange }: { onChange: (value: string) => void }) {
       const [value, setValue] = useState('2026-03-10')
       return (
@@ -250,7 +242,6 @@ describe('DatePicker', () => {
     const input = screen.getByLabelText('Vencimento')
     expect(input).toHaveValue('2026-03-10')
 
-    // `type="date"` não é campo de texto: o jsdom não digita dígito a dígito
     fireEvent.change(input, { target: { value: '2026-04-01' } })
 
     expect(onChange).toHaveBeenCalledWith('2026-04-01')

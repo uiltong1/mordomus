@@ -12,11 +12,6 @@ class MaterializeOccurrencesCommand extends Command
 {
     use EnumeratesTenants;
 
-    /**
-     * Job por residência, e não uma varredura única: o motor é particionável
-     * por `tenant_id`, e materializar cada casa não segura o worker enquanto a
-     * próxima é processada.
-     */
     protected $signature = 'scheduling:materialize
                             {--days= : Janela de materialização em dias; sem ela vale config/scheduling.php}';
 

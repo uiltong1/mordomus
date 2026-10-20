@@ -6,14 +6,6 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Mordomus\Financial\Models\Bill;
 
-/**
- * Alteração da conta.
- *
- * No patch, os campos omitidos mantêm o que já estava gravado. `due_day` e
- * `advance_notice_days` continuam opcionais: só entram quando a cadência muda,
- * porque reenviá-los a cada edição reescreveria a regra do Scheduling sem
- * necessidade.
- */
 class UpdateBillRequest extends FormRequest
 {
     public function authorize(): bool
@@ -21,7 +13,6 @@ class UpdateBillRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

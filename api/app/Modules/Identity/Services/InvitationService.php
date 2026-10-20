@@ -44,7 +44,7 @@ final class InvitationService implements InvitationServiceInterface
         $email = strtolower($request->input('email'));
 
         $invitation = DB::transaction(function () use ($tenant, $email, $request, $role, $token): Invitation {
-            // um convite pendente por e-mail no mesmo tenant (substitui o anterior)
+
             $this->invitations->replacePending($tenant->id, $email);
 
             return $this->invitations->create([
@@ -65,8 +65,7 @@ final class InvitationService implements InvitationServiceInterface
                 'expires_at' => $invitation->expires_at->toIso8601String(),
                 'accepted_at' => null,
             ],
-            // sem canal de e-mail configurado, o token na resposta é o que
-            // permite ao convidado concluir o aceite
+
             'token' => $token['plain'],
             'accept_path' => '/invitations/'.$token['plain'].'/accept',
         ];
@@ -103,10 +102,6 @@ final class InvitationService implements InvitationServiceInterface
             $this->invitations->markAccepted($invitation);
         });
 
-        // O aviso é para quem entrou, e não para os outros: a casa já vê o
-        // morador na tela de membros, e o único que não sabe que está dentro é
-        // o novo. Sai depois da transação, para o Notification nunca consumir
-        // um evento de um aceite que ainda pode desfazer.
         $this->publisher->publish(EventName::MEMBER_ADDED, (string) $invitation->tenant_id, [
             'tenant_id' => (string) $invitation->tenant_id,
             'user_id' => (string) $user->id,

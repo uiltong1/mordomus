@@ -27,15 +27,6 @@ export interface SettleShareVariables {
   settled: boolean
 }
 
-/**
- * Cada mutação invalida por prefixo de recurso (R6): o que muda com um pagamento
- * é o vencimento, o resumo do mês e as cotas — a lista de contas não, e
- * invalidar tudo faria a tela piscar sem necessidade.
- *
- * O erro não é engolido aqui: quem abre o formulário mapeia `ApiError` para o
- * campo recusado e o toast leva a mensagem. Devolver `void` faria a tela tratar
- * sucesso no 422.
- */
 export function useCreateBill() {
   const { activeTenantId } = useTenant()
   const queryClient = useQueryClient()
@@ -99,7 +90,6 @@ export function useSaveSplitRule() {
     mutationFn: (input: SplitRuleInput) => saveSplitRule(input),
     onSuccess: (rule) => {
       void queryClient.invalidateQueries({ queryKey: resourceKeys.splitRules(activeTenantId) })
-      // as cotas já materializadas só mudam com a regra que as calculou
       void queryClient.invalidateQueries({
         queryKey: tenantKey(activeTenantId, 'occurrence-split'),
       })

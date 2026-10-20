@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { ThemeToggle } from '@/shared/theme'
 
-/** Moldura comum das telas de entrada: mesma coluna, mesma promessa. */
 export function AuthLayout({
   title,
   subtitle,
@@ -15,9 +14,7 @@ export function AuthLayout({
 }) {
   return (
     <div className="relative flex min-h-full items-center justify-center px-5 py-12">
-      {/* antes do login não háresidência nem sino: o tema é a única coisa que a
-          tela oferece, e quem odeia o tema escuro do aparelho precisa poder
-          trocar sem entrar na conta primeiro */}
+      {}
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
@@ -34,5 +31,4 @@ export function AuthLayout({
   )
 }
 
-/** `error.details` de um 422: campo → lista de mensagens do backend. */
 export type FormErrors = Record<string, string[]>

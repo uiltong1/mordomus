@@ -13,18 +13,6 @@ import {
 } from '../support/api'
 import { uniqueEmail } from '../support/env'
 
-/**
- * Jornada 2 — conta e divisão de custo.
- *
- * Cadastro de conta, morador na divisão, cota que fecha em centavos e baixa do
- * vencimento. É o caminho do dono da casa: a conta chega, ele combina quem paga
- * quanto, e a cota de cada um aparece no vencimento antes de qualquer tela
- * abrir.
- *
- * A jornada é inteira pela API porque o módulo financeiro ainda não tem tela —
- * o que ela prova é o contrato HTTP through the gateway, que é o que o
- * aplicativo e qualquer outro cliente vão usar.
- */
 test('conta dividida por peso fecha em centavos e a baixa quita o vencimento', async ({
   request,
 }) => {
@@ -55,9 +43,6 @@ test('conta dividida por peso fecha em centavos e a baixa quita o vencimento', a
     residents.push({ name: resident.name, userId: session.userId })
   }
 
-  // ------------------------------------------------------------- a conta
-  // Vencimento no dia de hoje: a cadência mensal cai dentro da janela do
-  // materializador sem depender de qual dia do mês o teste rodar.
   const billId = await createBill(request, tenant, {
     name: 'Energia elétrica',
     kind: 'fixed',
@@ -66,9 +51,6 @@ test('conta dividida por peso fecha em centavos e a baixa quita o vencimento', a
     advanceNoticeDays: 3,
   })
 
-  // --------------------------------------------------------- a divisão
-  // Peso 2 para quem mora sozinha e 1 para cada um dos outros: 50% da conta
-  // para a dona, 25% para cada morador.
   await saveSplitRule(request, tenant, {
     billId,
     mode: 'WEIGHTED',
@@ -85,7 +67,6 @@ test('conta dividida por peso fecha em centavos e a baixa quita o vencimento', a
   )
   artisan('financial:project')
 
-  // ------------------------------------------------------------ a cota
   const open = await billOccurrences(request, tenant, '?status=open')
   const occurrence = open.find((row) => row.bill_id === billId)
 
@@ -106,13 +87,11 @@ test('conta dividida por peso fecha em centavos e a baixa quita o vencimento', a
     '75.00',
   ])
 
-  // A soma fecha no centavo: é o que separa "um terço" de "33,33% de 100,00".
   const sum = shares.reduce((total, share) => total + Number(share.share_amount), 0)
 
   expect(sum.toFixed(2)).toBe(Number(split.total).toFixed(2))
   expect(sum.toFixed(2)).toBe('300.00')
 
-  // ------------------------------------------------------------ a baixa
   await payOccurrence(request, tenant, occurrenceId, 'pix')
 
   const settled = await splitOf(request, tenant, occurrenceId)

@@ -7,13 +7,6 @@ use Mordomus\Scheduling\Events\DomainEvent;
 use Mordomus\Scheduling\Events\EventName;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Ponte entre o evento publicado pelo Scheduling e o módulo que o consome.
- *
- * É um listener e não uma classe de evento porque o filtro é do Financial
- * (que evento interessa, e o que fazer quando o alvo não é uma conta); o
- * envelope é do Scheduling e chega pronto.
- */
 final class BillScheduleListener
 {
     public function __construct(private readonly BillScheduleConsumerServiceInterface $consumer) {}
@@ -22,8 +15,6 @@ final class BillScheduleListener
     {
         $payload = $event->payload();
 
-        // Vencimento e aviso são de conta; occurrence.completed é do ciclo de
-        // manutenção e não diz nada sobre dinheiro.
         if (! in_array($event->name(), [EventName::OCCURRENCE_CREATED, EventName::SCHEDULE_DUE], true)) {
             return;
         }

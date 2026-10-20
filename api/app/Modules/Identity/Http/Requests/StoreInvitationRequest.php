@@ -11,7 +11,6 @@ class StoreInvitationRequest extends TenantScopedRequest
         return 'members.manage';
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

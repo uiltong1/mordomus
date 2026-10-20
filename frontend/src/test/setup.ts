@@ -8,7 +8,6 @@ afterEach(() => {
   window.history.replaceState({}, '', '/')
 })
 
-// jsdom não implementa matchMedia; o tema consulta a preferência do sistema
 if (!window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,

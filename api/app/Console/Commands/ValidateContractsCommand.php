@@ -8,14 +8,6 @@ use Illuminate\Console\Command;
 use Mordomus\Support\Contracts\ContractSchemaValidator;
 use ReflectionClass;
 
-/**
- * Conferência do contrato de eventos antes de qualquer deploy: roda offline, não
- * toca no banco e sai com código diferente de zero na primeira divergência.
- *
- * O que ela segura é o nome: evento publicado sem schema, schema sem evento e
- * envelope divergente. O payload continua sendo conferido pelos testes de
- * contrato, que constroem o evento pelo caminho real e o validam contra o schema.
- */
 class ValidateContractsCommand extends Command
 {
     protected $signature = 'contracts:validate {--path= : Diretório dos JSON Schemas (padrão: packages/contracts)}';
@@ -61,16 +53,6 @@ class ValidateContractsCommand extends Command
         return self::SUCCESS;
     }
 
-    /**
-     * Eventos publicados pela aplicação, lidos das classes que os nomeiam.
-     *
-     * O nome é contrato: ele é o que o consumidor conhece e o que o schema
-     * declara, então a lista vem de `public const` das classes `EventName` em vez
-     * de uma lista escrita à mão aqui — que passaria a valer por baixo sem
-     * ninguém perceber.
-     *
-     * @return array<string, list<string>>
-     */
     private function publishedEvents(): array
     {
         $events = [];

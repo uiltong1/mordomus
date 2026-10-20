@@ -11,14 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Mordomus\Common\Eloquent\BelongsToTenant;
 use Mordomus\Identity\Models\User;
 
-/**
- * Assinatura de Web Push de um morador (ADR-001).
- *
- * A linha é uma assinatura, não um aparelho: o mesmo celular pode assinar em
- * dois navegadores, e trocar de navegador não deve apagar o histórico. O
- * `endpoint` é a chave natural — é por ele que a assinatura morta é
- * reconhecida na resposta do serviço de push e removida.
- */
 #[Fillable([
     'tenant_id',
     'user_id',
@@ -33,16 +25,12 @@ class DeviceToken extends Model
 {
     use BelongsToTenant, HasUlids;
 
-    /** Navegador com Web Push — o canal do ADR-001. */
     public const PLATFORM_WEB = 'web';
 
-    /** Reservado ao adapter de app nativo (FCM). */
     public const PLATFORM_ANDROID = 'android';
 
-    /** Reservado ao adapter de app nativo (APNs). */
     public const PLATFORM_IOS = 'ios';
 
-    /** @var list<string> */
     public const PLATFORMS = [
         self::PLATFORM_WEB,
         self::PLATFORM_ANDROID,
@@ -62,7 +50,6 @@ class DeviceToken extends Model
         ];
     }
 
-    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

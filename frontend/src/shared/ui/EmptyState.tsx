@@ -7,10 +7,6 @@ export interface EmptyStateProps {
   action?: ReactNode
 }
 
-/**
- * Estado vazio: tela de primeiro uso não é erro nem loading. Recebe a ação que
- * tira o morador do vazio, senão a tela só informa que não há nada.
- */
 export function EmptyState({ title, description, icon, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-line px-6 py-12 text-center">
@@ -31,7 +27,6 @@ export function EmptyState({ title, description, icon, action }: EmptyStateProps
 export interface ErrorStateProps {
   title?: string
   message: string
-  /** `request_id` do envelope: é o que amarra a tela ao log do backend. */
   requestId?: string | null
   onRetry?: () => void
 }

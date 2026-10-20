@@ -7,18 +7,6 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Mordomus\Notification\Models\NotificationPreference;
 
-/**
- * Quiet hours, digest e horário preferido do morador.
- *
- * Os três campos são independentes e todos opcionais: quem muda só a janela
- * deixa o digest como estava. O que não pode é uma janela com um lado só —
- * meia janela não existe, e gravar `quiet_start` sem `quiet_end` deixaria o
- * morador sem silêncio nenhum sem ele ter pedido isso.
- *
- * `digest` é a escolha do canal: `instant` é push, `daily` é e-mail no
- * horário preferido. Não há interruptor por canal no contrato, e há o porquê
- * do jeito que está.
- */
 class UpdateNotificationPreferenceRequest extends FormRequest
 {
     public function authorize(): bool
@@ -26,7 +14,6 @@ class UpdateNotificationPreferenceRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

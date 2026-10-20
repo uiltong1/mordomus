@@ -60,7 +60,6 @@ final class DeviceTokenRepository implements DeviceTokenRepositoryInterface
             ->delete();
     }
 
-    /** @return Builder<DeviceToken> */
     private function query(): Builder
     {
         return DeviceToken::query();

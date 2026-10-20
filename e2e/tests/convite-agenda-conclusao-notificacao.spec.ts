@@ -10,20 +10,6 @@ import {
 } from '../support/api'
 import { uniqueEmail } from '../support/env'
 
-/**
- * Jornada 1 — convidar, agendar, concluir e notificar.
- *
- * É o caminho do morador novo: alguém o convida, ele entra na casa, a casa
- * programa a manutenção, ele marca o que já fez e o aviso daquela casa chega
- * até ele.
- *
- * Parte da jornada é de navegador e parte é de API porque é isso que existe: a
- * tela de convidar morador não foi construída (o convite é ato do dono e mora
- * só na API) e o sino in-app só enche com o service worker ligado, que o
- * ambiente de desenvolvimento não liga. Onde não há tela, a jornada usa o mesmo
- * gateway e a mesma sessão — e afirma no banco de verdade o que a tela
- * afirmaria.
- */
 test('convite leva à casa, a regra vira agenda e o morador novo é notificado', async ({
   page,
   request,
@@ -32,7 +18,6 @@ test('convite leva à casa, a regra vira agenda e o morador novo é notificado',
   const ownerEmail = uniqueEmail('dono')
   const guestEmail = uniqueEmail('convidado')
 
-  // ---------------------------------------------------------------- convidar
   const owner = await register(request, {
     name: 'Dona da Casa',
     email: ownerEmail,
@@ -41,8 +26,6 @@ test('convite leva à casa, a regra vira agenda e o morador novo é notificado',
 
   const invitation = await invite(request, owner, guestEmail)
 
-  // O convidado precisa de conta: o aceite exige a sessão de quem tem o e-mail
-  // no convite, e é o que impede aceito por link vazado.
   const guest = await register(request, {
     name: 'Morador Convidado',
     email: guestEmail,
@@ -56,9 +39,6 @@ test('convite leva à casa, a regra vira agenda e o morador novo é notificado',
 
   await expect(guestPage.getByRole('heading', { level: 1 })).toHaveText('Casa da Jornada')
 
-  // A preferência é do morador dentro da casa, então vale a sessão já apontando
-  // para ela. `daily` é o caminho que produz linha de notificação sem
-  // assinatura de push: sem assinatura o consumidor descarta o aviso.
   const neighbour = await switchTenant(request, guest, owner.tenantId)
 
   await setNotificationPreference(request, neighbour, {
@@ -66,7 +46,6 @@ test('convite leva à casa, a regra vira agenda e o morador novo é notificado',
     preferredHour: '10:00',
   })
 
-  // ---------------------------------------------------------------- agendar
   await signIn(page, ownerEmail)
 
   await page.getByRole('button', { name: 'Novo cômodo' }).click()
@@ -109,19 +88,14 @@ test('convite leva à casa, a regra vira agenda e o morador novo é notificado',
   await ruleDialog.getByRole('button', { name: 'Criar regra' }).click()
   await expect(ruleDialog).toBeHidden()
 
-  // O card do item mostra a regra como o morador a lê ("A cada 21 dias"), não
-  // como ela foi digitada no formulário.
   await expect(assetRow).toContainText('A cada 21 dias')
 
-  // O motor materializa a agenda; sem o comando a regra existe e a agenda fica
-  // vazia — exatamente o que o scheduler evita na produção.
   await materialize(
     request,
     owner,
     (rows) => rows.some((row) => row.title === 'Limpeza das serpentinas'),
   )
 
-  // --------------------------------------------------------------- concluir
   await guestPage.goto('/agenda')
 
   const row = guestPage
@@ -134,9 +108,6 @@ test('convite leva à casa, a regra vira agenda e o morador novo é notificado',
   await expect(guestPage.getByRole('status').filter({ hasText: 'Tarefa concluída.' })).toBeVisible()
   await expect(row).toHaveAttribute('data-status', 'completed')
 
-  // --------------------------------------------------------------- notificar
-  // O aviso sai pela fila: a linha aparece quando o worker consome o envelope,
-  // não no mesmo instante em que o convite foi aceito.
   await expect
     .poll(
       async () => {

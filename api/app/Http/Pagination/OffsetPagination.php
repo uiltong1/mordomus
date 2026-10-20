@@ -6,9 +6,6 @@ namespace Mordomus\Http\Pagination;
 
 use Illuminate\Http\Request;
 
-/**
- * Paginação offset: clamp único de `page`/`per_page` e meta padronizada.
- */
 final readonly class OffsetPagination
 {
     private const MAX_PER_PAGE = 100;
@@ -26,9 +23,6 @@ final readonly class OffsetPagination
         );
     }
 
-    /**
-     * @return array{page: int, per_page: int, total: int, last_page: int}
-     */
     public function meta(int $total, int $lastPage): array
     {
         return [

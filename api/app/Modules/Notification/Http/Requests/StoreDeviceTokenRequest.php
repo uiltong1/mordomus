@@ -6,18 +6,6 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Mordomus\Notification\Models\DeviceToken;
 
-/**
- * Assinatura de Web Push do morador (ADR-001).
- *
- * `p256dh` e `auth` são a chave pública e o segredo de autenticação da
- * assinatura, e é com eles que o corpo da notificação é cifrado. A validação
- * `base64url` é o que separa "o navegador mandou a assinatura" de "o
- * navegador mandou lixo" — e o corpo só é cifrado depois dela.
- *
- * `endpoint` tem teto de 2048 porque é o que vira chave única e o que o
- * serviço de push devolve na resposta; um endpoint de MB não é assinatura, é
- * payload.
- */
 class StoreDeviceTokenRequest extends FormRequest
 {
     public function authorize(): bool
@@ -25,7 +13,6 @@ class StoreDeviceTokenRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

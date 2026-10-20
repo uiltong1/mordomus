@@ -5,14 +5,8 @@ namespace Mordomus\Maintenance\Http\Resources;
 use Illuminate\Support\Carbon;
 use Mordomus\Maintenance\Models\Asset;
 
-/**
- * Shape do ativo, com datas no fuso da residência.
- */
 final class AssetResource
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function make(Asset $asset, string $timezone): array
     {
         return [
@@ -33,10 +27,6 @@ final class AssetResource
         ];
     }
 
-    /**
-     * @param  iterable<Asset>  $assets
-     * @return list<array<string, mixed>>
-     */
     public function collection(iterable $assets, string $timezone): array
     {
         return collect($assets)

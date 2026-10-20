@@ -9,15 +9,7 @@ use Mordomus\Financial\Models\PaymentRecord;
 
 interface PaymentRecordRepositoryInterface
 {
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
     public function create(array $attributes): PaymentRecord;
 
-    /**
-     * Baixas de um vencimento, do mais antigo para o mais novo.
-     *
-     * @return Collection<int, PaymentRecord>
-     */
     public function forOccurrence(string $billOccurrenceId): Collection;
 }

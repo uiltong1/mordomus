@@ -8,16 +8,10 @@ use Mordomus\Identity\Models\Membership;
 use Mordomus\Identity\Models\Tenant;
 use Mordomus\Identity\Models\TenantPreference;
 
-/**
- * Shape da residência e das suas preferências.
- */
 final readonly class TenantResource
 {
     public function __construct(private CapabilityResolverServiceInterface $capabilities) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function make(Tenant $tenant, ?Membership $membership = null): array
     {
         return [
@@ -38,13 +32,9 @@ final readonly class TenantResource
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function preferences(Tenant $tenant): array
     {
-        // o escopo global ficaria `1 = 0` no POST /tenants, que roda sem o
-        // contexto de residência
+
         $preferences = $tenant->preferences()
             ->withoutGlobalScope(TenantGlobalScope::class)
             ->first();

@@ -27,7 +27,7 @@ final class TenantService implements TenantServiceInterface
 
     public function index(Request $request): array
     {
-        /** @var User $user */
+
         $user = $request->user();
         $pagination = OffsetPagination::from($request);
 
@@ -44,7 +44,7 @@ final class TenantService implements TenantServiceInterface
 
     public function show(Request $request, Tenant $tenant): array
     {
-        /** @var User $user */
+
         $user = $request->user();
 
         return [
@@ -54,7 +54,7 @@ final class TenantService implements TenantServiceInterface
 
     public function store(Request $request): array
     {
-        /** @var User $user */
+
         $user = $request->user();
 
         $provisioned = $this->provisioner->create($user, [
@@ -85,7 +85,6 @@ final class TenantService implements TenantServiceInterface
         $tenant->fill($request->only(['name', 'timezone', 'preferred_hour']));
         $tenant->save();
 
-        /** @var User $user */
         $user = $request->user();
 
         return [

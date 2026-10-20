@@ -49,7 +49,6 @@ async function fillForm() {
 describe('CreateTenantPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
-    // a tela vive atrás do RequireAuth: chegar aqui já exige sessão
     const { saveSession } = await import('@/shared/api/tokenStore')
     saveSession({
       access_token: 'access-1',
@@ -90,7 +89,6 @@ describe('CreateTenantPage', () => {
       timezone: 'America/Sao_Paulo',
       preferred_hour: '09:00',
     })
-    // sem adotar o token novo, a tela seguinte leria a residência antiga
     await waitFor(() => expect(getSession()?.accessToken).toBe('access-novo'))
     expect(getSession()?.user?.name).toBe('Ana')
     expect(onDone).toHaveBeenCalledOnce()
@@ -110,7 +108,6 @@ describe('CreateTenantPage', () => {
     await fillForm()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Dados inválidos.')
-    // o que a pessoa digitou não pode sumir
     expect(screen.getByLabelText('Nome da residência')).toHaveValue('Casa de praia')
     expect(onDone).not.toHaveBeenCalled()
   })

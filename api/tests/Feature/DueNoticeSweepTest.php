@@ -12,24 +12,12 @@ use Mordomus\Scheduling\Models\JobSchedule;
 use Mordomus\Scheduling\Models\ScheduleEvent;
 use Mordomus\Scheduling\Models\TriggerConfig;
 
-/**
- * Varrimento de avisos de 15 em 15 minutos (T3.2.6).
- *
- * O caso que o AC pede — aviso antecipado e offsets na data certa — é
- * sensível à hora: as ocorrências nascem na `preferred_hour` da residência
- * (09:00 em São Paulo, 12:00 UTC), então o relógio é congelado em torno dos
- * instantes que decidem cada passada.
- *
- * Com a regra padrão (20 dias a partir de 20/03), o vencimento cai em
- * 09/04 às 12:00 UTC.
- */
 class DueNoticeSweepTest extends FeatureTestCase
 {
     private const DUE = '2026-04-09';
 
     private string $tenantId;
 
-    /** @var array<string, string> */
     private array $headers;
 
     private string $assetId;
@@ -100,7 +88,6 @@ class DueNoticeSweepTest extends FeatureTestCase
         ]);
         $this->materialize();
 
-        // 20/03 + 30 dias ⇒ vencimento em 19/04 às 12:00 UTC.
         $this->sweepAt('2026-04-16 11:59:00');
         $this->assertSame([], $this->publishedKinds());
 
@@ -110,14 +97,10 @@ class DueNoticeSweepTest extends FeatureTestCase
         $this->sweepAt('2026-04-19 12:00:00');
         $this->assertSame(['offset:-3', 'offset:0'], $this->publishedKinds());
 
-        // O alerta de atraso vive depois de `due_at`, quando a ocorrência já
-        // virou `overdue` — é o offset positivo que impede o varrimento de
-        // descartá-la antes de avisar.
         $this->sweepAt('2026-04-20 12:00:00');
         $this->assertSame(['offset:-3', 'offset:0', 'offset:1'], $this->publishedKinds());
     }
 
-    /** O AC de idempotência na prática: 10 passadas do varrimento, 1 aviso. */
     public function test_sweeping_ten_times_publishes_each_notice_once(): void
     {
         $this->createRule();
@@ -139,8 +122,6 @@ class DueNoticeSweepTest extends FeatureTestCase
         $this->sweepAt('2026-04-09 13:00:00');
         $this->sweepAt('2026-04-09 13:15:00');
 
-        // A chave é função do aviso, não da passada: é o que permite ao
-        // consumidor (T6.1) descartar a reentrega do at-least-once.
         $this->assertSame(
             ["tenant:{$this->tenantId}:{$this->occurrenceId(self::DUE)}:due"],
             array_column($this->publishedNotices(), 'dedupe_key'),
@@ -153,8 +134,6 @@ class DueNoticeSweepTest extends FeatureTestCase
         $this->materialize();
         $this->sweepAt('2026-04-06 13:00:00');
 
-        // Com antecedência a ocorrência fica `notified` até o vencimento: o
-        // morador já foi avisado e a data ainda não passou.
         $this->assertSame(JobSchedule::STATUS_NOTIFIED, $this->occurrenceStatus(self::DUE));
         $this->assertSame(
             '2026-04-06T09:00:00-03:00',
@@ -238,8 +217,6 @@ class DueNoticeSweepTest extends FeatureTestCase
     {
         Queue::fake([PublishEvent::class]);
 
-        // O AC do `subject_type=bill`: a ocorrência é do Scheduling, e o
-        // `subject_id` publicado é o da conta — o Financial não calcula data.
         $billId = $this->withTenantContext($this->tenantId, fn (): string => Bill::create([
             'tenant_id' => $this->tenantId,
             'name' => 'Conta de energia',
@@ -266,8 +243,6 @@ class DueNoticeSweepTest extends FeatureTestCase
         $this->sweepAt('2026-04-07 12:00:00');
         $this->assertSame(['advance_notice'], $this->publishedKinds());
 
-        // A mesma fila leva o aviso republicado pelo Financial (`bill.due`),
-        // então a verificação olha só o envelope do Scheduling.
         Queue::assertPushed(PublishEvent::class, function (PublishEvent $job) use ($billId): bool {
             return ($job->envelope['event'] ?? null) === EventName::SCHEDULE_DUE
                 && ($job->envelope['payload']['subject_type'] ?? null) === TriggerConfig::SUBJECT_BILL
@@ -275,16 +250,11 @@ class DueNoticeSweepTest extends FeatureTestCase
         });
     }
 
-    // -------------------------------------------------------------- helpers
-
     private function freezeAt(string $instantUtc): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse($instantUtc, 'UTC'));
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function createRule(array $payload = []): void
     {
         $this->withHeaders($this->headers)->postJson('/api/v1/scheduling/trigger-configs', [
@@ -333,7 +303,6 @@ class DueNoticeSweepTest extends FeatureTestCase
         );
     }
 
-    /** @return list<string> */
     private function dates(): array
     {
         return $this->withTenantContext($this->tenantId, fn (): array => JobSchedule::query()
@@ -343,12 +312,6 @@ class DueNoticeSweepTest extends FeatureTestCase
             ->all());
     }
 
-    /**
-     * `kind` de cada aviso, na ordem de publicação; o offset entra no rótulo
-     * porque é ele que distingue um aviso do outro no `ESCALATED`.
-     *
-     * @return list<string>
-     */
     private function publishedKinds(): array
     {
         return array_map(
@@ -357,7 +320,6 @@ class DueNoticeSweepTest extends FeatureTestCase
         );
     }
 
-    /** @return list<array<string, mixed>> */
     private function publishedNotices(): array
     {
         return $this->withTenantContext($this->tenantId, fn (): array => ScheduleEvent::query()

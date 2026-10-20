@@ -31,17 +31,8 @@ const STATUS_TONE: Record<FinancialOccurrenceStatus, string> = {
   cancelled: 'bg-surface-2 text-ink-subtle',
 }
 
-/** Só `open` e `overdue` aceitam baixa — `paid` já foi, `cancelled` não existe mais. */
 const PAYABLE: readonly FinancialOccurrenceStatus[] = ['open', 'overdue']
 
-/**
- * Explica por que a lista muda sozinha e quando o morador precisa mexer nela.
- *
- * A dúvida real é "cadê a minha fatura": em conta fixa ela aparece sozinha, em
- * conta variável só depois de um lançamento. Dizer isso na tela evita que o
- * morador conclua que o lançamento manual serve para toda conta e crie
- * duplicata da fixa — o que o servidor recusa com 409.
- */
 const EXPLAINER_ITEMS = [
   {
     title: 'Cada linha é um vencimento, não a conta',
@@ -57,13 +48,6 @@ const EXPLAINER_ITEMS = [
   },
 ] as const
 
-/**
- * Vencimentos e pagamento.
- *
- * `month` e `from`/`to` são dois jeitos de dizer o mesmo recorte e o backend
- * recusa os dois juntos (`IndexBillOccurrencesRequest`); por isso o recorte é um
- * `<select>` só e a query monta um ou o outro — nunca os dois no payload.
- */
 export function OccurrencesPage() {
   const { can } = useAuth()
   const [recorte, setRecorte] = useState<Recorte>('month')

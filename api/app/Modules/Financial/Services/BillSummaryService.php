@@ -16,15 +16,6 @@ use Mordomus\Http\Exceptions\TenantMismatch;
 use Mordomus\Http\Tenancy\ActiveTenant;
 use Mordomus\Scheduling\Contracts\Services\TenantCalendarServiceInterface;
 
-/**
- * Consolidação mensal: quanto a casa gastou, quanto pagou e o que ficou em
- * aberto.
- *
- * A agregação é feita em memória sobre os vencimentos do mês em vez de no
- * banco: o recorte é de uma residência, são dezenas de linhas, e somar texto
- * decimal em PHP pelo `MoneyService` é o que garante que a soma das cotas
- * feche com o total (regra R5) sem depender do arredondamento do driver.
- */
 final class BillSummaryService implements BillSummaryServiceInterface
 {
     public function __construct(
@@ -49,10 +40,6 @@ final class BillSummaryService implements BillSummaryServiceInterface
         return ['data' => $this->resource->make($this->consolidate($occurrences, $month, $timezone))];
     }
 
-    /**
-     * @param  Collection<int, BillOccurrence>  $occurrences
-     * @return array<string, mixed>
-     */
     private function consolidate(Collection $occurrences, string $month, string $timezone): array
     {
         $byStatus = array_fill_keys(BillOccurrence::STATUSES, 0);
@@ -61,9 +48,6 @@ final class BillSummaryService implements BillSummaryServiceInterface
         foreach ($occurrences as $occurrence) {
             $byStatus[$occurrence->status]++;
 
-            // Cada estado tem o seu balde, e `due` soma todos: um vencimento
-            // cancelado saiu da conta da casa, mas não deixa de ter sido um
-            // lançamento do mês.
             $totals['due'][] = $occurrence->amount;
             $totals[$occurrence->status][] = $occurrence->amount;
         }
@@ -90,13 +74,6 @@ final class BillSummaryService implements BillSummaryServiceInterface
         ];
     }
 
-    /**
-     * Recorte por categoria da conta, que é o eixo que o morador reconhece —
-     * moradia, energia, transporte — e não o nome de cada conta.
-     *
-     * @param  Collection<int, BillOccurrence>  $occurrences
-     * @return list<array<string, mixed>>
-     */
     private function byCategory(Collection $occurrences): array
     {
         $groups = [];
@@ -130,7 +107,6 @@ final class BillSummaryService implements BillSummaryServiceInterface
         ], array_values($groups));
     }
 
-    /** Mês pedido ou o mês corrente da residência, no fuso dela. */
     private function month(Request $request, string $timezone): string
     {
         $month = $request->string('month')->toString();
@@ -142,8 +118,7 @@ final class BillSummaryService implements BillSummaryServiceInterface
 
     private function tenantId(Request $request): string
     {
-        // O middleware `tenant` já devolveu 403 sem `tid`; o guard serve para
-        // o service nunca receber um id vazio e vazar escopo.
+
         return ActiveTenant::id($request) ?? throw TenantMismatch::make();
     }
 }

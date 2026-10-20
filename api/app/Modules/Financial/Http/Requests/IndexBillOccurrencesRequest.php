@@ -13,12 +13,6 @@ class IndexBillOccurrencesRequest extends FormRequest
         return true;
     }
 
-    /**
-     * `month` e `from`/`to` são dois jeitos de dizer o mesmo recorte: aceitos
-     * juntos, um deles seria silenciosamente ignorado.
-     *
-     * @return array<string, mixed>
-     */
     public function rules(): array
     {
         return [

@@ -16,17 +16,6 @@ const METHOD_LABEL: Record<PaymentMethod, string> = {
   other: 'Outro',
 }
 
-/**
- * Baixa do vencimento.
- *
- * `method` é obrigatório porque o backend exige (não há valor padrão plausível);
- * `amount` vem preenchido com o previsto porque em conta de valor conhecido o
- * morador não precisa redigitar o que já está no cadastro.
- *
- * Baixa repetida não abre erro: o backend é idempotente e devolve a mesma linha,
- * então a tela só reflete o estado novo. `cancelled` é a recusa que vale
- * explicar — não é "erro", é a conta que não existe mais.
- */
 export function PayModal({
   occurrence,
   onClose,
@@ -145,9 +134,6 @@ export function PayModal({
           errors={errors.receipt_url}
         >
           {(props) => (
-            // `type="text"` e não `type="url"`: a validação nativa do navegador
-            // barraria o envio com a mensagem do idioma do navegador, em vez do
-            // `url` do backend, que é a mensagem que o resto da tela fala
             <Input
               {...props}
               type="text"

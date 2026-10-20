@@ -8,18 +8,6 @@ import { formatAmount } from './money'
 import { formatDayNumeric } from '@/shared/datetime'
 import type { BillOccurrence } from '@/shared/api/types'
 
-/**
- * Cotas de um vencimento.
- *
- * Com `scope: own` — morador sem `splits.manage` — a lista traz só a cota dele e
- * o `total` continua sendo o do vencimento: somar a lista parcial daria um
- * número que não é o total da conta. Por isso o rodapé só aparece no escopo
- * inteiro, e o total nunca é recalculado aqui.
- *
- * Desfazer (`settled: false`) é correção explícita e tem botão próprio: quem
- * marcou errado precisa desfazer de propósito, não por um segundo clique no
- * mesmo comando.
- */
 export function OccurrenceSplitModal({
   occurrence,
   onClose,

@@ -6,15 +6,9 @@ use Illuminate\Database\Eloquent\Factories\Attributes\UseModel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Mordomus\Identity\Models\Tenant;
 
-/**
- * @extends Factory<Tenant>
- */
 #[UseModel(Tenant::class)]
 class TenantFactory extends Factory
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         $name = fake()->unique()->city();

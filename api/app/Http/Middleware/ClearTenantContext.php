@@ -9,12 +9,6 @@ use Illuminate\Http\Request;
 use Mordomus\Common\Support\TenantContext;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Limpa o TenantContext (estático) no início e no fim de cada requisição.
- *
- * O worker FPM é reutilizado entre requisições: sem esta barreira um tenant
- * resolvido na requisição anterior contaminaria a seguinte.
- */
 class ClearTenantContext
 {
     public function handle(Request $request, Closure $next): Response

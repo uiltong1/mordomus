@@ -16,13 +16,6 @@ use Mordomus\Notification\Models\DeviceToken;
 use Mordomus\Notification\Models\NotificationLog;
 use Tests\Support\FakePushChannel;
 
-/**
- * Entrega: fan-out por assinatura, assinatura morta, adiamento e DLQ.
- *
- * O canal de push é o duplo porque é a única fronteira que mente: o provedor
- * real exige VAPID, cifra e rede, e o que importa aqui é o que o monólito faz
- * com a resposta dele.
- */
 class NotificationDeliveryTest extends FeatureTestCase
 {
     private string $tenantId;
@@ -48,8 +41,6 @@ class NotificationDeliveryTest extends FeatureTestCase
 
         parent::tearDown();
     }
-
-    // ------------------------------------------------------------------ push
 
     public function test_a_delivered_push_marks_the_line_as_sent(): void
     {
@@ -86,7 +77,6 @@ class NotificationDeliveryTest extends FeatureTestCase
         $this->device('https://push/test/viva');
         $log = $this->log(['channel' => NotificationLog::CHANNEL_PUSH]);
 
-        // 404/410 é `false`: a assinatura saiu, o resto do fan-out continua.
         $this->channel(['https://push.test/morta' => false, 'https://push/test/viva' => true]);
         $this->deliver($log);
 
@@ -108,8 +98,6 @@ class NotificationDeliveryTest extends FeatureTestCase
             $this->assertStringContainsString('500', $exception->getMessage());
         }
 
-        // `queued` é a prova de que a linha ainda está na fila de entrega: o
-        // retry é do job, e a linha não vira `failed` antes das tentativas.
         $this->assertSame(NotificationLog::STATUS_QUEUED, $log->fresh()->status);
         $this->assertNull($log->fresh()->sent_at);
     }
@@ -122,13 +110,8 @@ class NotificationDeliveryTest extends FeatureTestCase
         $this->deliver($log);
         $this->deliver($log);
 
-        // A segunda passagem é o que aconteceria com um job repetido depois de
-        // um sucesso parcial; sem o `sent_at` o morador receberia o aviso duas
-        // vezes.
         $this->assertCount(1, $this->push->sent);
     }
-
-    // ----------------------------------------------------------------- email
 
     public function test_a_digest_is_emailed_to_the_resident(): void
     {
@@ -155,8 +138,6 @@ class NotificationDeliveryTest extends FeatureTestCase
 
         $log = $this->log(['channel' => NotificationLog::CHANNEL_EMAIL]);
 
-        // A FK é `nullOnDelete`: a conta sai e a linha fica, que é o que permite
-        // o histórico responder por que o e-mail não chegou.
         $this->withTenantContext($this->tenantId, fn () => User::query()
             ->whereKey($this->userId)
             ->delete());
@@ -168,8 +149,6 @@ class NotificationDeliveryTest extends FeatureTestCase
         $this->assertSame(NotificationLog::STATUS_FAILED, $log->fresh()->status);
         $this->assertStringContainsString('não existe mais', (string) $log->fresh()->error);
     }
-
-    // -------------------------------------------------------------- adiamento
 
     public function test_a_line_whose_instant_has_not_come_goes_back_to_the_queue(): void
     {
@@ -187,7 +166,6 @@ class NotificationDeliveryTest extends FeatureTestCase
             return $job->queue === config('notification.queues.push') && $job->delay === 8 * 3600;
         });
 
-        // O adiamento não gasta uma das tentativas: elas são para o provedor.
         $this->assertSame(NotificationLog::STATUS_QUEUED, $log->fresh()->status);
         $this->assertCount(0, $this->push->sent);
     }
@@ -205,8 +183,6 @@ class NotificationDeliveryTest extends FeatureTestCase
 
         $this->assertCount(1, $this->push->sent);
     }
-
-    // ------------------------------------------------------------------- DLQ
 
     public function test_the_job_marks_the_line_failed_when_the_attempts_run_out(): void
     {
@@ -233,8 +209,7 @@ class NotificationDeliveryTest extends FeatureTestCase
 
     public function test_the_channel_of_the_line_does_not_choose_the_queue(): void
     {
-        // `inapp` não é um canal de entrega: sair da lista é falha da linha, e
-        // não um job que vai reprovar para sempre.
+
         $log = $this->log(['channel' => NotificationLog::CHANNEL_INAPP]);
 
         $this->deliver($log);
@@ -243,9 +218,6 @@ class NotificationDeliveryTest extends FeatureTestCase
         $this->assertStringContainsString('Canal desconhecido', (string) $log->fresh()->error);
     }
 
-    // ---------------------------------------------------------------- helpers
-
-    /** Troca o canal de push; o que não for listado no mapa é aceito. */
     private function channel(array $endpoints = []): void
     {
         $this->push = new FakePushChannel($endpoints);
@@ -261,7 +233,6 @@ class NotificationDeliveryTest extends FeatureTestCase
         );
     }
 
-    /** @param array<string, mixed> $attributes */
     private function log(array $attributes): NotificationLog
     {
         $this->channel();

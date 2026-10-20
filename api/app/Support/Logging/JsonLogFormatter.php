@@ -7,10 +7,6 @@ namespace Mordomus\Support\Logging;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\LogRecord;
 
-/**
- * Cada linha do log é um objeto JSON de nível raiz — consumível por
- * coletor/linter sem parsear o formato de texto do LineFormatter.
- */
 final class JsonLogFormatter extends JsonFormatter
 {
     public function format(LogRecord $record): string
@@ -26,10 +22,6 @@ final class JsonLogFormatter extends JsonFormatter
         return (string) json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n";
     }
 
-    /**
-     * @param  array<string, mixed>  $context
-     * @return array<string, mixed>
-     */
     private function normalizeContext(array $context): array
     {
         if (! isset($context['exception']) || ! $context['exception'] instanceof \Throwable) {

@@ -20,8 +20,6 @@ describe('formatMoney', () => {
   })
 
   it('preserva os centavos que o float perderia', () => {
-    // 0.1 + 0.2 em binário é 0.30000000000000004: o texto do backend é 0.30 e
-    // é ele que precisa aparecer na tela (regra R5)
     expect(formatMoney('0.30')).toBe('R$ 0,30')
     expect(formatMoney('0.07')).toBe('R$ 0,07')
     expect(formatMoney('0.01')).toBe('R$ 0,01')

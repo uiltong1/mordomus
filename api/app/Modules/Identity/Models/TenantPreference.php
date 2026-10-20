@@ -16,7 +16,6 @@ class TenantPreference extends Model
 
     protected $keyType = 'string';
 
-    /** Quiet hours e canais padrão */
     public const DEFAULT_QUIET_HOURS = ['start' => '22:00', 'end' => '07:00'];
 
     public const DEFAULT_CHANNELS = ['email' => true, 'push' => true, 'in_app' => true];

@@ -9,9 +9,7 @@ use Mordomus\Identity\Models\Tenant;
 
 interface InvitationServiceInterface
 {
-    /** @return array<string, mixed> */
     public function store(Request $request, Tenant $tenant): array;
 
-    /** @return array<string, mixed> */
     public function accept(Request $request, string $token): array;
 }

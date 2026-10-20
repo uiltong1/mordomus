@@ -4,11 +4,6 @@ import { resourceKeys } from './queryKeys'
 
 const TENANT = '01m442k8kh4maxtc338bg7rc3t'
 
-/**
- * Chave de cache é o que decide se "invalidar o inventário inteiro" chega na
- * tela do cômodo. Um filtro ausente dentro da chave quebra o prefixo e a
- * invalidação passa em silêncio: a tela só corrige quando alguém recarrega.
- */
 describe('resourceKeys', () => {
   it.each([
     [
